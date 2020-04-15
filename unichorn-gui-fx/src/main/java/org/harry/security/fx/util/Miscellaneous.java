@@ -35,6 +35,11 @@ public class Miscellaneous {
         return choice;
     }
 
+    public static TextArea getTextAreaByFXID(String fxId)  {
+        TextArea choice = (TextArea) SecHarry.fxmlLoader.getNamespace().get(fxId);
+        return choice;
+    }
+
     public static CheckBox getCheckBoxByFXID(String fxId)  {
         CheckBox check = (CheckBox) SecHarry.fxmlLoader.getNamespace().get(fxId);
         return check;

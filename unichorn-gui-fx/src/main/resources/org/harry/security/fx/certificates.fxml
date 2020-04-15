@@ -54,7 +54,7 @@
             <TextField fx:id="httpURL" GridPane.columnIndex="5" GridPane.rowIndex="3" />
             <Label text="URL:" GridPane.columnIndex="4" GridPane.rowIndex="3" />
             <CheckBox fx:id="ocspCheck" mnemonicParsing="false" text="Do OCSP Check" GridPane.columnIndex="5" GridPane.rowIndex="2" />
-            <Button fx:id="storePEM" mnemonicParsing="false" onAction="#storePEM" text="Store as PEM" GridPane.columnIndex="5" GridPane.rowIndex="1" />
+            <Button fx:id="storeCert" mnemonicParsing="false" onAction="#storeCertDialog" text="Store Cert Dialog" GridPane.columnIndex="5" GridPane.rowIndex="1" />
          </children>
       </GridPane>
    </children>

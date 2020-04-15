@@ -192,16 +192,8 @@ public class CertViewerCtrl implements ControllerInit {
     }
 
     @FXML
-    protected void storePEM(ActionEvent event) throws IOException, CertificateEncodingException {
-        String userDir = System.getProperty("user.home");
-        userDir = userDir + "/certStore";
-        File store = new File(userDir).getAbsoluteFile();
-        if (!store.exists()) {
-            store.mkdirs();
-        }
-        File userCert = new File(store.getAbsoluteFile(), UUID.randomUUID().toString() + ".pem");
-        CertWriterReader writer = new CertWriterReader(selectedCert);
-        writer.writeToFilePEM(new FileOutputStream(userCert));
+    protected void storeCertDialog(ActionEvent event) throws IOException, CertificateEncodingException {
+       SecHarry.setRoot("certStore");
     }
 
     private void setColor(ObservableList list, String color) {
