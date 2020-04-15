@@ -50,13 +50,11 @@ public class CertActionCtrl implements ControllerInit {
 
     @FXML
     protected void exportCert(ActionEvent event) throws IOException, CertificateEncodingException {
-        String userDir = System.getProperty("user.home");
-        userDir = userDir + "/certStore";
-        File store = new File(userDir).getAbsoluteFile();
-        if (!store.exists()) {
-            store.mkdirs();
+        if (actualCert !=null && targetStream !=null) {
+            CertWriterReader reader = new CertWriterReader(actualCert);
+            reader.writeToFilePEM(targetStream);
         }
-        File userCert = new File(store.getAbsoluteFile(), UUID.randomUUID().toString() + ".pem");
+
     }
 
     @FXML
@@ -66,8 +64,9 @@ public class CertActionCtrl implements ControllerInit {
     }
 
     @FXML
-    public void selectTarget(ActionEvent event) {
-
+    public void selectTarget(ActionEvent event) throws IOException {
+        File outFile = showSaveDialog(event, "expTarget");
+        targetStream = new FileOutputStream(outFile);
     }
 
     @FXML
