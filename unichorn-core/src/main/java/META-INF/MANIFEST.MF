@@ -1,0 +1,7 @@
+Manifest-Version: 1.0
+Main-Class: org.harry.glab.CMSSigner
+Class-Path: iaik_cms.jar iaik_jce.jar iaik_cpades.jar iaik_cms_demo.jar 
+ iaik_jce_demo.jar iaik_jce_full.jar iaik_eccelerate.jar iaik_javax_cryp
+ to.jar iaik_eccelerate_cms.jar iaik_eccelerate_ssl.jar iaik_jce_native_
+ aes.jar iaik_eccelerate_demos.jar
+

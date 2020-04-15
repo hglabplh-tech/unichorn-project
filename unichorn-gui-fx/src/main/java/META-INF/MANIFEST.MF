@@ -1,0 +1,6 @@
+Manifest-Version: 1.0
+Main-Class: org.harald.glab.fx.SecHarry
+Class-Path: org.harry.glab iaik_cms.jar iaik_jce.jar iaik_cpades.jar
+ iaik_jce_full.jar iaik_eccelerate.jar  iaik_eccelerate_cms.jar  iaik_eccelerate_demos.jar
+
+

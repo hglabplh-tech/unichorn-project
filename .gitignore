@@ -1,0 +1,3 @@
+# Project exclude paths
+/unichorn-core/target/
+/unichorn-gui-fx/target/
