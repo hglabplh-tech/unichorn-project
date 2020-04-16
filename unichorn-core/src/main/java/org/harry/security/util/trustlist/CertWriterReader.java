@@ -47,6 +47,11 @@ public class CertWriterReader {
         stream.close();
     }
 
+    public X509Certificate readX509(InputStream stream) throws IOException, CertificateException {
+        X509Certificate cert = new X509Certificate(stream);
+        return cert;
+    }
+
     public X509Certificate readFromFilePEM(InputStream stream) throws CertificateException, IOException {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         Readable readable = new InputStreamReader(stream);

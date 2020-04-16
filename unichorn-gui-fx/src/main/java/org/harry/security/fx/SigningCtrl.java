@@ -95,15 +95,15 @@ public class SigningCtrl implements ControllerInit {
         if(bean.getAction().equals(CMSSigner.Commands.SIGN)) {
             if (bean.getSignatureType().equals(SigningBean.SigningType.CMS)) {
                 DataSource outSrc = util.signCMS(bean);
-                util.writeToFile(outSrc);
+                util.writeToFile(outSrc, bean);
             } else if (bean.getSignatureType().equals(SigningBean.SigningType.CAdES)) {
                 DataSource outSrc = util.signCAdES(
                         bean);
-                util.writeToFile(outSrc);
+                util.writeToFile(outSrc, bean);
             }
         } else if (bean.getAction().equals(CMSSigner.Commands.ENCRYPT_SIGN)) {
             DataSource outSrc = util.encryptAndSign(bean);
-            util.writeToFile(outSrc);
+            util.writeToFile(outSrc, bean);
         }
 
     }

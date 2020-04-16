@@ -45,14 +45,30 @@ public class CertActionCtrl implements ControllerInit {
             area.setText(actualCert.toString());
 
 
+        }else if (certType.equals(CertWriterReader.CertType.X509)) {
+            CertWriterReader reader = new CertWriterReader();
+            actualCert = reader.readX509(sourceStream);
+            TextArea area = getTextAreaByFXID("certView");
+            area.setWrapText(true);
+            area.setText(actualCert.toString());
+
+
         }
     }
 
     @FXML
     protected void exportCert(ActionEvent event) throws IOException, CertificateEncodingException {
+        ComboBox expBox = getComboBoxByFXID("expFormat");
         if (actualCert !=null && targetStream !=null) {
-            CertWriterReader reader = new CertWriterReader(actualCert);
-            reader.writeToFilePEM(targetStream);
+            CertWriterReader.CertType certType = (CertWriterReader.CertType)
+                    expBox.getSelectionModel().getSelectedItem();
+            if (certType.equals(CertWriterReader.CertType.PEM)) {
+                CertWriterReader reader = new CertWriterReader(actualCert);
+                reader.writeToFilePEM(targetStream);
+            }else if (certType.equals(CertWriterReader.CertType.X509)) {
+                CertWriterReader reader = new CertWriterReader(actualCert);
+                reader.writeX509(targetStream);
+            }
         }
 
     }

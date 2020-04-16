@@ -47,6 +47,52 @@ public class VerifyUtil {
         this.bean = bean;
     }
 
+    public static boolean quickCheck(InputStream signature, InputStream data) throws IOException, CMSParsingException {
+            boolean success = false;
+
+        ContentInfoStream cis = new ContentInfoStream(signature);
+            try {
+                SignedDataStream signedData;
+                if (data != null) {
+                    signedData = new SignedDataStream(cis.getContentInputStream());
+                } else {
+                    signedData = new SignedDataStream(cis.getContentInputStream());
+                }
+                if (signedData.getMode() == SignedDataStream.EXPLICIT) {
+                    // explicitly signed; set the content received by other means
+                    signedData.setInputStream(data);
+                }
+
+                SignerInfo[] signerInfos;
+                signerInfos = signedData.getSignerInfos();
+                X509Certificate [] possibleSigners = signedData.getX509Certificates();
+                X509Certificate signer = null;
+                int index = 0;
+                SigningUtil.eatStream(signedData.getInputStream());
+                for (SignerInfo info : signerInfos) {
+                    info.setSecurityProvider(new IaikCCProvider());
+                    for (X509Certificate actual:possibleSigners) {
+                        if(info.isSignerCertificate(actual)) {
+                            signer = actual;
+                            break;
+                        }
+                    }
+                    if (signer != null) {
+                        info.verifySignature(signer.getPublicKey());
+                        success = true;
+                        String[] emails = signer.getEmailAddresses();
+                        for (String email: emails){
+                            System.out.println("email:" + email);
+                        }
+                        index++;
+                    }
+                }
+                return success;
+            } catch (Exception ex) {
+                throw new IllegalStateException("quick check failed", ex);
+            }
+    }
+
     /**
      * This method checks the validity of a CMS signature and the consistency of the
      * certificate path

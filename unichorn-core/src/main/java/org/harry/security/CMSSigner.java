@@ -129,33 +129,33 @@ public class CMSSigner {
 
                     if (!cmds.isEncrypt() && command.equals(Commands.SIGN)) {
                         DataSource signatureDS = util.signCMS(signingBean);
-                        util.writeToFile(signatureDS);
+                        util.writeToFile(signatureDS, signingBean);
                     } else if (!cmds.isEncrypt() && command.equals(Commands.DECRYPT)) {
                         DataSource signatureDS = util.decryptCMS(dataStream);
-                        util.writeToFile(signatureDS);
+                        util.writeToFile(signatureDS,signingBean);
                     } else if (cmds.isEncrypt() && command.equals(Commands.SIGN)) {
                         DataSource envelopDS = util.encryptCMS(signingBean);
-                        util.writeToFile(envelopDS);
+                        util.writeToFile(envelopDS, signingBean);
                     } else if (command.equals(Commands.CRYPT_ENVELOP)) {
                         DataSource outDS = util.envelopeDataCMS(dataStream);
-                        util.writeToFile(outDS);
+                        util.writeToFile(outDS, signingBean);
                     } else if (command.equals(Commands.DECRYPT_ENVELOP)) {
                         DataSource outDS = util.getEnvelopedData(dataStream);
-                        util.writeToFile(outDS);
+                        util.writeToFile(outDS, signingBean);
                     } else if (command.equals(Commands.SIGN_CERT)) {
 
                         File certFile = new File(signed.getInCert()).getAbsoluteFile();
                         FileInputStream certFileStream = new FileInputStream(certFile);
                         signingBean.setDataIN(certFileStream);
                         DataSource ds = util.signCMS(signingBean);
-                        util.writeToFile(ds);
+                        util.writeToFile(ds, signingBean);
                     } else if (command.equals(Commands.GET_SIGNED_CERT_SIGN)) {
                         File certFile = new File(signed.getInCert()).getAbsoluteFile();
                         FileInputStream certFileStream = new FileInputStream(certFile);
                         signingBean.setCertIN(certFileStream);
                         signingBean.setSignedWithAlias(signWith.getAlias());
                         DataSource ds = util.signEncrCMS(signingBean);
-                        util.writeToFile(ds);
+                        util.writeToFile(ds, signingBean);
                     }
 
                 } catch (IOException e) {

@@ -15,6 +15,7 @@ import java.util.GregorianCalendar;
 import java.util.Random;
 
 public class Generator {
+    public static PrivateKey pk;
     public static X509Certificate createCertificate() throws NoSuchAlgorithmException {
         System.out.println("initialize....");
         boolean forSigning = true;
@@ -24,14 +25,18 @@ public class Generator {
         issuer.addRDN(ObjectID.country, "DE");
         issuer.addRDN(ObjectID.organization , "Unichorn GmbH");
         issuer.addRDN(ObjectID.organizationalUnit , "Signazure Dev, Team");
+        issuer.addRDN(ObjectID.emailAddress , "harry@glab.org");
+
 
         Name subject = new Name();
         subject.addRDN(ObjectID.country, "DE");
         subject.addRDN(ObjectID.organization , "Unichorn GmbH");
         subject.addRDN(ObjectID.organizationalUnit , "Signazure Dev, Team");
+        subject.addRDN(ObjectID.emailAddress , "harry@glab.org");
 
         System.out.println("gen keypair....");
         KeyPair pair = generateKeyPair("RSA", 2048);
+        pk = pair.getPrivate();
 
         // create a new certificate
         X509Certificate cert = new X509Certificate();

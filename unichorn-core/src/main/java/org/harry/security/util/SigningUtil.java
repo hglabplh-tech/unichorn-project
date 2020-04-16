@@ -163,11 +163,11 @@ public class SigningUtil {
         attributes[2] = new Attribute(signingCertificate);
         signerInfo.setSignedAttributes(attributes);
         stream.addSignerInfo(signerInfo);
+        stream.setBlockSize(2048);
         if (mode == SignedDataStream.EXPLICIT) {
             InputStream data_is = stream.getInputStream();
             eatStream(data_is);
         }
-        stream.setBlockSize(2048);
         // create the ContentInfo
         ContentInfoStream cis = new ContentInfoStream(stream);
         // return the SignedData as encoded byte array with block size 2048
@@ -258,7 +258,7 @@ public class SigningUtil {
      */
     public static void eatStream(InputStream data_is) {
 
-        byte[] buf = new byte[1024];
+        byte[] buf = new byte[2048];
             int r;
             while (true) {
                 try {
@@ -273,15 +273,16 @@ public class SigningUtil {
     /**
      * Writes the datasource to a file
      * @param ds the datasource which is written
+     * @param bean
      */
-     public void writeToFile(DataSource ds) {
+     public void writeToFile(DataSource ds, SigningBean bean) {
         try {
-            File outFile = new File(signaturePath).getAbsoluteFile();
+            File outFile = new File(bean.getOutputPath()).getAbsoluteFile();
             FileOutputStream out = new FileOutputStream(outFile);
             InputStream stream = ds.getInputStream();
-            byte[] buffer = new byte[8 * 1024];
+            byte[] buffer = new byte[2048];
             int bytesRead;
-            while ((bytesRead = stream.read(buffer)) != -1) {
+            while ((bytesRead = stream.read(buffer)) > 0) {
                 out.write(buffer, 0, bytesRead);
             }
             stream.close();
