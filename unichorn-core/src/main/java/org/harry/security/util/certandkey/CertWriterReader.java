@@ -1,4 +1,4 @@
-package org.harry.security.util.trustlist;
+package org.harry.security.util.certandkey;
 
 import com.google.common.io.LineReader;
 import iaik.x509.X509Certificate;

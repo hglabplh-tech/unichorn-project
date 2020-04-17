@@ -240,6 +240,7 @@ public class CMSSigner {
         ECCelerate ecProvider = ECCelerate.getInstance();
         Security.insertProviderAt(ecProvider, 3);
         SecurityProvider.setSecurityProvider(new ECCelerateProvider());
+
     }
 
     public void initRandom() {

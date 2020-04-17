@@ -1,6 +1,7 @@
 package org.harry.security.fx.util;
 
 import javafx.event.ActionEvent;
+import javafx.scene.Node;
 import javafx.scene.control.*;
 import javafx.stage.FileChooser;
 import javafx.stage.Window;
@@ -85,5 +86,25 @@ public class Miscellaneous {
         }
         return null;
     }
+
+    public static File showSaveDialogFromButton(ActionEvent event, String fxId) {
+        FileChooser fDialog = new FileChooser();
+        fDialog.setTitle("Select Path");
+        File currentDir = new File(System.getProperty("user.home", "C:\\")).getAbsoluteFile();
+
+        fDialog.setInitialDirectory(currentDir);
+        Window parent = ((Node)event.getTarget()).getScene().getWindow();
+        File file = fDialog.showSaveDialog(parent);
+        if (file != null) {
+            TextField inputField = getTextFieldByFXID(fxId);
+            if (inputField != null) {
+                inputField.setText(file.getAbsolutePath());
+                return file;
+
+            }
+        }
+        return null;
+    }
+
 
 }

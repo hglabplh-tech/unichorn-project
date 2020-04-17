@@ -1,4 +1,4 @@
-package org.harry.security.util.trustlist;
+package org.harry.security.util.certandkey;
 
 import iaik.x509.X509Certificate;
 import org.harry.security.testutils.Generator;

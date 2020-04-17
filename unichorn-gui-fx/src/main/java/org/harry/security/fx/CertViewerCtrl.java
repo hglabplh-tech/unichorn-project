@@ -15,11 +15,8 @@ import javafx.scene.control.TextField;
 import org.harry.security.util.CertLoader;
 import org.harry.security.util.HttpsChecker;
 import org.harry.security.util.Tuple;
-import org.harry.security.util.trustlist.CertWriterReader;
 import org.harry.security.fx.util.Miscellaneous;
 
-import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.security.NoSuchAlgorithmException;
 import java.security.Principal;

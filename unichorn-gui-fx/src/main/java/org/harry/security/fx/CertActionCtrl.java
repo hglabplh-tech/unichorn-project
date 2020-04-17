@@ -6,12 +6,14 @@ import javafx.fxml.FXML;
 import javafx.scene.Scene;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.TextArea;
-import org.harry.security.util.trustlist.CertWriterReader;
+import javafx.scene.control.TextField;
+import org.harry.security.util.certandkey.CertWriterReader;
+import org.harry.security.util.certandkey.KeyStoreTool;
 
 import java.io.*;
+import java.security.KeyStore;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.CertificateException;
-import java.util.UUID;
 
 import static org.harry.security.fx.util.Miscellaneous.*;
 
@@ -23,18 +25,27 @@ public class CertActionCtrl implements ControllerInit {
 
     private OutputStream targetStream = null;
 
+    private InputStream storeStream = null;
+
     @Override
     public Scene init() {
         ComboBox impBox = getComboBoxByFXID("impFormat");
         impBox.getItems().addAll(CertWriterReader.CertType.values());
         ComboBox expBox = getComboBoxByFXID("expFormat");
         expBox.getItems().addAll(CertWriterReader.CertType.values());
+        ComboBox typeBox = getComboBoxByFXID("keyStoreType");
+        typeBox.getItems().addAll(KeyStoreTool.StoreType.values());
         return expBox.getScene();
     }
 
     @FXML
     protected void importCert(ActionEvent event) throws IOException, CertificateException {
         ComboBox impBox = getComboBoxByFXID("impFormat");
+        ComboBox typeBox = getComboBoxByFXID("keyStoreType");
+        TextField passwd = getTextFieldByFXID("passwd");
+        TextField alias = getTextFieldByFXID("alias");
+        KeyStoreTool.StoreType storeType = (KeyStoreTool.StoreType)
+                typeBox.getSelectionModel().getSelectedItem();
         CertWriterReader.CertType certType = (CertWriterReader.CertType)
                 impBox.getSelectionModel().getSelectedItem();
         if (certType.equals(CertWriterReader.CertType.PEM)) {
@@ -53,21 +64,51 @@ public class CertActionCtrl implements ControllerInit {
             area.setText(actualCert.toString());
 
 
+        } else if (certType.equals(CertWriterReader.CertType.P12)) {
+        KeyStore store = null;
+        if (storeStream !=null) {
+            store = KeyStoreTool.loadStore(storeStream,
+                    passwd.getText().toCharArray(),
+                    storeType.getType());
+            actualCert = KeyStoreTool.getCertificateEntry(store, alias.getText());
+            TextArea area = getTextAreaByFXID("certView");
+            area.setWrapText(true);
+            area.setText(actualCert.toString());
+        }
+
         }
     }
 
     @FXML
     protected void exportCert(ActionEvent event) throws IOException, CertificateEncodingException {
         ComboBox expBox = getComboBoxByFXID("expFormat");
-        if (actualCert !=null && targetStream !=null) {
+        ComboBox typeBox = getComboBoxByFXID("keyStoreType");
+        TextField passwd = getTextFieldByFXID("passwd");
+        TextField alias = getTextFieldByFXID("alias");
+        if (actualCert !=null) {
             CertWriterReader.CertType certType = (CertWriterReader.CertType)
                     expBox.getSelectionModel().getSelectedItem();
-            if (certType.equals(CertWriterReader.CertType.PEM)) {
+             KeyStoreTool.StoreType storeType = (KeyStoreTool.StoreType)
+                    typeBox.getSelectionModel().getSelectedItem();
+            if (certType.equals(CertWriterReader.CertType.PEM) && targetStream !=null) {
                 CertWriterReader reader = new CertWriterReader(actualCert);
                 reader.writeToFilePEM(targetStream);
-            }else if (certType.equals(CertWriterReader.CertType.X509)) {
+            }else if (certType.equals(CertWriterReader.CertType.X509) && targetStream !=null) {
                 CertWriterReader reader = new CertWriterReader(actualCert);
                 reader.writeX509(targetStream);
+            } else if (certType.equals(CertWriterReader.CertType.P12)) {
+                KeyStore store = null;
+                if (storeStream !=null) {
+                   store = KeyStoreTool.loadStore(storeStream,
+                           passwd.getText().toCharArray(),
+                           storeType.getType());
+                } else {
+                   store =  KeyStoreTool.initStore(storeType.getType());
+                }
+                File outFile = showSaveDialogFromButton(event, "expTarget");
+                targetStream = new FileOutputStream(outFile);
+                KeyStoreTool.addCertificate(store, actualCert, alias.getText());
+                KeyStoreTool.storeKeyStore(store, targetStream, passwd.getText().toCharArray());
             }
         }
 
@@ -83,6 +124,12 @@ public class CertActionCtrl implements ControllerInit {
     public void selectTarget(ActionEvent event) throws IOException {
         File outFile = showSaveDialog(event, "expTarget");
         targetStream = new FileOutputStream(outFile);
+    }
+
+    @FXML
+    public void selectStore(ActionEvent event) throws IOException {
+        File inFile = showOpenDialog(event, "storeFile");
+        storeStream = new FileInputStream(inFile);
     }
 
     @FXML

@@ -12,7 +12,7 @@ import iaik.x509.X509Certificate;
 import iaik.x509.ocsp.OCSPResponse;
 import org.harry.security.util.bean.SigningBean;
 import org.harry.security.util.ocsp.HttpOCSPClient;
-import org.harry.security.util.trustlist.CertWriterReader;
+import org.harry.security.util.certandkey.CertWriterReader;
 import org.harry.security.util.trustlist.TrustListWalkerAndGetter;
 
 import java.io.*;
