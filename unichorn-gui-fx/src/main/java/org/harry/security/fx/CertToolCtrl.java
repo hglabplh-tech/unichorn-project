@@ -9,11 +9,15 @@ import org.harry.security.CMSSigner;
 import org.harry.security.util.ConfigReader;
 import org.harry.security.util.SigningUtil;
 import org.harry.security.util.bean.SigningBean;
+import org.harry.security.util.certandkey.KeyStoreTool;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.security.KeyStore;
+import java.security.KeyStoreException;
+import java.util.Enumeration;
 
 import static org.harry.security.fx.util.Miscellaneous.*;
 
@@ -36,6 +40,8 @@ public class CertToolCtrl implements ControllerInit {
     private void processAction(ActionEvent event) throws IOException {
         SigningBean signingBean = SecHarry.contexts.get();
         TextField passwd= getTextFieldByFXID("keyStorePass");
+        ComboBox aliasBox = getComboBoxByFXID("alias");
+        String alias = (String)aliasBox.getSelectionModel().getSelectedItem();
         ComboBox actionBox = getComboBoxByFXID("action");
         CMSSigner.Commands action = (CMSSigner.Commands)actionBox.getSelectionModel().getSelectedItem();
         ConfigReader.saveProperties(ConfigReader.init());
@@ -46,7 +52,7 @@ public class CertToolCtrl implements ControllerInit {
         if (keyStoreStream != null && dataInput != null) {
             bean = SigningUtil.loadSecrets(new FileInputStream(keyStoreStream),
                     props.getKeystoreType(),
-                    passwd.getText(), props.getAlias());
+                    passwd.getText(), alias);
             dataInputStream = new FileInputStream(dataInput);
             outPathString = outFile.getAbsolutePath();
         }
@@ -62,6 +68,22 @@ public class CertToolCtrl implements ControllerInit {
             SecHarry.setRoot("verify");
         }
     }
+
+    @FXML
+    private void loadStore(ActionEvent event) throws IOException, KeyStoreException {
+        SigningBean signingBean = SecHarry.contexts.get();
+        TextField passwd= getTextFieldByFXID("keyStorePass");
+        ComboBox aliasBox = getComboBoxByFXID("alias");
+        ConfigReader.saveProperties(ConfigReader.init());
+        ConfigReader.MainProperties props = ConfigReader.loadStore();
+        KeyStore store = KeyStoreTool.loadStore(new FileInputStream(keyStoreStream),passwd.getText().toCharArray(), "JKS");
+        Enumeration<String> aliases = store.aliases();
+        while(aliases.hasMoreElements()) {
+            String alias = aliases.nextElement();
+            aliasBox.getItems().add(alias);
+        }
+    }
+
 
     @FXML
     public void selectOutPath(ActionEvent event) {
@@ -91,10 +113,7 @@ public class CertToolCtrl implements ControllerInit {
         SecHarry.setRoot("certificates");
     }
 
-    @FXML
-    private void store(ActionEvent event) throws IOException {
 
-    }
 
     @FXML
     private void more(ActionEvent event) throws IOException {

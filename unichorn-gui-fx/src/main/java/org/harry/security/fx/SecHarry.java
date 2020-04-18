@@ -7,6 +7,7 @@ import javafx.scene.Scene;
 import javafx.scene.layout.Pane;
 import javafx.stage.Stage;
 import org.harry.security.CMSSigner;
+import org.harry.security.util.CertificateWizzard;
 import org.harry.security.util.ConfigReader;
 import org.harry.security.util.bean.SigningBean;
 import org.harry.security.util.trustlist.TrustListWalkerAndGetter;
@@ -27,6 +28,7 @@ public class SecHarry extends Application {
     @Override
     public void start(Stage stage) throws IOException {
         CMSSigner.setProviders();
+        CertificateWizzard.initThis();
         List<TrustListWalkerAndGetter> walkers = ConfigReader.loadAllTrusts();
         SigningBean context = new SigningBean().setWalker(walkers);
         contexts.set(context);

@@ -54,7 +54,6 @@
             <Button fx:id="cancel" mnemonicParsing="false" onAction="#cancelSigning" text="Cancel" GridPane.columnIndex="3" GridPane.rowIndex="7" />
             <Label text="Alias" GridPane.columnIndex="2" />
             <Label text="Input File Path" GridPane.rowIndex="2" />
-            <TextField fx:id="alias" GridPane.columnIndex="3" />
             <Label text="Output File Path" GridPane.rowIndex="3" />
             <TextField fx:id="outPath" GridPane.columnIndex="1" GridPane.rowIndex="3">
                <contextMenu>
@@ -76,7 +75,7 @@
             </TextField>
             <ComboBox fx:id="action" prefWidth="150.0" GridPane.columnIndex="3" GridPane.rowIndex="1" />
             <Label text="Action" GridPane.columnIndex="2" GridPane.rowIndex="1" />
-            <Button fx:id="store" mnemonicParsing="false" onAction="#store" text="Store" GridPane.columnIndex="2" GridPane.rowIndex="3" />
+            <Button fx:id="loadStore" mnemonicParsing="false" onAction="#loadStore" text="Load Store" GridPane.columnIndex="2" GridPane.rowIndex="3" />
             <Button fx:id="more" mnemonicParsing="false" onAction="#more" text="More" GridPane.columnIndex="3" GridPane.rowIndex="5" />
             <Button fx:id="certStore" mnemonicParsing="false" onAction="#showStore" text="WIN Private Store" GridPane.columnIndex="2" GridPane.rowIndex="5" />
             <Button fx:id="editProps" mnemonicParsing="false" onAction="#editProps" text="Edit Properties" GridPane.columnIndex="3" GridPane.rowIndex="3" />
@@ -85,6 +84,7 @@
                   <Image url="@unicorn-4291012_960_720.png" />
                </image>
             </ImageView>
+            <ComboBox fx:id="alias" prefWidth="150.0" GridPane.columnIndex="3" />
          </children>
       </GridPane>
       <Sphere radius="0.77">

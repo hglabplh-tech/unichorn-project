@@ -103,21 +103,17 @@ public class VerifyUtil {
     public VerifierResult verifyCMSSignature(InputStream signature, InputStream data) {
         VerifierResult result = null;
         try {
-            CadesSignatureStream cadesSig = new CadesSignatureStream(signature, data);
+            ContentInfoStream cis = new ContentInfoStream(signature);
 
-            SignedDataStream signedData = cadesSig.getSignedDataObject();
+            SignedDataStream signedData = new SignedDataStream(cis.getContentInputStream());
             if (signedData.getMode() == SignedData.EXPLICIT) {
                 if (data == null) {
                     throw new IllegalStateException("data stream is null though signature is explicit");
                 }
                 signedData.setInputStream(data);
             }
-            MessageDigest md = makeMessageDigest(AlgorithmID.sha512);
-            InputStream inStream = signedData.getInputStream();
-            DigestInputStream digestStream =
-                    new DigestInputStream(inStream, md);
-            SigningUtil.eatStream(digestStream);
-            digestStream.close();
+            //cadesSig.verifySignatureValue(0);
+            SigningUtil.eatStream(signedData.getInputStream());
             SignerInfo [] signerInfos;
             signerInfos = signedData.getSignerInfos();
             List<X509Certificate> signCertList =
@@ -130,12 +126,12 @@ public class VerifyUtil {
                 writer.writeToFilePEM(stream);
                 index++;
             }
-            SignatureTimeStamp[]
+            /*SignatureTimeStamp[]
             tsp = cadesSig.getSignatureTimeStamps(signCertList.get(0));
             signatureTimestampCheck(tsp);
 
             ContentTimeStamp[] tspContent = cadesSig.getContentTimeStamps(signCertList.get(0));
-            contentTimestampCheck(tspContent);
+            contentTimestampCheck(tspContent); */
         } catch (Exception ex) {
             throw new IllegalStateException("cannot verify signature reason is", ex);
         }
@@ -205,12 +201,9 @@ public class VerifyUtil {
                                 if (info.verifySignature(signCert.getPublicKey())) {
                                     results.addSignatureResult(signCert.getSubjectDN().getName(),
                                             new Tuple<>("signature base check succeded", Outcome.SUCCESS));
-                                    if (bean.isCheckPathOcsp()) {
-                                        detectChain(signCert, results);
-                                    } else {
-                                        results.addSignatureResult(signCert.getSubjectDN().getName(),
-                                                new Tuple<>("path / ocsp check omitted", Outcome.UNDETERMINED));
-                                    }
+
+                                    detectChain(signCert, results);
+
                                 } else {
                                     results.addSignatureResult(signCert.getSubjectDN().getName(),
                                             new Tuple<>("signature check failed", Outcome.FAILED));
@@ -246,7 +239,9 @@ public class VerifyUtil {
             X509Certificate[] certArray = new X509Certificate[2];
             certArray[0] = signCert;
             certArray[1] = certOpt.get();
-            checkOCSP(results, certArray);
+            if (bean.isCheckPathOcsp()) {
+                checkOCSP(results, certArray);
+            }
         } else {
             results.addSignatureResult(
                     "", new Tuple<>("signature chain building failed", Outcome.FAILED));
@@ -258,7 +253,10 @@ public class VerifyUtil {
             X509Certificate[] certArray = new X509Certificate[2];
             certArray[0] = certOpt.get();
             certArray[1] = certOptIssuer.get();
-            checkOCSP(results, certArray);
+            results.addSignatureResult("path building", new Tuple<>("pathcheck", Outcome.SUCCESS));
+            if (bean.isCheckPathOcsp()) {
+                checkOCSP(results, certArray);
+            }
         } else {
             results.addSignatureResult(
                     "", new Tuple<>("signature chain building failed", Outcome.FAILED));
@@ -384,25 +382,27 @@ public class VerifyUtil {
             certs[0] = bean.getSelectedCert();
             int responseStatus = 0;
             URL ocspUrl = HttpOCSPClient.getOCSPUrl(chain[0]);
-            OCSPResponse response;
-            if (reqIsSigned == true) {
+            OCSPResponse response = null;
+            if (reqIsSigned == true && ocspUrl != null) {
                  response = HttpOCSPClient.sendOCSPRequest(ocspUrl, bean.getSelectedKey(),
                         certs, chain, true);
-            } else {
+            } else if (ocspUrl != null){
                 response = HttpOCSPClient.sendOCSPRequest(ocspUrl, null,
                         null, chain, true);
             }
 
-            responseStatus = HttpOCSPClient.getClient().parseOCSPResponse(response, true);
-            String resultName = chain[0].getSubjectDN().getName();
-            if (responseStatus == OCSPResponse.successful) {
-                results.addOcspResult(resultName, new Tuple<String, Outcome>(response.getResponseStatusName(), Outcome.SUCCESS));
-            } else if(responseStatus == OCSPResponse.tryLater) {
-                results.addOcspResult(resultName, new Tuple<String, Outcome>(response.getResponseStatusName(),
-                        Outcome.UNDETERMINED));
-            } else {
-                results.addOcspResult(resultName, new Tuple<String, Outcome>(response.getResponseStatusName(),
-                        Outcome.FAILED));
+            if (response != null) {
+                responseStatus = HttpOCSPClient.getClient().parseOCSPResponse(response, true);
+                String resultName = chain[0].getSubjectDN().getName();
+                if (responseStatus == OCSPResponse.successful) {
+                    results.addOcspResult(resultName, new Tuple<String, Outcome>(response.getResponseStatusName(), Outcome.SUCCESS));
+                } else if (responseStatus == OCSPResponse.tryLater) {
+                    results.addOcspResult(resultName, new Tuple<String, Outcome>(response.getResponseStatusName(),
+                            Outcome.UNDETERMINED));
+                } else {
+                    results.addOcspResult(resultName, new Tuple<String, Outcome>(response.getResponseStatusName(),
+                            Outcome.FAILED));
+                }
             }
         } catch (Exception ex){
             throw new IllegalStateException("OCSP check failed with exception", ex);

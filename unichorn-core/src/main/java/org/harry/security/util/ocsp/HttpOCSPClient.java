@@ -106,9 +106,12 @@ public class HttpOCSPClient {
      * @throws MalformedURLException error case
      */
     public static URL getOCSPUrl(X509Certificate cert) throws X509ExtensionInitException, MalformedURLException {
+        String urlString = null;
         AuthorityInfoAccess access = (AuthorityInfoAccess)cert.getExtension(ObjectID.certExt_AuthorityInfoAccess);
-        AccessDescription description = access.getAccessDescription(ObjectID.ocsp);
-        String urlString = description.getUriAccessLocation();
+        if (access != null) {
+            AccessDescription description = access.getAccessDescription(ObjectID.ocsp);
+            urlString = description.getUriAccessLocation();
+        }
         return new URL(urlString);
     }
 }

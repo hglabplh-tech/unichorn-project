@@ -12,6 +12,8 @@ This is a review done in October 2013 as a result of mismatches between the XML 
 	<xsd:import namespace="http://www.w3.org/2000/09/xmldsig#" schemaLocation="xmldsig-core-schema.xsd"/>
 	<!-- Begin auxiliary types -->
 	<!--InternationalNamesType-->
+	<!-- ROOT Element -->
+	<xsd:element name="TrustServiceStatusList" type="tsl:TrustStatusListType" />
 	<xsd:complexType name="InternationalNamesType">
 		<xsd:sequence>
 			<xsd:element name="Name" type="xsd:string" maxOccurs="unbounded"/>
@@ -110,12 +112,11 @@ This is a review done in October 2013 as a result of mismatches between the XML 
 		</xsd:sequence>
 	</xsd:complexType>
 	<!-- End auxiliary types -->
-	<!-- ROOT Element -->
-	<xsd:element name="TrustServiceStatusList" type="tsl:TrustStatusListType"/>
+
 	<!-- Trust Status List Type Definition -->
 	<!-- 2013-10. XML Schema CHANGE-->
 	<!-- Attribute TSLTag declared as xsd:anyURI -->
-	<xsd:complexType name="TrustStatusListType">
+	<xsd:complexType name="TrustStatusListType" >
 		<xsd:sequence>
 			<xsd:element ref="tsl:SchemeInformation"/>
 			<xsd:element ref="tsl:TrustServiceProviderList" minOccurs="0"/>
