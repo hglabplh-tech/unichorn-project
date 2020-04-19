@@ -51,6 +51,11 @@ public class Miscellaneous {
         return progress;
     }
 
+    public static Label getLabelByFXID(String fxId)  {
+        Label label = (Label) SecHarry.fxmlLoader.getNamespace().get(fxId);
+        return label;
+    }
+
     public static ListView getListViewByFXID(String fxId) {
         ListView inputField = (ListView) SecHarry.fxmlLoader.getNamespace().get(fxId);
         return inputField;

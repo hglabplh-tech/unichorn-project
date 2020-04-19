@@ -84,6 +84,7 @@ public class CertificateWizzard {
         try {
             X509Certificate [] certChain = new X509Certificate[1];
         Name issuer = new Name();
+        KeyUsage usage = certUsage();
         issuer.addRDN(ObjectID.country,
                 properties.getCountry());
         issuer.addRDN(ObjectID.organization ,properties.getOrganization());
@@ -101,8 +102,7 @@ public class CertificateWizzard {
                 ca_rsa.getPrivate(),
                 (AlgorithmID)AlgorithmID.sha256WithRSAEncryption.clone(),
                 null,
-                true,
-                false);
+                usage);
             caRSA.verify();
             // set the CA cert as trusted root
             verifier.addTrustedCertificate(caRSA);
@@ -120,8 +120,7 @@ public class CertificateWizzard {
                     ca_ec.getPrivate(),
                     (AlgorithmID)AlgorithmID.ecdsa_With_SHA3_256.clone(),
                     null,
-                    true,
-                    false);
+                    usage);
             caEC.verify();
             // set the CA cert as trusted root
             verifier.addTrustedCertificate(caEC);
@@ -139,6 +138,7 @@ public class CertificateWizzard {
     public void generateIntermediate() {
         try {
             X509Certificate [] certChain = new X509Certificate[2];
+            KeyUsage usage = certUsage();
             SubjectKeyIdentifier subjectKeyID = (SubjectKeyIdentifier) caRSA.getExtension(SubjectKeyIdentifier.oid);
             Name issuer = new Name();
             issuer.addRDN(ObjectID.country,
@@ -159,8 +159,7 @@ public class CertificateWizzard {
                     ca_rsa.getPrivate(),
                     (AlgorithmID) AlgorithmID.sha256WithRSAEncryption.clone(),
                     subjectKeyID.get(),
-                    true,
-                    true);
+                    usage);
             certChain[0] = intermediateRSA;
             certChain[1] = caRSA;
             // and verify the chain
@@ -179,8 +178,7 @@ public class CertificateWizzard {
                     ca_ec.getPrivate(),
                     (AlgorithmID) AlgorithmID.ecdsa_With_SHA3_256.clone(),
                     subjectKeyID.get(),
-                    true,
-                    true);
+                    usage);
             certChain[0] = intermediateEC;
             certChain[1] = caEC;
             // and verify the chain
@@ -214,14 +212,14 @@ public class CertificateWizzard {
                     "RSA_Inter");
             subject.addRDN(ObjectID.commonName ,properties.getCommonName() + "_RSA_User");
             KeyPair userKeys = generateKeyPair("RSA", 4096);
+            KeyUsage usage = signUsage();
              X509Certificate userCert = createCertificate(subject,
                     userKeys.getPublic(),
                     issuer,
                     inter_rsa.getPrivate(),
                     (AlgorithmID) AlgorithmID.sha256WithRSAEncryption.clone(),
                     subjectKeyID.get(),
-                    true,
-                    true);
+                    usage);
             certChain[0] = userCert;
             certChain[1] = intermediateRSA;
             certChain[2] = caRSA;
@@ -240,9 +238,7 @@ public class CertificateWizzard {
                     issuer,
                     inter_ec.getPrivate(),
                     (AlgorithmID) AlgorithmID.ecdsa_With_SHA3_256.clone(),
-                    subjectKeyID.get(),
-                    true,
-                    true);
+                    subjectKeyID.get(), usage);
             certChain[0] = userCertEC;
             certChain[1] = intermediateEC;
             certChain[2] = caEC;
@@ -267,13 +263,12 @@ public class CertificateWizzard {
      * @param privateKey the private key for signing the certificate
      * @param algorithm the signature algorithm to use
      * @param keyID the key id for the AuthotityKeyIdentifier extension
-     * @param signing
-     * @param forSigning if the certificate to be created shall be used for signing or encryption
+     * @param keyUsage the usage extension for the certificate
      * @return the certificate just created
      */
     public static X509Certificate createCertificate(Name subject, PublicKey publicKey,
                                                     Name issuer, PrivateKey privateKey, AlgorithmID algorithm, byte[] keyID,
-                                                    boolean signing, boolean forSigning) {
+                                                    KeyUsage keyUsage) {
 
         // create a new certificate
         X509Certificate cert = new X509Certificate();
@@ -294,21 +289,9 @@ public class CertificateWizzard {
                 date.add(Calendar.YEAR, 6);
                 BasicConstraints basicConstraints = new BasicConstraints(true);
                 cert.addExtension(basicConstraints);
-                KeyUsage keyUsage = new KeyUsage(KeyUsage.keyCertSign | KeyUsage.cRLSign);
                 cert.addExtension(keyUsage);
             } else {
                 date.add(Calendar.YEAR, 5);
-                KeyUsage keyUsage = null;
-                if (forSigning) {
-                    keyUsage = new KeyUsage(KeyUsage.digitalSignature |
-                            KeyUsage.nonRepudiation | KeyUsage.keyCertSign | KeyUsage.cRLSign);
-                } else {
-                    if (publicKey.getAlgorithm().equalsIgnoreCase("ESDH")) {
-                        keyUsage = new KeyUsage(KeyUsage.keyAgreement) ;
-                    } else {
-                        keyUsage = new KeyUsage(KeyUsage.keyEncipherment);
-                    }
-                }
                 cert.addExtension(keyUsage);
                 AuthorityKeyIdentifier authID = new AuthorityKeyIdentifier();
                 authID.setKeyIdentifier(keyID);
@@ -415,6 +398,15 @@ public class CertificateWizzard {
 
             return null;
         }
+    }
+
+    KeyUsage certUsage() {
+        return new KeyUsage(KeyUsage.keyCertSign | KeyUsage.cRLSign);
+    }
+
+    KeyUsage signUsage() {
+        return new KeyUsage(KeyUsage.digitalSignature |
+                KeyUsage.nonRepudiation);
     }
 
 

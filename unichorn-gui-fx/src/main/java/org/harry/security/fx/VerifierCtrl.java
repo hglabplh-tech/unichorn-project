@@ -59,8 +59,8 @@ public class VerifierCtrl implements ControllerInit {
         verifyResults.getSelectionModel().getSelectedItem();
         SigningBean bean = SecHarry.contexts.get();
         CheckBox check = getCheckBoxByFXID("ocspPathCheck");
-        ProgressBar progress = getProgessBarByFXID("progress");
-        progress.setProgress(25.0d);
+        Label status = getLabelByFXID("status");
+
         ComboBox sigType = getComboBoxByFXID("sigType");
         SigningBean.SigningType type = (SigningBean.SigningType) sigType.getSelectionModel().getSelectedItem();
         boolean ocspPathCheck = check.isSelected();
@@ -72,7 +72,7 @@ public class VerifierCtrl implements ControllerInit {
             signatureIN = new FileInputStream(signatureInput);
             dataIN = new FileInputStream(inputPath);
             if(type.equals(SigningBean.SigningType.CMS)) {
-                progress.setProgress(50.0d);
+
                 VerifyUtil.VerifierResult result = util.verifyCMSSignature(signatureIN, dataIN);
                 List<VerifyUtil.SignerInfoCheckResults> set = result.getSignersCheck();
                 List<ResultEntry> entryList = new ArrayList<>();
@@ -97,7 +97,7 @@ public class VerifierCtrl implements ControllerInit {
                     data.addAll(entryList);
                 }
             } else {
-                progress.setProgress(50.0d);
+
                 VerifyUtil.VerifierResult result  = util.verifyCadesSignature(signatureIN, dataIN);
                 List<VerifyUtil.SignerInfoCheckResults> set = result.getSignersCheck();
                 List<ResultEntry> entryList = new ArrayList<>();
@@ -122,7 +122,7 @@ public class VerifierCtrl implements ControllerInit {
                     data.addAll(entryList);
                 }
             }
-
+            status.setText("File checked with: " + type.name());
             verifyResults.refresh();
             verifyResults.setVisible(true);
         }
