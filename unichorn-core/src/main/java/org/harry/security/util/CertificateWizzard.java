@@ -3,6 +3,9 @@ package org.harry.security.util;
 import iaik.asn1.CodingException;
 import iaik.asn1.ObjectID;
 import iaik.asn1.structures.*;
+import iaik.security.ec.common.ECStandardizedParameterFactory;
+import iaik.security.ec.provider.ECCelerate;
+import iaik.security.provider.IAIK;
 import iaik.x509.SimpleChainVerifier;
 import iaik.x509.X509Certificate;
 import iaik.x509.X509ExtensionException;
@@ -15,6 +18,7 @@ import java.io.FileOutputStream;
 import java.math.BigInteger;
 import java.security.*;
 import java.security.cert.CertificateException;
+import java.security.spec.AlgorithmParameterSpec;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
 import java.util.Random;
@@ -29,8 +33,12 @@ public class CertificateWizzard {
     private TrustListLoader loader = new TrustListLoader();
     private KeyPair ca_rsa;
     private KeyPair inter_rsa;
+    private KeyPair ca_ec;
+    private KeyPair inter_ec;
     private X509Certificate caRSA;
+    private X509Certificate caEC;
     private X509Certificate intermediateRSA;
+    private X509Certificate intermediateEC;
 
     private final SimpleChainVerifier verifier = new SimpleChainVerifier();
     private final ConfigReader.MainProperties properties;
@@ -85,7 +93,7 @@ public class CertificateWizzard {
         subject.addRDN(ObjectID.country, properties.getCountry());
         subject.addRDN(ObjectID.organization , properties.getOrganization());
         subject.addRDN(ObjectID.organizationalUnit ,properties.getUnit());
-        issuer.addRDN(ObjectID.commonName ,properties.getCommonName());
+        issuer.addRDN(ObjectID.commonName ,properties.getCommonName() +"RSA" );
         ca_rsa = generateKeyPair("RSA", 4096);
         caRSA = createCertificate(issuer,
                 ca_rsa.getPublic(),
@@ -101,8 +109,28 @@ public class CertificateWizzard {
             certChain[0] = caRSA;
             KeyStoreTool.addKey(store, ca_rsa.getPrivate(),
                     properties.getKeystorePass().toCharArray(),
-                    certChain, properties.getCommonName());
+                    certChain, properties.getCommonName() + "" +
+                            "RSA");
+            issuer.removeRDN(ObjectID.commonName);
+            issuer.addRDN(ObjectID.commonName ,properties.getCommonName() +"_EC" );
+            ca_ec = generateKeyPairECC(571);
+            caEC = createCertificate(issuer,
+                    ca_ec.getPublic(),
+                    issuer,
+                    ca_ec.getPrivate(),
+                    (AlgorithmID)AlgorithmID.ecdsa_With_SHA3_256.clone(),
+                    null,
+                    true,
+                    false);
+            caEC.verify();
+            // set the CA cert as trusted root
+            verifier.addTrustedCertificate(caEC);
+            certChain[0] = caEC;
+            KeyStoreTool.addKey(store, ca_ec.getPrivate(),
+                    properties.getKeystorePass().toCharArray(),
+                    certChain, properties.getCommonName() + "_EC");
         loader.addX509Cert(caRSA);
+        loader.addX509Cert(caEC);
         } catch (Exception ex) {
             throw new IllegalStateException("certificate generation failed", ex);
         }
@@ -122,8 +150,8 @@ public class CertificateWizzard {
             subject.addRDN(ObjectID.country, properties.getCountry());
             subject.addRDN(ObjectID.organization, properties.getOrganization());
             subject.addRDN(ObjectID.organizationalUnit, properties.getUnit());
-            issuer.addRDN(ObjectID.commonName, properties.getCommonName());
-            subject.addRDN(ObjectID.commonName ,properties.getCommonName() + "Inter");
+            issuer.addRDN(ObjectID.commonName, properties.getCommonName() + "RSA");
+            subject.addRDN(ObjectID.commonName ,properties.getCommonName() + "RSA_Inter");
             inter_rsa = generateKeyPair("RSA", 4096);
             intermediateRSA = createCertificate(subject,
                     inter_rsa.getPublic(),
@@ -139,8 +167,30 @@ public class CertificateWizzard {
             verifier.verifyChain(certChain);
             KeyStoreTool.addKey(store, inter_rsa.getPrivate(),
                     properties.getKeystorePass().toCharArray(),
-                    certChain, properties.getCommonName() + "Intermediate");
+                    certChain, properties.getCommonName() + "IntermediateRSA");
+            issuer.removeRDN(ObjectID.commonName);
+            issuer.addRDN(ObjectID.commonName ,properties.getCommonName() + "_EC");
+            subject.removeRDN(ObjectID.commonName);
+            subject.addRDN(ObjectID.commonName ,properties.getCommonName() + "_EC_Inter");
+            inter_ec = generateKeyPairECC( 571);
+            intermediateEC = createCertificate(subject,
+                    inter_ec.getPublic(),
+                    issuer,
+                    ca_ec.getPrivate(),
+                    (AlgorithmID) AlgorithmID.ecdsa_With_SHA3_256.clone(),
+                    subjectKeyID.get(),
+                    true,
+                    true);
+            certChain[0] = intermediateEC;
+            certChain[1] = caEC;
+            // and verify the chain
+            verifier.verifyChain(certChain);
+            KeyStoreTool.addKey(store, inter_ec.getPrivate(),
+                    properties.getKeystorePass().toCharArray(),
+                    certChain, properties.getCommonName() + "IntermediateEC");
+
             loader.addX509Cert(intermediateRSA);
+            loader.addX509Cert(intermediateEC);
         } catch (Exception ex) {
             throw new IllegalStateException("certificate generation failed", ex);
         }
@@ -160,8 +210,9 @@ public class CertificateWizzard {
             subject.addRDN(ObjectID.country, properties.getCountry());
             subject.addRDN(ObjectID.organization, properties.getOrganization());
             subject.addRDN(ObjectID.organizationalUnit, properties.getUnit());
-            issuer.addRDN(ObjectID.commonName, properties.getCommonName() + "Inter");
-            subject.addRDN(ObjectID.commonName ,properties.getCommonName() + "User");
+            issuer.addRDN(ObjectID.commonName, properties.getCommonName() + "" +
+                    "RSA_Inter");
+            subject.addRDN(ObjectID.commonName ,properties.getCommonName() + "_RSA_User");
             KeyPair userKeys = generateKeyPair("RSA", 4096);
              X509Certificate userCert = createCertificate(subject,
                     userKeys.getPublic(),
@@ -178,7 +229,28 @@ public class CertificateWizzard {
             verifier.verifyChain(certChain);
             KeyStoreTool.addKey(store, userKeys.getPrivate(),
                     properties.getKeystorePass().toCharArray(),
-                    certChain, properties.getCommonName() + "User");
+                    certChain, properties.getCommonName() + "UserRSA");
+            issuer.removeRDN(ObjectID.commonName);
+            issuer.addRDN(ObjectID.commonName ,properties.getCommonName() + "_EC_Inter");
+            subject.removeRDN(ObjectID.commonName);
+            subject.addRDN(ObjectID.commonName ,properties.getCommonName() + "_EC_User");
+            KeyPair userKeysEC = generateKeyPairECC(571);
+            X509Certificate userCertEC = createCertificate(subject,
+                    userKeysEC.getPublic(),
+                    issuer,
+                    inter_ec.getPrivate(),
+                    (AlgorithmID) AlgorithmID.ecdsa_With_SHA3_256.clone(),
+                    subjectKeyID.get(),
+                    true,
+                    true);
+            certChain[0] = userCertEC;
+            certChain[1] = intermediateEC;
+            certChain[2] = caEC;
+            // and verify the chain
+            verifier.verifyChain(certChain);
+            KeyStoreTool.addKey(store, userKeysEC.getPrivate(),
+                    properties.getKeystorePass().toCharArray(),
+                    certChain, properties.getCommonName() + "UserEC");
         } catch (Exception ex) {
             throw new IllegalStateException("certificate generation failed", ex);
         }
@@ -209,9 +281,9 @@ public class CertificateWizzard {
         try {
             // set the values
             cert.setSerialNumber(new BigInteger(20, new Random()));
-            cert.setSubjectDN(subject);
+            cert.setSubjectDN(new Name(subject.toASN1Object()));
             cert.setPublicKey(publicKey);
-            cert.setIssuerDN(issuer);
+            cert.setIssuerDN(new Name(issuer.toASN1Object()));
 
             GregorianCalendar date = new GregorianCalendar();
             // not before now
@@ -314,5 +386,36 @@ public class CertificateWizzard {
             }
         }
     }
+
+    /**
+     * Generates a key pair for a curve with a certain name
+     *
+     * @param bitlength
+     *          the bitlength of the domain parameters to be used
+     * @return the generated key pair
+     */
+    protected KeyPair generateKeyPairECC(final int bitlength) {
+        try {
+            final SecureRandom random = SecureRandom.getInstance("SHA512PRNG-SP80090", IAIK.getInstance());;
+            final AlgorithmParameterSpec params = ECStandardizedParameterFactory
+                    .getParametersByBitLength(bitlength);
+
+            System.out.println();
+            System.out.println("Using the following EC domain parameters: ");
+            System.out.println(params);
+            System.out.println();
+
+            final KeyPairGenerator kpg = KeyPairGenerator.getInstance("EC", ECCelerate.getInstance());
+            kpg.initialize(params, random);
+
+            return kpg.generateKeyPair();
+        } catch (final Exception e) {
+            // should not occur SecureRandom.getInstance("SHA512PRNG-SP80090", IAIK.getInstance());
+            e.printStackTrace();
+
+            return null;
+        }
+    }
+
 
 }

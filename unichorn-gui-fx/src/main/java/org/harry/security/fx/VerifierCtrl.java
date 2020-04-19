@@ -4,9 +4,7 @@ import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.Scene;
-import javafx.scene.control.CheckBox;
-import javafx.scene.control.TableView;
-import javafx.scene.control.TextField;
+import javafx.scene.control.*;
 import org.etsi.uri._02231.v2_.TrustStatusListType;
 import org.harry.security.util.ConfigReader;
 import org.harry.security.util.Tuple;
@@ -39,6 +37,9 @@ public class VerifierCtrl implements ControllerInit {
         bean = SecHarry.contexts.get();
         TextField dataPathField = getTextFieldByFXID("nonEditDataPath");
         inputPath = bean.getDataINPath();
+        ComboBox sigType = getComboBoxByFXID("sigType");
+        sigType.getItems().addAll(SigningBean.SigningType.values());
+
         if (inputPath != null) {
             dataPathField.setText(inputPath.getAbsolutePath());
         }
@@ -58,6 +59,10 @@ public class VerifierCtrl implements ControllerInit {
         verifyResults.getSelectionModel().getSelectedItem();
         SigningBean bean = SecHarry.contexts.get();
         CheckBox check = getCheckBoxByFXID("ocspPathCheck");
+        ProgressBar progress = getProgessBarByFXID("progress");
+        progress.setProgress(25.0d);
+        ComboBox sigType = getComboBoxByFXID("sigType");
+        SigningBean.SigningType type = (SigningBean.SigningType) sigType.getSelectionModel().getSelectedItem();
         boolean ocspPathCheck = check.isSelected();
         bean.setCheckPathOcsp(ocspPathCheck);
         VerifyUtil util = new VerifyUtil(bean.getWalker(), bean);
@@ -66,29 +71,58 @@ public class VerifierCtrl implements ControllerInit {
         if (inputPath != null && signatureInput != null) {
             signatureIN = new FileInputStream(signatureInput);
             dataIN = new FileInputStream(inputPath);
-            VerifyUtil.VerifierResult result = util.verifyCMSSignature(signatureIN, dataIN);
-            List<VerifyUtil.SignerInfoCheckResults> set=  result.getSignersCheck();
-            List<ResultEntry> entryList = new ArrayList<>();
-            for (VerifyUtil.SignerInfoCheckResults entry: set) {
-                Map<String, Tuple<String, VerifyUtil.Outcome>> sigResult = entry.getSignatureResult();
-                Map<String, Tuple<String, VerifyUtil.Outcome>> ocspResult = entry.getOcspResult();
-                for (Map.Entry<String, Tuple<String, VerifyUtil.Outcome>> sigEntry : sigResult.entrySet()) {
-                    ResultEntry propEntry = new ResultEntry(sigEntry.getKey(), sigEntry.getValue().getFirst(),
-                            sigEntry.getValue().getSecond().name());
-                    entryList.add(propEntry);
-                }
+            if(type.equals(SigningBean.SigningType.CMS)) {
+                progress.setProgress(50.0d);
+                VerifyUtil.VerifierResult result = util.verifyCMSSignature(signatureIN, dataIN);
+                List<VerifyUtil.SignerInfoCheckResults> set = result.getSignersCheck();
+                List<ResultEntry> entryList = new ArrayList<>();
+                for (VerifyUtil.SignerInfoCheckResults entry : set) {
+                    Map<String, Tuple<String, VerifyUtil.Outcome>> sigResult = entry.getSignatureResult();
+                    Map<String, Tuple<String, VerifyUtil.Outcome>> ocspResult = entry.getOcspResult();
+                    for (Map.Entry<String, Tuple<String, VerifyUtil.Outcome>> sigEntry : sigResult.entrySet()) {
+                        ResultEntry propEntry = new ResultEntry(sigEntry.getKey(), sigEntry.getValue().getFirst(),
+                                sigEntry.getValue().getSecond().name());
+                        entryList.add(propEntry);
+                    }
 
-                for (Map.Entry<String, Tuple<String, VerifyUtil.Outcome>> ocspEntry : ocspResult.entrySet()) {
-                    ResultEntry propEntry = new ResultEntry(ocspEntry.getKey(), ocspEntry.getValue().getFirst(),
-                            ocspEntry.getValue().getSecond().name());
-                    entryList.add(propEntry);
+                    for (Map.Entry<String, Tuple<String, VerifyUtil.Outcome>> ocspEntry : ocspResult.entrySet()) {
+                        ResultEntry propEntry = new ResultEntry(ocspEntry.getKey(), ocspEntry.getValue().getFirst(),
+                                ocspEntry.getValue().getSecond().name());
+                        entryList.add(propEntry);
+                    }
+                    ObservableList<ResultEntry> data = verifyResults.getItems();
+                    entry.getSignersChain();
+                    data.clear();
+                    verifyResults.setVisible(false);
+                    data.addAll(entryList);
                 }
-                entry.getSignersChain();
+            } else {
+                progress.setProgress(50.0d);
+                VerifyUtil.VerifierResult result  = util.verifyCadesSignature(signatureIN, dataIN);
+                List<VerifyUtil.SignerInfoCheckResults> set = result.getSignersCheck();
+                List<ResultEntry> entryList = new ArrayList<>();
+                for (VerifyUtil.SignerInfoCheckResults entry : set) {
+                    Map<String, Tuple<String, VerifyUtil.Outcome>> sigResult = entry.getSignatureResult();
+                    Map<String, Tuple<String, VerifyUtil.Outcome>> ocspResult = entry.getOcspResult();
+                    for (Map.Entry<String, Tuple<String, VerifyUtil.Outcome>> sigEntry : sigResult.entrySet()) {
+                        ResultEntry propEntry = new ResultEntry(sigEntry.getKey(), sigEntry.getValue().getFirst(),
+                                sigEntry.getValue().getSecond().name());
+                        entryList.add(propEntry);
+                    }
+
+                    for (Map.Entry<String, Tuple<String, VerifyUtil.Outcome>> ocspEntry : ocspResult.entrySet()) {
+                        ResultEntry propEntry = new ResultEntry(ocspEntry.getKey(), ocspEntry.getValue().getFirst(),
+                                ocspEntry.getValue().getSecond().name());
+                        entryList.add(propEntry);
+                    }
+                    ObservableList<ResultEntry> data = verifyResults.getItems();
+                    entry.getSignersChain();
+                    data.clear();
+                    verifyResults.setVisible(false);
+                    data.addAll(entryList);
+                }
             }
-            ObservableList<ResultEntry> data = verifyResults.getItems();
-            data.clear();
-            verifyResults.setVisible(false);
-            data.addAll(entryList);
+
             verifyResults.refresh();
             verifyResults.setVisible(true);
         }

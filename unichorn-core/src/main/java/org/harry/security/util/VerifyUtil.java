@@ -4,6 +4,7 @@ import iaik.asn1.structures.AlgorithmID;
 import iaik.cms.*;
 import iaik.pdf.asn1objects.ContentTimeStamp;
 import iaik.pdf.asn1objects.SignatureTimeStamp;
+import iaik.pdf.cmscades.CadesSignature;
 import iaik.pdf.cmscades.CadesSignatureStream;
 import iaik.pdf.cmscades.CmsCadesException;
 import iaik.tsp.TimeStampToken;
@@ -137,6 +138,61 @@ public class VerifyUtil {
         }
         return result;
     }
+
+    /**
+     * Shows some possible verification steps, i.e. verifies the signature value and the timestamp if
+     * included.
+     *
+     * @param signature
+     *          encoded cades signature
+     * @param data
+     *          data, that has been signed with the given signature
+     * @throws CmsCadesException
+     *           if errors occurred during signature verification
+     * @throws TspVerificationException
+     *           if errors occurred during timestamp verification
+     */
+    public VerifierResult verifyCadesSignature(InputStream signature, InputStream data) {
+        VerifierResult vResult = new VerifierResult();
+                try {
+                    CadesSignatureStream cadesSig = new CadesSignatureStream(signature, data);
+                    int signerInfoLength = cadesSig.getSignerInfos().length;
+
+                    System.out.println("Signature contains " + signerInfoLength + " signer infos");
+
+
+                    int j = 0;
+                    for (SignerInfo info: cadesSig.getSignerInfos()) {
+                        AlgorithmID sigAlg = info.getSignatureAlgorithm();
+                        AlgorithmID digestAlg = info.getDigestAlgorithm();
+                        SignerInfoCheckResults results = new SignerInfoCheckResults();
+                        results.addSignatureResult("signature algorithm",
+                                new Tuple<>(sigAlg.getImplementationName(), Outcome.SUCCESS));
+                        results.addSignatureResult("digest algorithm",
+                                new Tuple<>(digestAlg.getImplementationName(), Outcome.SUCCESS));
+                        X509Certificate signCert = cadesSig.verifySignatureValue(j);
+                        vResult.addSignersInfo(signCert.getSubjectDN().getName(), results);
+                        results.addSignatureResult("signature value",
+                                new Tuple<>(signCert.getSubjectDN().getName(), Outcome.SUCCESS));
+                        System.out.println("Signer " + (j + 1) + " signature value is valid.");
+                        vResult.addSignersInfo(signCert.getSubjectDN().getName(), results);
+                        detectChain(signCert, results);
+                        // tsp verification
+                        SignatureTimeStamp[] timestamps = cadesSig.getSignatureTimeStamps(j);
+                        for (SignatureTimeStamp tst : timestamps) {
+                            System.out.println("Signer info " + (j + 1) + " contains a signature timestamp.");
+                            tst.verifyTimeStampToken(null);
+                            results.addSignatureResult("timestamp check",
+                                    new Tuple<>(signCert.getSubjectDN().getName(), Outcome.SUCCESS));
+                        }
+                        j++;
+                    }
+                } catch (Exception ex) {
+                    throw new IllegalStateException("failure", ex);
+                }
+                return vResult;
+    }
+
 
     /**
      * Check the content timestamp of the signature

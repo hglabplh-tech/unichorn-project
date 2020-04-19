@@ -46,6 +46,11 @@ public class Miscellaneous {
         return check;
     }
 
+    public static ProgressBar getProgessBarByFXID(String fxId)  {
+        ProgressBar progress = (ProgressBar) SecHarry.fxmlLoader.getNamespace().get(fxId);
+        return progress;
+    }
+
     public static ListView getListViewByFXID(String fxId) {
         ListView inputField = (ListView) SecHarry.fxmlLoader.getNamespace().get(fxId);
         return inputField;

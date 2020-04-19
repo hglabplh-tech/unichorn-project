@@ -32,7 +32,9 @@ public class CertToolCtrl implements ControllerInit {
     public Scene init() {
         ComboBox actionBox = getComboBoxByFXID("action");
         actionBox.getItems().addAll(CMSSigner.Commands.values());
-        return actionBox.getScene();
+        Scene scene = actionBox.getScene();
+
+        return scene;
     }
 
 

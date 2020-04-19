@@ -15,6 +15,7 @@ public class CertificateWizzardTest extends TestBase {
     public void testChainOk() throws IOException {
         ConfigReader.MainProperties properties = ConfigReader.loadStore();
         properties.setKeystorePass("geheim");
+
         CertificateWizzard wizzard = new CertificateWizzard(properties);
         wizzard.generateCA();
         wizzard.generateIntermediate();

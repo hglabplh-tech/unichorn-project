@@ -48,8 +48,9 @@ public class SecHarry extends Application {
         fxmlLoader = new FXMLLoader(resourceURL);
         Pane root = (Pane) fxmlLoader.load();
         ControllerInit controller = (ControllerInit)fxmlLoader.getController();
+       root.getStylesheets().add(SecHarry.class.getResource("/org/harry/security/fx/unichorn.css").toExternalForm());
         Scene scene = controller.init();
-        root.getStylesheets().add(SecHarry.class.getResource("/org/harry/security/fx/default.css").toExternalForm());
+
         return root;
     }
 

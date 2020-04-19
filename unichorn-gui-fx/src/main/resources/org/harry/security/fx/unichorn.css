@@ -1,12 +1,7 @@
-.root {
-    -fx-font-size: 12px;
-    -fx-font-family: sans-serif;
-    -fx-background-color: #ffffff;
-}
 
 .header-section {
     -fx-padding: 10px;
-    -fx-font-size: 20px;
+    -fx-font-size: 12px;
     -fx-background-color: teal;
 }
 
@@ -18,7 +13,7 @@
 #account {
     -fx-background-color: transparent;
     -fx-text-fill: #ffffff;
-    -fx-font-size: 16px;
+    -fx-font-size: 12px;
     -fx-cursor: hand;
 }
 
@@ -31,10 +26,10 @@
 }
 
 .sidebar-section Label {
-    -fx-font-size: 18px;
+    -fx-font-size: 12px;
     -fx-padding: 10 15 10 15;
     -fx-border-width: 1;
-    -fx-border-color: transparent transparent #E8E8E8 transparent;
+    -fx-border-color: transparent transparent rebeccapurple transparent;
     -fx-min-width: 200px;
     -fx-pref-width: 200px;
     -fx-max-width: 200px;
@@ -44,6 +39,12 @@
     -fx-padding: 0 0 5 0;
     -fx-wrap-text: true;
 
+}
+
+.root{
+    -fx-font-size: 10pt;
+    -fx-base: orange;
+    -fx-background: lightblue
 }
 
 #content-header {
@@ -58,10 +59,10 @@
 }
 
 #footer-section {
-    -fx-alignment: center;
+    -fx-alignment: center-left;
     -fx-padding: 10 10 10 10;
     -fx-border-width: 1;
-    -fx-border-color: #E8E8E8 transparent transparent transparent;
+    -fx-border-color: limegreen transparent transparent transparent;
 }
 
 .custom-red {

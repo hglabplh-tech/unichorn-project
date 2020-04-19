@@ -36,6 +36,7 @@
             <TextField fx:id="nonEditDataPath" editable="false" GridPane.columnIndex="1" />
             <Button fx:id="downloadTrust" alignment="TOP_RIGHT" mnemonicParsing="false" onAction="#downloadTrust" text="Download Trust" GridPane.columnIndex="2" GridPane.rowIndex="2" />
             <CheckBox fx:id="ocspPathCheck" mnemonicParsing="false" text="Path/OCSPCheck" GridPane.columnIndex="2" GridPane.rowIndex="1" />
+            <ComboBox fx:id="sigType" prefWidth="150.0" GridPane.columnIndex="2" />
          </children>
       </GridPane>
       <TableView fx:id="verifyResults" nodeOrientation="LEFT_TO_RIGHT" prefHeight="200.0" prefWidth="200.0">
@@ -54,5 +55,6 @@
           </TableColumn>
         </columns>
       </TableView>
+      <ProgressBar fx:id="progress" prefWidth="200.0" progress="0.0" />
    </children>
 </VBox>
