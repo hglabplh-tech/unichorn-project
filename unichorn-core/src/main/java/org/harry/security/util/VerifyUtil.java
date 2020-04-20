@@ -147,10 +147,7 @@ public class VerifyUtil {
      *          encoded cades signature
      * @param data
      *          data, that has been signed with the given signature
-     * @throws CmsCadesException
-     *           if errors occurred during signature verification
-     * @throws TspVerificationException
-     *           if errors occurred during timestamp verification
+
      */
     public VerifierResult verifyCadesSignature(InputStream signature, InputStream data) {
         VerifierResult vResult = new VerifierResult();
@@ -433,7 +430,7 @@ public class VerifyUtil {
     private void checkOCSP (SignerInfoCheckResults results, X509Certificate [] chain) {
         try {
             boolean reqIsSigned = true;
-            SigningUtil.KeyStoreBean bean = loadKey();
+            CertWriterReader.KeyStoreBean bean = loadKey();
             X509Certificate[] certs = new X509Certificate[1];
             certs[0] = bean.getSelectedCert();
             int responseStatus = 0;

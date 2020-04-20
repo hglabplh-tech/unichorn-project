@@ -8,6 +8,7 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.protocol.HttpContext;
 import org.apache.http.protocol.HttpCoreContext;
 import org.apache.http.ssl.SSLContextBuilder;
+import org.harry.security.util.certandkey.CertWriterReader;
 import org.harry.security.util.httpclient.ClientFactory;
 import org.harry.security.util.ocsp.HttpOCSPClient;
 
@@ -18,6 +19,8 @@ import java.security.*;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.util.*;
+
+import static org.harry.security.util.certandkey.CertWriterReader.loadSecrets;
 
 public class HttpsChecker {
 
@@ -126,7 +129,7 @@ public class HttpsChecker {
             System.out.println("found certificate in store");
             if (ocspCheck) {
 
-                SigningUtil.KeyStoreBean bean = loadKey();
+                CertWriterReader.KeyStoreBean bean = loadKey();
                 X509Certificate[] certs = new X509Certificate[2];
                 certs[0] = bean.getSelectedCert();
                 certs[1] = bean.getSelectedCert();
@@ -167,9 +170,9 @@ public class HttpsChecker {
         return subjectDN.getName();
     }
 
-    public static SigningUtil.KeyStoreBean loadKey() throws FileNotFoundException {
+    public static CertWriterReader.KeyStoreBean loadKey() throws FileNotFoundException {
 
-        return SigningUtil.loadSecrets(null, "JKS",
+        return loadSecrets(null, "JKS",
                 "geheim", "RSA_MASTER");
     }
 

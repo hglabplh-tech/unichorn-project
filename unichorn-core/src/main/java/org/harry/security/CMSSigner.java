@@ -10,6 +10,7 @@ import iaik.security.random.MetaSeedGenerator;
 import iaik.security.random.SeedGenerator;
 import org.harry.security.util.*;
 import org.harry.security.util.bean.SigningBean;
+import org.harry.security.util.certandkey.CertWriterReader;
 import org.harry.security.util.trustlist.TrustListWalkerAndGetter;
 
 import javax.activation.DataSource;
@@ -21,6 +22,8 @@ import java.security.Security;
 import java.util.Collection;
 import java.util.List;
 import java.util.Random;
+
+import static org.harry.security.util.certandkey.CertWriterReader.loadSecrets;
 
 public class CMSSigner {
 
@@ -92,7 +95,7 @@ public class CMSSigner {
         ConfigReader.MainProperties params = ConfigReader.loadStore();
         List<TrustListWalkerAndGetter> walkers = ConfigReader.loadAllTrusts();
         try {
-            SigningUtil.KeyStoreBean bean = initKeyStoreBean(params);
+            CertWriterReader.KeyStoreBean bean = initKeyStoreBean(params);
             SigningBean signingBean = new SigningBean()
                     .setKeyStoreBean(bean)
                     .setSigningMode(SigningBean.Mode.EXPLICIT)
@@ -228,10 +231,10 @@ public class CMSSigner {
 
 
 
-    private SigningUtil.KeyStoreBean initKeyStoreBean(ConfigReader.MainProperties params) throws FileNotFoundException {
+    private CertWriterReader.KeyStoreBean initKeyStoreBean(ConfigReader.MainProperties params) throws FileNotFoundException {
         FileInputStream
                 keyStoreStream = new FileInputStream(params.getKeystorePath());
-        return SigningUtil.loadSecrets(keyStoreStream, params.getKeystoreType(),
+        return loadSecrets(keyStoreStream, params.getKeystoreType(),
                 params.getKeystorePass(), params.getAlias());
     }
 

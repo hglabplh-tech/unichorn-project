@@ -6,6 +6,7 @@ import org.harry.security.util.SigningUtil;
 import org.harry.security.util.algoritms.CryptoAlg;
 import org.harry.security.util.algoritms.DigestAlg;
 import org.harry.security.util.algoritms.SignatureAlg;
+import org.harry.security.util.certandkey.CertWriterReader;
 import org.harry.security.util.trustlist.TrustListWalkerAndGetter;
 
 import javax.activation.DataSource;
@@ -27,7 +28,7 @@ public class SigningBean {
 
     private String decryptPWD;
 
-    private SigningUtil.KeyStoreBean keyStoreBean;
+    private CertWriterReader.KeyStoreBean keyStoreBean;
 
     private InputStream dataIN;
 
@@ -128,11 +129,11 @@ public class SigningBean {
         return this;
     }
 
-    public SigningUtil.KeyStoreBean getKeyStoreBean() {
+    public CertWriterReader.KeyStoreBean getKeyStoreBean() {
         return keyStoreBean;
     }
 
-    public SigningBean setKeyStoreBean(SigningUtil.KeyStoreBean keyStoreBean) {
+    public SigningBean setKeyStoreBean(CertWriterReader.KeyStoreBean keyStoreBean) {
         this.keyStoreBean = keyStoreBean;
         return this;
     }

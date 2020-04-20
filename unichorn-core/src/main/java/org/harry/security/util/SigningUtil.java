@@ -15,6 +15,7 @@ import iaik.x509.X509Certificate;
 import org.harry.security.util.algoritms.DigestAlg;
 import org.harry.security.util.algoritms.SignatureAlg;
 import org.harry.security.util.bean.SigningBean;
+import org.harry.security.util.certandkey.CertWriterReader;
 
 import javax.activation.DataSource;
 import java.io.*;
@@ -25,7 +26,7 @@ import java.security.spec.InvalidParameterSpecException;
 
 public class SigningUtil {
 
-    private KeyStoreBean keyStoreBean;
+    private CertWriterReader.KeyStoreBean keyStoreBean;
     private int mode = SignedDataStream.EXPLICIT;
     private String signaturePath;
     private ConfigReader.MainProperties properties;
@@ -342,40 +343,6 @@ public class SigningUtil {
         }
     }
 
-     public static  KeyStoreBean loadSecrets(InputStream storeIN, String type, String keyPass, String alias) {
-        KeyStoreBean bean;
-         try {
-             if (storeIN == null) {
-                 File keyStoreFile = new File(APP_DIR, KEYSTORE_FNAME);
-                 type = "JKS";
-                 storeIN = new FileInputStream(keyStoreFile);
-             }
-             KeyStore store = KeyStore.getInstance(type);
-             store.load(storeIN, keyPass.toCharArray());
-             if (!store.containsAlias(alias)) {
-                 throw new IllegalStateException("There is no alias: " + alias);
-             }
-             Certificate cert = store.getCertificate(alias);
-             PrivateKey key = (PrivateKey) store.getKey(alias, keyPass.toCharArray());
-             if (cert != null && key != null) {
-                 bean = new KeyStoreBean(new X509Certificate(cert.getEncoded()), key);
-                 return bean;
-             } else {
-                 throw new IllegalStateException("something is wrong with the keystore");
-             }
-         } catch (KeyStoreException | IOException | NoSuchAlgorithmException | CertificateException | UnrecoverableKeyException e) {
-             throw new IllegalStateException("error case", e);
-         }
-         finally {
-             if (storeIN != null) {
-                 try {
-                     storeIN.close();
-                 } catch(IOException e) {
-
-                 }
-             }
-         }
-     }
 
     /**
      * Creates a CMS <code>EnvelopedData</code> message and wraps it into a ContentInfo.
@@ -469,23 +436,6 @@ public class SigningUtil {
      }
 
 
-     public static class KeyStoreBean {
-        private final X509Certificate selectedCert;
-        private final PrivateKey selectedKey;
-
-         public KeyStoreBean(X509Certificate selectedCert, PrivateKey selectedKey) {
-             this.selectedCert = selectedCert;
-             this.selectedKey = selectedKey;
-         }
-
-         public X509Certificate getSelectedCert() {
-             return selectedCert;
-         }
-
-         public PrivateKey getSelectedKey() {
-             return selectedKey;
-         }
-     }
 
     public static class Builder {
 
@@ -494,7 +444,7 @@ public class SigningUtil {
             myInstance = new SigningUtil();
         }
 
-        public Builder withKeystoreBean(KeyStoreBean bean) {
+        public Builder withKeystoreBean(CertWriterReader.KeyStoreBean bean) {
             myInstance.keyStoreBean = bean;
             return this;
         }

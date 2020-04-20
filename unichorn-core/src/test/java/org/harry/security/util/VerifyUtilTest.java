@@ -4,6 +4,7 @@ import iaik.x509.X509Certificate;
 import org.harry.security.testutils.Generator;
 import org.harry.security.testutils.TestBase;
 import org.harry.security.util.bean.SigningBean;
+import org.harry.security.util.certandkey.CertWriterReader;
 import org.harry.security.util.trustlist.TrustListWalkerAndGetter;
 import org.junit.Test;
 
@@ -57,7 +58,7 @@ public class VerifyUtilTest extends TestBase {
 
     private SigningBean initVerify(X509Certificate cert, PrivateKey key, File out, InputStream in) {
         SigningUtil util = new SigningUtil();
-        SigningUtil.KeyStoreBean keys = new SigningUtil.KeyStoreBean(cert,key);
+        CertWriterReader.KeyStoreBean keys = new CertWriterReader.KeyStoreBean(cert,key);
         SigningBean bean = new SigningBean().setDataIN(in).setOutputPath(out.getAbsolutePath())
                 .setOutputDS(new FileDataSource(out))
                 .setKeyStoreBean(keys)

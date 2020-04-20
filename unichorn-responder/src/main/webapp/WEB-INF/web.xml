@@ -1,0 +1,16 @@
+<web-app>
+
+    <servlet>
+
+        <servlet-name>OCSP REST Service</servlet-name>
+        <servlet-class>
+            harry.security.responder.resources.UnichornResponder
+        </servlet-class>
+        <load-on-startup>1</load-on-startup>
+    </servlet>
+
+    <servlet-mapping>
+        <servlet-name>OCSP REST Service</servlet-name>
+        <url-pattern>/rest/*</url-pattern>
+    </servlet-mapping>
+</web-app>

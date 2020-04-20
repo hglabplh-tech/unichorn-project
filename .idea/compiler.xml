@@ -7,6 +7,7 @@
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
         <module name="unichorn-core" />
+        <module name="unichorn-responder" />
         <module name="unichorn-gui-fx" />
       </profile>
     </annotationProcessing>

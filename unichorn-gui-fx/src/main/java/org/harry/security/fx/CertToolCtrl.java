@@ -9,6 +9,7 @@ import org.harry.security.CMSSigner;
 import org.harry.security.util.ConfigReader;
 import org.harry.security.util.SigningUtil;
 import org.harry.security.util.bean.SigningBean;
+import org.harry.security.util.certandkey.CertWriterReader;
 import org.harry.security.util.certandkey.KeyStoreTool;
 
 import java.io.File;
@@ -49,10 +50,11 @@ public class CertToolCtrl implements ControllerInit {
         ConfigReader.saveProperties(ConfigReader.init());
         ConfigReader.MainProperties props = ConfigReader.loadStore();
         InputStream dataInputStream = null;
-        SigningUtil.KeyStoreBean bean = null;
+
+        CertWriterReader.KeyStoreBean bean = null;
         String outPathString = null;
         if (keyStoreStream != null && dataInput != null) {
-            bean = SigningUtil.loadSecrets(new FileInputStream(keyStoreStream),
+            bean = CertWriterReader.loadSecrets(new FileInputStream(keyStoreStream),
                     props.getKeystoreType(),
                     passwd.getText(), alias);
             dataInputStream = new FileInputStream(dataInput);

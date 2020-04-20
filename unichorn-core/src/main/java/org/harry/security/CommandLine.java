@@ -13,7 +13,7 @@ public class CommandLine {
        private String dataFileName;
        @Parameter(names={"--outFile", "-o"}, description = "The signature file output")
        private String outFileName;
-       @Parameter(names={"--config", "-c"}, description= "The configuration properties path", required = true)
+       @Parameter(names={"--config", "-c"}, description= "The configuration properties path", required = false)
        private String configFileName;
 
        @Parameter(names = "--help", help = true)
