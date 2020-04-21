@@ -43,6 +43,7 @@
         <dependency>
             <groupId>iaik</groupId>
             <artifactId>iaik-jce-full</artifactId>
+            <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>iaik</groupId>
@@ -55,6 +56,17 @@
         <dependency>
             <groupId>org.json</groupId>
             <artifactId>json</artifactId>
+        </dependency>
+        <!-- https://mvnrepository.com/artifact/org.tinylog/tinylog -->
+        <dependency>
+            <groupId>org.tinylog</groupId>
+            <artifactId>tinylog</artifactId>
+
+        </dependency>
+        <!-- https://mvnrepository.com/artifact/org.tinylog/tinylog-api -->
+        <dependency>
+            <groupId>org.tinylog</groupId>
+            <artifactId>tinylog-api</artifactId>
         </dependency>
         <dependency>
             <groupId>org.glassfish.jersey.containers</groupId>
@@ -107,6 +119,7 @@
                 <executions>
                     <execution>
                         <configuration>
+
                             <failOnMissingWebXml>true</failOnMissingWebXml>
                         </configuration>
                     </execution>

@@ -300,6 +300,13 @@ public class CertificateWizzard {
                 generalNames.addName(new GeneralName(GeneralName.rfc822Name, "smimetest@harryglab.com"));
                 SubjectAltName subjectAltName = new SubjectAltName(generalNames);
                 cert.addExtension(subjectAltName);
+                ExtendedKeyUsage extKeyUsage = new ExtendedKeyUsage();
+                //add purposes
+                extKeyUsage.addKeyPurposeID(ExtendedKeyUsage.ocspSigning);
+                extKeyUsage.addKeyPurposeID(ExtendedKeyUsage.timeStamping);
+                extKeyUsage.setCritical(true);
+                cert.addExtension(extKeyUsage);
+                cert.addExtension(keyUsage);
             }
             String explicitText = "This certificate may be used for testing purposes only";
             PolicyQualifierInfo policyQualifier = new PolicyQualifierInfo(null, null, explicitText);
@@ -349,6 +356,9 @@ public class CertificateWizzard {
         KeyPair kp = generator.generateKeyPair();
         return kp;
     }
+
+
+
     public static void initThis() {
         File keystore = new File(APP_DIR, PROP_STORE_NAME);
         File trustFile = new File(APP_DIR_TRUST, PROP_TRUST_NAME);
@@ -405,7 +415,7 @@ public class CertificateWizzard {
     }
 
     KeyUsage signUsage() {
-        return new KeyUsage(KeyUsage.digitalSignature |
+        return new KeyUsage(KeyUsage.digitalSignature |KeyUsage.cRLSign |
                 KeyUsage.nonRepudiation);
     }
 

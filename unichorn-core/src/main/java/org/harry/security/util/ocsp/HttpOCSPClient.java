@@ -7,6 +7,8 @@ import iaik.x509.X509ExtensionInitException;
 import iaik.x509.extensions.AuthorityInfoAccess;
 import iaik.x509.ocsp.OCSPRequest;
 import iaik.x509.ocsp.OCSPResponse;
+import org.apache.http.Header;
+import org.apache.http.HeaderElement;
 import org.apache.http.HttpEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
@@ -89,10 +91,27 @@ public class HttpOCSPClient {
             post.setEntity(entity);
             CloseableHttpResponse response = httpClient.execute(post);
             int code = response.getStatusLine().getStatusCode();
-            InputStream respInput = response.getEntity().getContent();
-            OCSPResponse ocspResp = new OCSPResponse(respInput);
-            respInput.close();
-            return ocspResp;
+            System.out.println("ocsp ends with: " + code);
+            Header  header = response.getFirstHeader("error");
+            for(HeaderElement element:header.getElements()) {
+                System.out.println(element.getValue());
+            }
+            Header [] allheader = response.getAllHeaders();
+            for (Header head: allheader) {
+                for(HeaderElement element:head.getElements()) {
+                    System.out.println(element.getParameters()[0].getName());
+                    System.out.println(element.getParameters()[0].getValue());
+                }
+            }
+
+            if (code == 200) {
+                InputStream respInput = response.getEntity().getContent();
+                OCSPResponse ocspResp = new OCSPResponse(respInput);
+                respInput.close();
+                return ocspResp;
+            } else {
+                return null;
+            }
         } catch (Exception ex) {
                 throw new IllegalStateException("OCSP request failed", ex);
         }

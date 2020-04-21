@@ -46,16 +46,22 @@ public class KeyStoreTool {
        try {
            Tuple<PrivateKey, X509Certificate> result;
            if (store.containsAlias(alias)) {
-           Certificate cert = store.getCertificate(alias);
-           X509Certificate iaik = new X509Certificate(cert.getEncoded());
-           PrivateKey key = (PrivateKey)store.getKey(alias, passwd);
-           result = new Tuple<PrivateKey, X509Certificate>(key, iaik);
+               Certificate cert = store.getCertificate(alias);
+               X509Certificate iaik = new X509Certificate(cert.getEncoded());
+               PrivateKey key = (PrivateKey)store.getKey(alias, passwd);
+               result = new Tuple<PrivateKey, X509Certificate>(key, iaik);
            } else {
                throw new IllegalStateException("get entry failed");
            }
            return result;
        } catch (Exception ex) {
-           throw new IllegalStateException("get entry failed", ex);
+           String message = "get entry failed: cause: ";
+           if (ex.getMessage() != null && ex.getCause() != null){
+               message = message + ex.getMessage() + "||" + ex.getCause().getMessage();
+           } else {
+               message = ex.getMessage();
+           }
+           throw new IllegalStateException(message, ex);
        }
 
     }
