@@ -2,6 +2,8 @@ package harry.security.responder.resources;
 
 import iaik.asn1.CodingException;
 import iaik.asn1.structures.AlgorithmID;
+import iaik.asn1.structures.Name;
+import iaik.cms.IssuerAndSerialNumber;
 import iaik.utils.ASN1InputStream;
 import iaik.x509.X509CRL;
 import iaik.x509.X509Certificate;
@@ -23,13 +25,17 @@ import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.*;
 
 import java.io.*;
+import java.math.BigInteger;
 import java.security.KeyStore;
 import java.security.PrivateKey;
+import java.security.PublicKey;
 import java.security.SignatureException;
 import java.security.cert.CertificateException;
+import java.sql.Date;
 import java.util.HashMap;
 import java.util.Map;
 
+import static iaik.x509.ocsp.CertStatus.*;
 import static org.harry.security.util.certandkey.CertWriterReader.loadSecrets;
 
 
@@ -62,9 +68,9 @@ public class UnichornResponder extends HttpServlet {
 
             messages.put("info-pre2", "request read");
 
-            OCSPResponse ocspResp = generateResponse(ocspRequest, messages);
-            Logger.debug("end generating response");
-            ocspResp.writeTo(servletResponse.getOutputStream());
+            OCSPResponse response = generateResponse(ocspRequest, messages);
+            Logger.debug("Write stream");
+            response.writeTo(servletResponse.getOutputStream());
             Logger.debug("written stream");
             servletResponse.setStatus(200);
         } catch (Exception ex) {
@@ -79,7 +85,7 @@ public class UnichornResponder extends HttpServlet {
 
     }
 
-    public OCSPResponse generateResponse(OCSPRequest ocspRequest, Map<String, String> messages) throws OCSPException, SignatureException, IOException, CertificateException, CodingException {
+    public OCSPResponse generateResponse(OCSPRequest ocspRequest, Map<String, String> messages) {
         messages.put("beforeks", "before getting keys and certs");
         Tuple<PrivateKey, X509Certificate> keys = null;
         try {
@@ -92,11 +98,8 @@ public class UnichornResponder extends HttpServlet {
             messages.put("beforegen", "before getting keystoregen");
             responseGenerator = new ResponseGenerator(keys.getFirst(), certs);
             messages.put("aftergen", "after getting keystoregen");
-            signatureAlgorithm = AlgorithmID.sha1WithRSAEncryption;
-            messages.put("beforecrea", "before create response internal");
-            responseGenerator.createOCSPResponse(new ByteArrayInputStream(ocspRequest.getEncoded()),
-                    null, signatureAlgorithm, null);
-            messages.put("aftercrea", "after create internal");
+            signatureAlgorithm = AlgorithmID.sha256WithRSAEncryption;
+
         } catch (Exception ex){
             messages.put("keysexcp", "IO keystore exception" + ex.getMessage() + " of Type: " + ex.getClass().getName());
         }
@@ -107,7 +110,7 @@ public class UnichornResponder extends HttpServlet {
             if (responderKey instanceof java.security.interfaces.DSAPrivateKey) {
                 signatureAlgorithm = AlgorithmID.dsa;
             } else {
-                signatureAlgorithm = AlgorithmID.rsa;
+                signatureAlgorithm = AlgorithmID.sha256WithRSAEncryption;
             }
         }
         try {
@@ -123,7 +126,39 @@ public class UnichornResponder extends HttpServlet {
         X509Certificate crlIssuer = keys.getSecond();
         messages.put("info-3", "Message is: before add resp entries" );
         try {
-            responseGenerator.addResponseEntries(crl, crlIssuer, ReqCert.certID);
+            Request[] requests = ocspRequest.getRequestList();
+            for (Request req:requests) {
+                ReqCert reqCert = req.getReqCert();
+                if (reqCert.getType() == ReqCert.certID){
+                    CertID certID = (CertID)reqCert.getReqCert();
+                    BigInteger serial = certID.getSerialNumber();
+                    if ( !crl.isRevoked(serial)) {
+                        responseGenerator.addResponseEntry(reqCert, new CertStatus(), Date.valueOf("2024.01.01"), null);
+                    } else {
+                        RevokedInfo info = new RevokedInfo(Date.valueOf("2020.01.01"));
+                        responseGenerator.addResponseEntry(reqCert, new CertStatus(info),Date.valueOf("2024.01.01"), null);
+                    }
+
+                } else if (reqCert.getType() == ReqCert.issuerSerial){
+                    IssuerAndSerialNumber number = (IssuerAndSerialNumber)reqCert.getReqCert();
+
+                    if ( !crl.isRevoked(number.getSerialNumber())) {
+                        responseGenerator.addResponseEntry(reqCert, new CertStatus(), Date.valueOf("2024.01.01"), null);
+                    } else {
+                        RevokedInfo info = new RevokedInfo(Date.valueOf("2020.01.01"));
+                        responseGenerator.addResponseEntry(reqCert, new CertStatus(info),Date.valueOf("2024.01.01"), null);
+                    }
+                } else if (reqCert.getType() == ReqCert.pKCert){
+                    X509Certificate certificate = (X509Certificate)reqCert.getReqCert();
+                    if (!crl.isRevoked(certificate)) {
+                        responseGenerator.addResponseEntry(reqCert, new CertStatus(), certificate.getNotAfter(), null);
+                    } else {
+                        RevokedInfo info = new RevokedInfo(certificate.getNotAfter());
+                        responseGenerator.addResponseEntry(reqCert, new CertStatus(info), certificate.getNotAfter(), null);
+                    }
+                }
+            }
+           // responseGenerator.addResponseEntries(crl, crlIssuer, ReqCert.certID);
             messages.put("info-4", "Message is: generator created");
             System.out.println("Generator created:");
             System.out.println(responseGenerator);
@@ -131,22 +166,17 @@ public class UnichornResponder extends HttpServlet {
             messages.put("err-gen", "Message is: generator is NOT created due to: " + ex.getMessage());
         }
 
-        ByteArrayOutputStream os = null;
+
         try {
-            os = new ByteArrayOutputStream();
-            responseGenerator.writeTo(os);
-            OCSPResponse response = new OCSPResponse(new ByteArrayInputStream(os.toByteArray()));
+            messages.put("beforecrea", "before create response internal");
+            OCSPResponse response = responseGenerator.createOCSPResponse(new ByteArrayInputStream(ocspRequest.getEncoded()),
+                    null, signatureAlgorithm, null);
+            messages.put("aftercrea", "after create internal");
+            messages.put("info-5", "Message is: output ok");
             return response;
         } catch (Exception ex) {
+            messages.put("info-4", "Message is: try to output failed with: " + ex.getMessage());
             throw new IllegalStateException("response was not generated ", ex);
-        } finally {
-            if (os != null) {
-                try {
-                    os.close();
-                } catch (IOException e) {
-                    // ignore
-                }
-            }
         }
     }
 

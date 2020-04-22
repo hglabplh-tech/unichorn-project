@@ -92,18 +92,7 @@ public class HttpOCSPClient {
             CloseableHttpResponse response = httpClient.execute(post);
             int code = response.getStatusLine().getStatusCode();
             System.out.println("ocsp ends with: " + code);
-            Header  header = response.getFirstHeader("error");
-            for(HeaderElement element:header.getElements()) {
-                System.out.println(element.getValue());
-            }
             Header [] allheader = response.getAllHeaders();
-            for (Header head: allheader) {
-                for(HeaderElement element:head.getElements()) {
-                    System.out.println(element.getParameters()[0].getName());
-                    System.out.println(element.getParameters()[0].getValue());
-                }
-            }
-
             if (code == 200) {
                 InputStream respInput = response.getEntity().getContent();
                 OCSPResponse ocspResp = new OCSPResponse(respInput);
