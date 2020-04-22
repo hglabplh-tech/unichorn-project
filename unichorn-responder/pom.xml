@@ -58,17 +58,13 @@
             <groupId>org.json</groupId>
             <artifactId>json</artifactId>
         </dependency>
-        <!-- https://mvnrepository.com/artifact/org.tinylog/tinylog -->
+        <!-- https://mvnrepository.com/artifact/org.slf4j/slf4j-api -->
         <dependency>
-            <groupId>org.tinylog</groupId>
-            <artifactId>tinylog</artifactId>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
 
         </dependency>
-        <!-- https://mvnrepository.com/artifact/org.tinylog/tinylog-api -->
-        <dependency>
-            <groupId>org.tinylog</groupId>
-            <artifactId>tinylog-api</artifactId>
-        </dependency>
+
         <dependency>
             <groupId>org.glassfish.jersey.containers</groupId>
             <artifactId>jersey-container-servlet</artifactId>
@@ -86,6 +82,12 @@
 
         </dependency>
 
+        <dependency>
+            <groupId>org.glassfish.main.extras</groupId>
+            <artifactId>glassfish-embedded-all</artifactId>
+            <version>3.1.2.2</version>
+            <scope>test</scope>
+        </dependency>
         <!-- Test dependencies-->
         <!-- https://mvnrepository.com/artifact/junit/junit -->
         <dependency>
