@@ -1,5 +1,6 @@
 package harry.security.responder.resources;
 
+import iaik.asn1.ObjectID;
 import iaik.asn1.structures.AlgorithmID;
 import iaik.cms.IssuerAndSerialNumber;
 import iaik.utils.ASN1InputStream;
@@ -12,6 +13,7 @@ import org.apache.tools.ant.types.selectors.ReadableSelector;
 import org.apache.tools.ant.util.LeadPipeInputStream;
 import org.harry.security.util.Tuple;
 import org.harry.security.util.certandkey.KeyStoreTool;
+import sun.security.provider.certpath.CertId;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -19,6 +21,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigInteger;
 import java.security.*;
+import java.security.cert.CRLException;
 import java.security.cert.CRLReason;
 import java.security.cert.X509CRLEntry;
 import java.text.SimpleDateFormat;
@@ -81,6 +84,11 @@ public class UnicHornResponderUtil {
 
         X509CRL crl = readCrl(UnicHornResponderUtil.class.getResourceAsStream("/unichorn.crl"));
         List<X509CRL> crlList = new ArrayList<>();
+        try {
+            crl.verify(keys.getSecond()[0].getPublicKey());
+        } catch (CRLException | NoSuchAlgorithmException | InvalidKeyException | NoSuchProviderException | SignatureException ex) {
+            throw new IllegalStateException("CRL is not trusted", ex);
+        }
         crlList.add(crl);
         crlList.addAll(getMoreCRLs());
         messages.put("info-2", "Message is: crl loaded" );
@@ -117,6 +125,8 @@ public class UnicHornResponderUtil {
                 if (reqCert.getType() == ReqCert.certID){
                     CertID certID = (CertID)reqCert.getReqCert();
                     BigInteger serial = certID.getSerialNumber();
+                    AlgorithmID hashAlg = certID.getHashAlgorithm();
+
 
                     if ( !crl.isRevoked(serial)) {
                         responseGenerator.addResponseEntry(reqCert, new CertStatus(), endDate, null);
@@ -156,6 +166,8 @@ public class UnicHornResponderUtil {
                         info.setRevocationReason(translateRevocationReason(reason));
                         responseGenerator.addResponseEntry(reqCert, new CertStatus(info), certificate.getNotAfter(), null);
                     }
+                } else if (reqCert.getType() == ReqCert.certHash) {
+                    reqCert.getReqCert();
                 }
             }
             // responseGenerator.addResponseEntries(crl, crlIssuer, ReqCert.certID);
