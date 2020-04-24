@@ -31,14 +31,17 @@
         <dependency>
             <groupId>iaik</groupId>
             <artifactId>iaik-cpades-eval</artifactId>
+            <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>iaik</groupId>
             <artifactId>iaik-ecc-eval</artifactId>
+            <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>iaik</groupId>
             <artifactId>iaik-ecc-cms-eval</artifactId>
+            <scope>compile</scope>
         </dependency>
 
         <dependency>
@@ -49,6 +52,7 @@
         <dependency>
             <groupId>iaik</groupId>
             <artifactId>iaik-tsp-eval</artifactId>
+            <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>com.sun.jersey</groupId>
@@ -58,10 +62,21 @@
             <groupId>org.json</groupId>
             <artifactId>json</artifactId>
         </dependency>
-        <!-- https://mvnrepository.com/artifact/org.slf4j/slf4j-api -->
         <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-api</artifactId>
+            <groupId>org.tinylog</groupId>
+            <artifactId>tinylog</artifactId>
+
+        </dependency>
+        <!-- https://mvnrepository.com/artifact/org.tinylog/tinylog-api -->
+        <dependency>
+            <groupId>org.tinylog</groupId>
+            <artifactId>tinylog-api</artifactId>
+
+        </dependency>
+        <!-- https://mvnrepository.com/artifact/org.tinylog/tinylog-impl -->
+        <dependency>
+            <groupId>org.tinylog</groupId>
+            <artifactId>tinylog-impl</artifactId>
 
         </dependency>
 

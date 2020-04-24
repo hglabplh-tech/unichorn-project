@@ -7,19 +7,44 @@ import iaik.x509.X509CRL;
 import iaik.x509.X509Certificate;
 import iaik.x509.ocsp.*;
 import iaik.x509.ocsp.utils.ResponseGenerator;
+import org.apache.tools.ant.util.LeadPipeInputStream;
 import org.harry.security.util.Tuple;
 import org.harry.security.util.certandkey.KeyStoreTool;
 
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigInteger;
-import java.security.KeyStore;
-import java.security.PrivateKey;
+import java.security.*;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 import java.util.Map;
 
+import static org.harry.security.util.ocsp.HttpOCSPClient.getCRLOfCert;
+
 public class UnicHornResponderUtil {
+
+    public static String APP_DIR;
+
+    public  static String APP_DIR_TRUST;
+
+    static {
+        String userDir = System.getProperty("user.home");
+        userDir = userDir + "\\AppData\\Local\\MySigningApp";
+        File dir = new File(userDir);
+        if (!dir.exists()){
+            dir.mkdirs();
+        }
+        File dirTrust = new File(userDir, "trustedLists");
+        if (!dirTrust.exists()) {
+            dirTrust.mkdirs();
+        }
+        UnicHornResponderUtil.APP_DIR_TRUST = dirTrust.getAbsolutePath();
+        UnicHornResponderUtil.APP_DIR = userDir;
+    }
 
     public static OCSPResponse generateResponse(OCSPRequest ocspRequest,
                                                 InputStream ocspReqInput,
@@ -27,14 +52,14 @@ public class UnicHornResponderUtil {
                                                 AlgorithmID signatureAlgorithm,
                                                 Map<String, String> messages) {
         messages.put("beforeks", "before getting keys and certs");
-        Tuple<PrivateKey, X509Certificate> keys = null;
+        Tuple<PrivateKey, X509Certificate[]> keys = null;
         try {
-            InputStream keyStore = UnicHornResponderUtil.class.getResourceAsStream("/application.jks");
-            KeyStore store = KeyStoreTool.loadStore(keyStore, "geheim".toCharArray(), "JKS");
-            keys = KeyStoreTool.getKeyEntry(store, UnichornResponder.ALIAS, "geheim".toCharArray());
+            checkRequestSigning(ocspRequest);
             messages.put("afterks", "after getting keys and certs");
+            keys = getPrivateKeyX509CertificateTuple();
             X509Certificate[] certs = new X509Certificate[1];
-            certs[0] = keys.getSecond();
+            certs = keys.getSecond();
+
             messages.put("beforegen", "before getting keystoregen");
             responseGenerator = new ResponseGenerator(keys.getFirst(), certs);
             messages.put("aftergen", "after getting keystoregen");
@@ -47,30 +72,43 @@ public class UnicHornResponderUtil {
         //
         PrivateKey responderKey = responseGenerator.getResponderKey();
 
-        if (!(responderKey instanceof java.security.interfaces.RSAPrivateKey)) {
-            if (responderKey instanceof java.security.interfaces.DSAPrivateKey) {
-                signatureAlgorithm = AlgorithmID.dsaWithSHA3_256;
-            } else {
-                signatureAlgorithm = AlgorithmID.sha256WithRSAEncryption;
-            }
-        }
-        try {
-            messages.put("info-1", "Message is:" + signatureAlgorithm.getImplementationName());
-        } catch (Exception ex){
-
-        }
+        signatureAlgorithm = getAlgorithmID(signatureAlgorithm, messages, responderKey);
         // read crl
 
         X509CRL crl = readCrl(UnicHornResponderUtil.class.getResourceAsStream("/unichorn.crl"));
+        List<X509CRL> crlList = new ArrayList<>();
+        crlList.add(crl);
+        crlList.addAll(getMoreCRLs());
         messages.put("info-2", "Message is: crl loaded" );
         System.out.println("Create response entries for crl...");
-        X509Certificate crlIssuer = keys.getSecond();
+
         messages.put("info-3", "Message is: before add resp entries" );
+        checkCertificateRevocation(ocspRequest, responseGenerator, messages, crl);
+
+
+        try {
+            return getOcspResponse(ocspReqInput, responseGenerator, signatureAlgorithm, messages, keys);
+        } catch (Exception ex) {
+            messages.put("info-4", "Message is: try to output failed with: " + ex.getMessage());
+            throw new IllegalStateException("response was not generated ", ex);
+        }
+    }
+
+    private static OCSPResponse getOcspResponse(InputStream ocspReqInput, ResponseGenerator responseGenerator, AlgorithmID signatureAlgorithm, Map<String, String> messages, Tuple<PrivateKey, X509Certificate[]> keys) {
+        messages.put("beforecrea", "before create response internal");// changed public key setting
+        OCSPResponse response = responseGenerator.createOCSPResponse(ocspReqInput,
+                keys.getSecond()[0].getPublicKey(), signatureAlgorithm, null);
+        messages.put("aftercrea", "after create internal");
+        messages.put("info-5", "Message is: output ok");
+        return response;
+    }
+
+    private static void checkCertificateRevocation(OCSPRequest ocspRequest, ResponseGenerator responseGenerator, Map<String, String> messages, X509CRL crl) {
         try {
             Request[] requests = ocspRequest.getRequestList();
             for (Request req:requests) {
                 Date endDate = getDate("2020-01-01");
-                java.util.Date startDate = getDate("2020-01-01");
+                Date startDate = getDate("2020-01-01");
                 ReqCert reqCert = req.getReqCert();
                 if (reqCert.getType() == ReqCert.certID){
                     CertID certID = (CertID)reqCert.getReqCert();
@@ -94,7 +132,12 @@ public class UnicHornResponderUtil {
                     }
                 } else if (reqCert.getType() == ReqCert.pKCert){
                     X509Certificate certificate = (X509Certificate)reqCert.getReqCert();
-                    if (!crl.isRevoked(certificate)) {
+                    X509CRL crlToUse = null;
+                    crlToUse = getCRLOfCert(certificate);
+                    if (crlToUse == null) {
+                        crlToUse = crl;
+                    }
+                    if (!crlToUse.isRevoked(certificate)) {
                         responseGenerator.addResponseEntry(reqCert, new CertStatus(), certificate.getNotAfter(), null);
                     } else {
                         RevokedInfo info = new RevokedInfo(certificate.getNotAfter());
@@ -109,18 +152,44 @@ public class UnicHornResponderUtil {
         } catch (Exception ex) {
             messages.put("err-gen", "Message is: generator is NOT created due to: " + ex.getMessage());
         }
+    }
 
-
+    private static AlgorithmID getAlgorithmID(AlgorithmID signatureAlgorithm, Map<String, String> messages, PrivateKey responderKey) {
+        if (!(responderKey instanceof java.security.interfaces.RSAPrivateKey)) {
+            if (responderKey instanceof java.security.interfaces.DSAPrivateKey) {
+                signatureAlgorithm = AlgorithmID.dsaWithSHA3_256;
+            } else {
+                signatureAlgorithm = AlgorithmID.sha256WithRSAEncryption;
+            }
+        }
         try {
-            messages.put("beforecrea", "before create response internal");// changed public key setting
-            OCSPResponse response = responseGenerator.createOCSPResponse(ocspReqInput,
-                    keys.getSecond().getPublicKey(), signatureAlgorithm, null);
-            messages.put("aftercrea", "after create internal");
-            messages.put("info-5", "Message is: output ok");
-            return response;
-        } catch (Exception ex) {
-            messages.put("info-4", "Message is: try to output failed with: " + ex.getMessage());
-            throw new IllegalStateException("response was not generated ", ex);
+            messages.put("info-1", "Message is:" + signatureAlgorithm.getImplementationName());
+        } catch (Exception ex){
+
+        }
+        return signatureAlgorithm;
+    }
+
+    private static Tuple<PrivateKey, X509Certificate[]> getPrivateKeyX509CertificateTuple() {
+        Tuple<PrivateKey, X509Certificate[]> keys = null;
+        InputStream keyStore = UnicHornResponderUtil.class.getResourceAsStream("/application.jks");
+        KeyStore store = KeyStoreTool.loadStore(keyStore, "geheim".toCharArray(), "JKS");
+        keys = KeyStoreTool.getKeyEntry(store, UnichornResponder.ALIAS, "geheim".toCharArray());
+        return keys;
+    }
+
+    private static void checkRequestSigning(OCSPRequest ocspRequest) throws NoSuchAlgorithmException, InvalidKeyException, SignatureException, OCSPException {
+        if (ocspRequest.containsSignature()) {
+            System.out.println("Request is signed.");
+
+            boolean signatureOk = false;
+            if (!signatureOk && ocspRequest.containsCertificates()) {
+                System.out.println("Verifying signature with included signer cert...");
+
+                X509Certificate signerCert = ocspRequest.verify();
+                System.out.println("Signature ok from request signer " + signerCert.getSubjectDN());
+                signatureOk = true;
+            }
         }
     }
 
@@ -149,6 +218,25 @@ public class UnicHornResponderUtil {
             }
         }
         return crl;
+    }
+
+    private static List<X509CRL> getMoreCRLs() {
+        List<X509CRL> result = new ArrayList<>();
+        File trustDir = new File(APP_DIR_TRUST);
+        if (trustDir.exists() && trustDir.isDirectory()) {
+            File [] list = trustDir.listFiles();
+            for (File file: list) {
+                if  (file.getAbsolutePath().contains(".crl")) {
+                    try {
+                        result.add(readCrl(new FileInputStream(file)));
+                    } catch (IOException ex) {
+                        throw new IllegalStateException("I/O error CRL", ex);
+                    }
+                }
+            }
+            return result;
+        }
+        return result;
     }
 
     private static java.util.Date getDate(String newDate) {

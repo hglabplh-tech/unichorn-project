@@ -9,6 +9,7 @@ import iaik.security.provider.IAIK;
 import iaik.x509.SimpleChainVerifier;
 import iaik.x509.X509Certificate;
 import iaik.x509.X509ExtensionException;
+import iaik.x509.X509ExtensionInitException;
 import iaik.x509.extensions.*;
 import org.harry.security.util.certandkey.KeyStoreTool;
 import org.harry.security.util.trustlist.TrustListLoader;
@@ -16,6 +17,8 @@ import org.harry.security.util.trustlist.TrustListLoader;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.math.BigInteger;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.security.*;
 import java.security.cert.CertificateException;
 import java.security.spec.AlgorithmParameterSpec;
@@ -307,6 +310,7 @@ public class CertificateWizzard {
                 extKeyUsage.setCritical(true);
                 cert.addExtension(extKeyUsage);
                 cert.addExtension(keyUsage);
+                setOCSPUrl(cert, "http://localhost:8080/unichorn-responder-1.0-SNAPSHOT/rest/ocsp");
             }
             String explicitText = "This certificate may be used for testing purposes only";
             PolicyQualifierInfo policyQualifier = new PolicyQualifierInfo(null, null, explicitText);
@@ -330,7 +334,7 @@ public class CertificateWizzard {
             throw new RuntimeException("Error creating the certificate: "+ex.getMessage());
         } catch (X509ExtensionException ex) {
             throw new RuntimeException("Error adding extension: "+ex.getMessage());
-        } catch (CodingException ex) {
+        } catch (CodingException | MalformedURLException ex) {
             throw new RuntimeException("Error adding SubjectKeyIdentifier extension: "+ex.getMessage());
         }
         return cert;
@@ -419,5 +423,17 @@ public class CertificateWizzard {
                 KeyUsage.nonRepudiation);
     }
 
-
+    /**
+     * Set the responder URL from the certificate
+     * @param cert the certificate
+     * @param url the url as String
+     * @throws X509ExtensionInitException error case
+     * @throws MalformedURLException error case
+     */
+    public static void setOCSPUrl(X509Certificate cert, String url) throws X509ExtensionException, MalformedURLException {
+        AccessDescription description = new AccessDescription(ObjectID.ocsp, url);
+        AuthorityInfoAccess access = new AuthorityInfoAccess(description);
+        access.setCritical(false);
+        cert.addExtension(access);
+    }
 }

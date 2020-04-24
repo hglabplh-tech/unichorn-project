@@ -42,14 +42,20 @@ public class KeyStoreTool {
        }
     }
 
-    public static Tuple<PrivateKey, X509Certificate> getKeyEntry(KeyStore store, String alias, char[] passwd) {
+    public static Tuple<PrivateKey, X509Certificate[]> getKeyEntry(KeyStore store, String alias, char[] passwd) {
        try {
-           Tuple<PrivateKey, X509Certificate> result;
+           Tuple<PrivateKey, X509Certificate[]> result;
            if (store.containsAlias(alias)) {
-               Certificate cert = store.getCertificate(alias);
-               X509Certificate iaik = new X509Certificate(cert.getEncoded());
+               Certificate[] certChain = store.getCertificateChain(alias);
+               X509Certificate [] iaiks = new X509Certificate[certChain.length];
+               int index = 0;
+               for (Certificate thisCert: certChain) {
+                   X509Certificate iaik = new X509Certificate(thisCert.getEncoded());
+                   iaiks[index] = iaik;
+                   index++;
+               }
                PrivateKey key = (PrivateKey)store.getKey(alias, passwd);
-               result = new Tuple<PrivateKey, X509Certificate>(key, iaik);
+               result = new Tuple<PrivateKey, X509Certificate[]>(key, iaiks);
            } else {
                throw new IllegalStateException("get entry failed");
            }

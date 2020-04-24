@@ -46,12 +46,15 @@ import iaik.x509.extensions.*;
 
 import java.io.*;
 import java.math.BigInteger;
+import java.net.MalformedURLException;
 import java.security.*;
 import java.security.cert.CertificateException;
 import java.security.spec.AlgorithmParameterSpec;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
 import java.util.Random;
+
+import static org.harry.security.util.CertificateWizzard.setOCSPUrl;
 
 
 /**
@@ -210,6 +213,7 @@ public class GenerateKeyStore implements CertGeneratorConstants {
         cert.addExtension(basicConstraints);
         KeyUsage keyUsage = new KeyUsage(KeyUsage.keyCertSign | KeyUsage.cRLSign);
         cert.addExtension(keyUsage);
+        setOCSPUrl(cert, "http://localhost:8080/unichorn-responder-1.0-SNAPSHOT/rest/ocsp");
       } else {
         date.add(Calendar.YEAR, 5);
         KeyUsage keyUsage = null;
@@ -264,7 +268,7 @@ public class GenerateKeyStore implements CertGeneratorConstants {
       throw new RuntimeException("Error creating the certificate: "+ex.getMessage());
     } catch (X509ExtensionException ex) {
       throw new RuntimeException("Error adding extension: "+ex.getMessage());
-    } catch (CodingException ex) {
+    } catch (CodingException | MalformedURLException ex) {
       throw new RuntimeException("Error adding SubjectKeyIdentifier extension: "+ex.getMessage());
     }
     return cert;

@@ -30,14 +30,14 @@ public class CRLEditTest extends TestBase {
         InputStream keyStore = CRLEditTest.class.getResourceAsStream("/certificates/application.jks");
         assertNotNull(keyStore);
         KeyStore store = KeyStoreTool.loadStore(keyStore, "geheim".toCharArray(), "JKS");
-        Tuple<PrivateKey, X509Certificate> keys = KeyStoreTool.getKeyEntry(store, ALIAS, "geheim".toCharArray());
+        Tuple<PrivateKey, X509Certificate[]> keys = KeyStoreTool.getKeyEntry(store, ALIAS, "geheim".toCharArray());
         InputStream stream = CRLEditTest.class.getResourceAsStream("/crl/unichorn.crl");
         InputStream certIN = CRLEditTest.class.getResourceAsStream("/certificates/hgp.cer");
         X509Certificate hgpCert = new X509Certificate(certIN);
         assertNotNull(stream);
         CRLEdit editor = new CRLEdit(stream);
         editor.addCertificate(hgpCert);
-        editor.signCRL(keys.getSecond(), keys.getFirst());
+        editor.signCRL(keys.getSecond()[0], keys.getFirst());
 
     }
 
@@ -46,7 +46,7 @@ public class CRLEditTest extends TestBase {
         InputStream keyStore = CRLEditTest.class.getResourceAsStream("/certificates/application.jks");
         assertNotNull(keyStore);
         KeyStore store = KeyStoreTool.loadStore(keyStore, "geheim".toCharArray(), "JKS");
-        Tuple<PrivateKey, X509Certificate> keys = KeyStoreTool.getKeyEntry(store, ALIAS, "geheim".toCharArray());
+        Tuple<PrivateKey, X509Certificate[]> keys = KeyStoreTool.getKeyEntry(store, ALIAS, "geheim".toCharArray());
         InputStream stream = CRLEditTest.class.getResourceAsStream("/crl/unichorn.crl");
         InputStream streamTrust = CRLEditTest.class.getResourceAsStream("/crl/privateTrust.xml");
         TrustStatusListType trustList = TrustListLoader.loadTrust(streamTrust);
@@ -56,7 +56,7 @@ public class CRLEditTest extends TestBase {
         for (X509Certificate trustCert: trustGetter.getAllCerts()) {
             editor.addCertificate(trustCert);
         }
-        editor.signCRL(keys.getSecond(), keys.getFirst());
+        editor.signCRL(keys.getSecond()[0], keys.getFirst());
         File temp = File.createTempFile("privCRL", ".crl");
         FileOutputStream out = new FileOutputStream(temp);
         editor.storeCRL(out);

@@ -2,9 +2,13 @@ package org.harry.security.util.ocsp;
 
 import iaik.asn1.ObjectID;
 import iaik.asn1.structures.AccessDescription;
+import iaik.asn1.structures.DistributionPoint;
+import iaik.x509.X509CRL;
 import iaik.x509.X509Certificate;
 import iaik.x509.X509ExtensionInitException;
 import iaik.x509.extensions.AuthorityInfoAccess;
+import iaik.x509.extensions.CRLDistPointsSyntax;
+import iaik.x509.extensions.CRLDistributionPoints;
 import iaik.x509.ocsp.OCSPRequest;
 import iaik.x509.ocsp.OCSPResponse;
 import org.apache.http.Header;
@@ -20,6 +24,7 @@ import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.security.PrivateKey;
+import java.util.Enumeration;
 
 /**
  * This class is for get6ting access to a OCSP responder it calls a
@@ -121,5 +126,34 @@ public class HttpOCSPClient {
             urlString = description.getUriAccessLocation();
         }
         return new URL(urlString);
+    }
+
+    /**
+     * Get the CRL from the certificate
+     * @param cert the certificate
+     * @return the X509CRL from the specified extension
+     * @throws X509ExtensionInitException error case
+     */
+    public static X509CRL getCRLOfCert(X509Certificate cert) throws X509ExtensionInitException {
+        String urlString = null;
+        CRLDistributionPoints access = (CRLDistributionPoints) cert.getExtension(ObjectID.certExt_CrlDistributionPoints);
+        if (access != null) {
+            Enumeration<DistributionPoint> enumDist = access.getDistributionPoints();
+            boolean hasMore = enumDist.hasMoreElements();
+            if (hasMore) {
+                DistributionPoint point = enumDist.nextElement();
+                try {
+                    X509CRL crl = point.loadCrl();
+                    return crl;
+                } catch (Exception ex) {
+                    throw new IllegalStateException("load crl failed", ex);
+                }
+            } else {
+                return null;
+            }
+        } else {
+            return null;
+
+        }
     }
 }
