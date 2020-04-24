@@ -11,6 +11,7 @@ import iaik.tsp.TimeStampToken;
 import iaik.tsp.TspVerificationException;
 import iaik.x509.X509Certificate;
 import iaik.x509.ocsp.OCSPResponse;
+import iaik.x509.ocsp.ReqCert;
 import org.harry.security.util.bean.SigningBean;
 import org.harry.security.util.ocsp.HttpOCSPClient;
 import org.harry.security.util.certandkey.CertWriterReader;
@@ -21,6 +22,7 @@ import java.net.URL;
 import java.security.DigestInputStream;
 import java.security.DigestOutputStream;
 import java.security.MessageDigest;
+import java.security.PrivateKey;
 import java.util.*;
 
 import static org.harry.security.util.HttpsChecker.loadKey;
@@ -430,18 +432,18 @@ public class VerifyUtil {
     private void checkOCSP (SignerInfoCheckResults results, X509Certificate [] chain) {
         try {
             boolean reqIsSigned = true;
-            CertWriterReader.KeyStoreBean bean = loadKey();
-            X509Certificate[] certs = new X509Certificate[1];
-            certs[0] = bean.getSelectedCert();
+            Tuple<PrivateKey, X509Certificate[]> bean = loadKey();
+            X509Certificate[] certs;
+            certs = bean.getSecond();
             int responseStatus = 0;
             URL ocspUrl = HttpOCSPClient.getOCSPUrl(chain[0]);
             OCSPResponse response = null;
             if (reqIsSigned == true && ocspUrl != null) {
-                 response = HttpOCSPClient.sendOCSPRequest(ocspUrl, bean.getSelectedKey(),
-                        certs, chain, true);
+                 response = HttpOCSPClient.sendOCSPRequest(ocspUrl, bean.getFirst(),
+                        certs, chain, true, ReqCert.certID);
             } else if (ocspUrl != null){
                 response = HttpOCSPClient.sendOCSPRequest(ocspUrl, null,
-                        null, chain, true);
+                        null, chain, true, ReqCert.certID);
             }
 
             if (response != null) {

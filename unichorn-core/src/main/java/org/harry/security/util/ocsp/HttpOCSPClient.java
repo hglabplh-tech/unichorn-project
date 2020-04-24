@@ -56,11 +56,12 @@ public class HttpOCSPClient {
             PrivateKey requestorKey,
                                         X509Certificate[] requestorCerts,
                                         X509Certificate[] targetCerts,
-                                        boolean includeExtensions) {
+                                        boolean includeExtensions, int type) {
 
         client = new OCSPClient();
         try {
-            OCSPRequest request = client.createOCSPRequest(requestorKey, requestorCerts, targetCerts, includeExtensions);
+            OCSPRequest request = client.createOCSPRequest(requestorKey, requestorCerts,
+                    targetCerts, includeExtensions, type);
             return getOcspResponseApache(ocspSedrverURL, request);
         } catch (Exception ex){
             throw new IllegalStateException("OCSP request failed", ex);

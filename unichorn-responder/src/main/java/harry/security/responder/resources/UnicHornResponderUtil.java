@@ -5,8 +5,10 @@ import iaik.cms.IssuerAndSerialNumber;
 import iaik.utils.ASN1InputStream;
 import iaik.x509.X509CRL;
 import iaik.x509.X509Certificate;
+import iaik.x509.extensions.ReasonCode;
 import iaik.x509.ocsp.*;
 import iaik.x509.ocsp.utils.ResponseGenerator;
+import org.apache.tools.ant.types.selectors.ReadableSelector;
 import org.apache.tools.ant.util.LeadPipeInputStream;
 import org.harry.security.util.Tuple;
 import org.harry.security.util.certandkey.KeyStoreTool;
@@ -17,6 +19,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigInteger;
 import java.security.*;
+import java.security.cert.CRLReason;
+import java.security.cert.X509CRLEntry;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -117,7 +121,10 @@ public class UnicHornResponderUtil {
                     if ( !crl.isRevoked(serial)) {
                         responseGenerator.addResponseEntry(reqCert, new CertStatus(), endDate, null);
                     } else {
+                        X509CRLEntry entry = crl.getRevokedCertificate(serial);
+                        CRLReason reason = entry.getRevocationReason();
                         RevokedInfo info = new RevokedInfo(startDate);
+                        info.setRevocationReason(translateRevocationReason(reason));
                         responseGenerator.addResponseEntry(reqCert, new CertStatus(info), endDate, null);
                     }
 
@@ -127,7 +134,10 @@ public class UnicHornResponderUtil {
                     if ( !crl.isRevoked(number.getSerialNumber())) {
                         responseGenerator.addResponseEntry(reqCert, new CertStatus(), endDate, null);
                     } else {
+                        X509CRLEntry entry = crl.getRevokedCertificate(number.getSerialNumber());
+                        CRLReason reason = entry.getRevocationReason();
                         RevokedInfo info = new RevokedInfo(startDate);
+                        info.setRevocationReason(translateRevocationReason(reason));
                         responseGenerator.addResponseEntry(reqCert, new CertStatus(info),endDate, null);
                     }
                 } else if (reqCert.getType() == ReqCert.pKCert){
@@ -140,7 +150,10 @@ public class UnicHornResponderUtil {
                     if (!crlToUse.isRevoked(certificate)) {
                         responseGenerator.addResponseEntry(reqCert, new CertStatus(), certificate.getNotAfter(), null);
                     } else {
+                        X509CRLEntry entry = crl.getRevokedCertificate(certificate.getSerialNumber());
+                        CRLReason reason = entry.getRevocationReason();
                         RevokedInfo info = new RevokedInfo(certificate.getNotAfter());
+                        info.setRevocationReason(translateRevocationReason(reason));
                         responseGenerator.addResponseEntry(reqCert, new CertStatus(info), certificate.getNotAfter(), null);
                     }
                 }
@@ -251,5 +264,43 @@ public class UnicHornResponderUtil {
             return null;
         }
     }
+
+    private static ReasonCode translateRevocationReason(CRLReason reason) {
+        ReasonCode result;
+        switch(reason) {
+
+            case AA_COMPROMISE:
+                result = new ReasonCode(ReasonCode.aACompromise);
+                break;
+            case REMOVE_FROM_CRL:
+                result = new ReasonCode(ReasonCode.removeFromCRL);
+                break;
+            case CA_COMPROMISE:
+                result = new ReasonCode(ReasonCode.cACompromise);
+                break;
+            case CERTIFICATE_HOLD:
+                result = new ReasonCode(ReasonCode.certificateHold);
+                break;
+            case UNSPECIFIED:
+                result = new ReasonCode(ReasonCode.unspecified);
+                break;
+            case SUPERSEDED:
+                result = new ReasonCode(ReasonCode.superseded);
+                break;
+            case UNUSED:
+                result = new ReasonCode(ReasonCode.unspecified);
+            case KEY_COMPROMISE:
+                result = new ReasonCode(ReasonCode.keyCompromise);
+            case PRIVILEGE_WITHDRAWN:
+                result = new ReasonCode(ReasonCode.privilegeWithdrawn);
+            case AFFILIATION_CHANGED:
+                result = new ReasonCode(ReasonCode.affiliationChanged);
+                break;
+            default:
+                throw new IllegalArgumentException("invalid revocation reason");
+        }
+        return result;
+    }
+
 
 }

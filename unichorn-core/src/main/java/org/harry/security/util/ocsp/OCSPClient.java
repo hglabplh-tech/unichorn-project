@@ -5,6 +5,7 @@ import iaik.asn1.structures.AccessDescription;
 import iaik.asn1.structures.AlgorithmID;
 import iaik.asn1.structures.GeneralName;
 import iaik.asn1.structures.Name;
+import iaik.cms.IssuerAndSerialNumber;
 import iaik.utils.CryptoUtils;
 import iaik.x509.X509Certificate;
 import iaik.x509.extensions.AuthorityInfoAccess;
@@ -55,7 +56,7 @@ public class OCSPClient {
     public OCSPRequest createOCSPRequest(PrivateKey requestorKey,
                                          X509Certificate[] requestorCerts,
                                          X509Certificate[] targetCerts,
-                                         boolean includeExtensions)
+                                         boolean includeExtensions, int type)
             throws OCSPException
 
     {
@@ -63,7 +64,7 @@ public class OCSPClient {
         if (targetCerts != null) {
             this.targetCerts = (X509Certificate[]) targetCerts.clone();
             try {
-                reqCert = createReqCert(targetCerts, hashAlgorithm);
+                reqCert = createReqCert(targetCerts, hashAlgorithm, type);
             } catch (Exception ex) {
                 throw new OCSPException("Error creating cert id: " + ex.toString());
             }
@@ -153,7 +154,7 @@ public class OCSPClient {
      *           if an exception occurs
      */
     final static ReqCert createReqCert(X509Certificate[] targetCerts,
-                                       AlgorithmID hashAlgorithm)
+                                       AlgorithmID hashAlgorithm, int type)
             throws Exception
     {
 
@@ -172,9 +173,20 @@ public class OCSPClient {
         BigInteger serialNum = targetCerts[0].getSerialNumber();
         // create the certID
         try {
-            CertID certID = new CertID(hashAlgorithm, issuerName, issuerKey,
-                    serialNum);
-            return new ReqCert(ReqCert.certID, certID);
+            if (type == ReqCert.certID) {
+                CertID certID = new CertID(hashAlgorithm, issuerName, issuerKey,
+                        serialNum);
+                return new ReqCert(ReqCert.certID, certID);
+            } else if (type == ReqCert.pKCert) {
+                return new ReqCert(ReqCert.pKCert, targetCerts[0]);
+            } else if(type == ReqCert.issuerSerial) {
+                IssuerAndSerialNumber number = new IssuerAndSerialNumber(
+                        (Name)targetCerts[0].getIssuerDN(),targetCerts[0].getSerialNumber());
+                return new ReqCert(ReqCert.issuerSerial, number);
+            } else {
+                return new ReqCert(ReqCert.certHash, targetCerts[0]);
+            }
+
         } catch (NoSuchAlgorithmException ex) {
             throw new RuntimeException("No implementation for SHA!");
         }

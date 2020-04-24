@@ -2,6 +2,7 @@ package org.harry.security.util;
 
 import iaik.x509.X509Certificate;
 import iaik.x509.ocsp.OCSPResponse;
+import iaik.x509.ocsp.ReqCert;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.conn.ssl.TrustAllStrategy;
 import org.apache.http.impl.client.CloseableHttpClient;
@@ -9,11 +10,13 @@ import org.apache.http.protocol.HttpContext;
 import org.apache.http.protocol.HttpCoreContext;
 import org.apache.http.ssl.SSLContextBuilder;
 import org.harry.security.util.certandkey.CertWriterReader;
+import org.harry.security.util.certandkey.KeyStoreTool;
 import org.harry.security.util.httpclient.ClientFactory;
 import org.harry.security.util.ocsp.HttpOCSPClient;
 
 import javax.net.ssl.SSLContext;
 import java.io.FileNotFoundException;
+import java.io.InputStream;
 import java.net.URL;
 import java.security.*;
 import java.security.cert.Certificate;
@@ -25,6 +28,8 @@ import static org.harry.security.util.certandkey.CertWriterReader.loadSecrets;
 public class HttpsChecker {
 
     public static final String PEER_CERTIFICATES = "PEER_CERTIFICATES";
+
+    private static final String ALIAS = "Common T-Systems Green TeamUserRSA";
 
 
     public static List<X509Certificate> getCertFromHttps(String urlString) {
@@ -129,18 +134,18 @@ public class HttpsChecker {
             System.out.println("found certificate in store");
             if (ocspCheck) {
 
-                CertWriterReader.KeyStoreBean bean = loadKey();
+                Tuple<PrivateKey, X509Certificate[]> bean = loadKey();
                 X509Certificate[] certs = new X509Certificate[2];
-                certs[0] = bean.getSelectedCert();
-                certs[1] = bean.getSelectedCert();
+                certs = bean.getSecond();
                 /*OCSPResponse response = HttpOCSPClient.sendOCSPRequest(ocspUrl, bean.getSelectedKey(),
                         certs, certList.toArray(new X509Certificate[0]), false);*/
                 int responseStatus = 0;
                 for (X509Certificate cert : certList) {
                     URL ocspUrl = HttpOCSPClient.getOCSPUrl(cert);
                     //ocspUrl= new URL("http://ocsp.digicert.com");
-                    OCSPResponse response = HttpOCSPClient.sendOCSPRequest(ocspUrl, bean.getSelectedKey(),
-                            certs, certList.toArray(new X509Certificate[0]), true);
+                    OCSPResponse response = HttpOCSPClient.sendOCSPRequest(ocspUrl, bean.getFirst(),
+                            certs, certList.toArray(new X509Certificate[0]),
+                            true, ReqCert.pKCert);
                     int oldStatus = responseStatus;
                     responseStatus = HttpOCSPClient.getClient().parseOCSPResponse(response, true);
                     if(oldStatus != OCSPResponse.successful) {
@@ -170,10 +175,13 @@ public class HttpsChecker {
         return subjectDN.getName();
     }
 
-    public static CertWriterReader.KeyStoreBean loadKey() throws FileNotFoundException {
+    public static Tuple<PrivateKey, X509Certificate[]> loadKey() throws FileNotFoundException {
 
-        return loadSecrets(null, "JKS",
-                "geheim", "RSA_MASTER");
+        InputStream keyStore = HttpsChecker.class.getResourceAsStream("/application.jks");
+        KeyStore store = KeyStoreTool.loadStore(keyStore, "geheim".toCharArray(), "JKS");
+
+        Tuple<PrivateKey, X509Certificate[]> keys = KeyStoreTool.getKeyEntry(store, ALIAS, "geheim".toCharArray());
+        return keys;
     }
 
 }

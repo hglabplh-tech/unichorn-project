@@ -4,6 +4,7 @@ import iaik.asn1.structures.AlgorithmID;
 import iaik.x509.X509Certificate;
 import iaik.x509.ocsp.OCSPRequest;
 import iaik.x509.ocsp.OCSPResponse;
+import iaik.x509.ocsp.ReqCert;
 import iaik.x509.ocsp.utils.ResponseGenerator;
 import org.apache.http.HttpEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
@@ -63,7 +64,8 @@ public class ResponderTest {
                     certs, certList.toArray(new X509Certificate[0]), true); */
             OCSPClient client = new OCSPClient();
             OCSPRequest request = client.createOCSPRequest(null, null,
-                    certList.toArray(new X509Certificate[0]), false);
+                    certList.toArray(new X509Certificate[0]),
+                    false, ReqCert.certID);
 
             ByteArrayInputStream stream = new ByteArrayInputStream(request.getEncoded());
             ResponseGenerator respGen = null;
@@ -94,7 +96,8 @@ public class ResponderTest {
         for (X509Certificate cert : certList) {
             OCSPClient client = new OCSPClient();
             OCSPRequest request = client.createOCSPRequest(keys.getFirst(),
-                    certs, certList.toArray(new X509Certificate[0]), false);
+                    certs, certList.toArray(new X509Certificate[0]),
+                    false, ReqCert.pKCert);
 
             ByteArrayInputStream stream = new ByteArrayInputStream(request.getEncoded());
             ResponseGenerator respGen = null;
@@ -131,7 +134,8 @@ public class ResponderTest {
             /*OCSPResponse response = HttpOCSPClient.sendOCSPRequest(ocspUrl, keys.getFirst(),
                     certs, certList.toArray(new X509Certificate[0]), true); */
             OCSPResponse response = HttpOCSPClient.sendOCSPRequest(ocspUrl, null,
-                    null, certList.toArray(new X509Certificate[0]), false);
+                    null, certList.toArray(new X509Certificate[0]),
+                    false, ReqCert.pKCert);
             responseStatus = HttpOCSPClient.getClient().parseOCSPResponse(response, false);
         }
 
@@ -156,7 +160,8 @@ public class ResponderTest {
             URL ocspUrl = HttpOCSPClient.getOCSPUrl(cert);
             ocspUrl= new URL("http://localhost:8080/unichorn-responder-1.0-SNAPSHOT/rest/ocsp");
             OCSPResponse response = HttpOCSPClient.sendOCSPRequest(ocspUrl, keys.getFirst(),
-                    certs, certList.toArray(new X509Certificate[0]), true);
+                    certs, certList.toArray(new X509Certificate[0]),
+                    true, ReqCert.pKCert);
             responseStatus = HttpOCSPClient.getClient().parseOCSPResponse(response, false);
         }
 
