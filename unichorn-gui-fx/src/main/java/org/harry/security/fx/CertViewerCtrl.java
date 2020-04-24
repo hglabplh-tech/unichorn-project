@@ -160,8 +160,10 @@ public class CertViewerCtrl implements ControllerInit {
             setColor(styleList, "custom-white");
         });
         CheckBox ocspCheck = getCheckBoxByFXID("ocspCheck");
+        CheckBox altResponder = getCheckBoxByFXID("altResp");
         Tuple<Integer, List<X509Certificate>> certResp =
-                HttpsChecker.checkHttpsCertValidity(url.getText(), ocspCheck.isSelected());
+                HttpsChecker.checkHttpsCertValidity(url.getText(), ocspCheck.isSelected(),
+                        altResponder.isSelected());
 
 
         if (certResp.getFirst() == OCSPResponse.successful) {

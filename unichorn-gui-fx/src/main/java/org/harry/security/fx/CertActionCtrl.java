@@ -7,13 +7,17 @@ import javafx.scene.Scene;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
+import org.harry.security.util.CertificateWizzard;
+import org.harry.security.util.ConfigReader;
 import org.harry.security.util.certandkey.CertWriterReader;
 import org.harry.security.util.certandkey.KeyStoreTool;
 
 import java.io.*;
 import java.security.KeyStore;
+import java.security.KeyStoreException;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.CertificateException;
+import java.util.Enumeration;
 
 import static org.harry.security.fx.util.Miscellaneous.*;
 
@@ -77,6 +81,33 @@ public class CertActionCtrl implements ControllerInit {
         }
 
         }
+    }
+
+    @FXML
+    protected void genChain(ActionEvent event) throws KeyStoreException, IOException {
+        ComboBox typeBox = getComboBoxByFXID("keyStoreType");
+        TextField passwd = getTextFieldByFXID("passwd");
+        TextField alias = getTextFieldByFXID("alias");
+        KeyStoreTool.StoreType storeType = (KeyStoreTool.StoreType)
+                typeBox.getSelectionModel().getSelectedItem();
+        ConfigReader.MainProperties props = ConfigReader.loadStore();
+        props.setKeystorePass(passwd.getText());
+            CertificateWizzard wizzard = new CertificateWizzard(ConfigReader.loadStore());
+            wizzard.generateCA();
+            wizzard.generateIntermediate();
+            wizzard.generateUser();
+            KeyStore store = wizzard.getStore();
+            Enumeration<String> aliases = store.aliases();
+            if (aliases.hasMoreElements()) {
+                alias.setText(aliases.nextElement());
+            }
+            File outFile = showSaveDialogFromButton(event, "expTarget");
+            KeyStoreTool.storeKeyStore(store, new FileOutputStream(outFile), passwd.getText().toCharArray());
+            actualCert = KeyStoreTool.getCertificateEntry(store, alias.getText());
+            TextArea area = getTextAreaByFXID("certView");
+            area.setWrapText(true);
+            area.setText(actualCert.toString());
+
     }
 
     @FXML

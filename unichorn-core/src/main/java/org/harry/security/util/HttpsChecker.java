@@ -124,8 +124,9 @@ public class HttpsChecker {
     }
 
     public static Tuple<Integer, List<X509Certificate>> checkHttpsCertValidity(String checkURL,
-
-                                                                               boolean ocspCheck) {
+                                                                               boolean ocspCheck,
+                                                                               boolean altResponder
+    ) {
         try {
         List<X509Certificate> certList = HttpsChecker.getCertFromHttps(checkURL);
         Map<String, X509Certificate> certMap = CertLoader.loadCertificatesFromWIN();
@@ -142,7 +143,9 @@ public class HttpsChecker {
                 int responseStatus = 0;
                 for (X509Certificate cert : certList) {
                     URL ocspUrl = HttpOCSPClient.getOCSPUrl(cert);
-                    //ocspUrl= new URL("http://ocsp.digicert.com");
+                    if (altResponder) {
+                        ocspUrl = new URL("http://localhost:8080/unichorn-responder-1.0-SNAPSHOT/rest/ocsp");
+                    }
                     OCSPResponse response = HttpOCSPClient.sendOCSPRequest(ocspUrl, bean.getFirst(),
                             certs, certList.toArray(new X509Certificate[0]),
                             true, ReqCert.pKCert);

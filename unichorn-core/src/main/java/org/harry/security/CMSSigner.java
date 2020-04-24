@@ -179,7 +179,7 @@ public class CMSSigner {
                 CertLoader.loadCertificatesFromWIN();
             } else if (command.equals(Commands.HTTPS_CHECK)) {
                 String checkURL = cmds.getHttpsURL();
-                HttpsChecker.checkHttpsCertValidity(checkURL, cmds.isOcspCheck());
+                HttpsChecker.checkHttpsCertValidity(checkURL, cmds.isOcspCheck(), false);
             } else if (command.equals(Commands.VERIFY_SIGNATURE)) {
                 try {
                     File file = new File(verify.getSignatureFilename()).getAbsoluteFile();

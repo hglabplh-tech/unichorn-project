@@ -44,7 +44,7 @@
 .root{
     -fx-font-size: 10pt;
     -fx-base: orange;
-    -fx-background: lightblue
+    -fx-background: pink
 }
 
 #content-header {
