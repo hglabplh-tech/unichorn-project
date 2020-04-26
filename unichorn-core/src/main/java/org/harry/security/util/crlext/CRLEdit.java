@@ -1,5 +1,6 @@
 package org.harry.security.util.crlext;
 
+import iaik.asn1.structures.AlgorithmID;
 import iaik.utils.ASN1InputStream;
 import iaik.x509.RevokedCertificate;
 import iaik.x509.X509CRL;
@@ -8,7 +9,9 @@ import iaik.x509.X509Certificate;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.security.Principal;
 import java.security.PrivateKey;
+import java.util.Calendar;
 import java.util.Date;
 
 public class CRLEdit {
@@ -19,19 +22,34 @@ public class CRLEdit {
         crList = readCrl(stream);
     }
 
+    public CRLEdit(Principal issuer) {
+        X509CRL crlList = new X509CRL();
+        crlList.setIssuerDN(issuer);
+
+        Calendar cal = Calendar.getInstance();
+        cal.set(Calendar.WEEK_OF_MONTH,(cal.get(Calendar.WEEK_OF_MONTH) -1));
+        crlList.setThisUpdate(new Date(cal.getTimeInMillis()));
+        cal.add(Calendar.WEEK_OF_YEAR, 5);
+        crlList.setNextUpdate(new Date(cal.getTimeInMillis()));
+        crlList.setSignatureAlgorithm(AlgorithmID.sha256WithRSAEncryption);
+        crList = crlList;
+    }
+
     public void addCertificate(X509Certificate certificate) {
         Date date = certificate.getNotAfter();
         crList.addCertificate(certificate, date);
     }
 
     public void addRevokedCertificate(X509Certificate certificate) {
-        Date date = certificate.getNotAfter();
-        RevokedCertificate revoked = new RevokedCertificate(certificate, date);
+        Calendar cal = Calendar.getInstance();
+        cal.set(Calendar.WEEK_OF_MONTH,(cal.get(Calendar.WEEK_OF_MONTH) -1));
+        Date actualDate = new Date(cal.getTimeInMillis());
+        RevokedCertificate revoked = new RevokedCertificate(certificate, actualDate);
         crList.addCertificate(revoked);
     }
 
     public void signCRL(X509Certificate signer, PrivateKey key) {
-        crList.setIssuerDN(signer.getIssuerDN());
+        crList.setIssuerDN(signer.getSubjectDN());
         try {
             crList.sign(key);
         } catch(Exception ex) {

@@ -60,6 +60,18 @@ public class CertRevokEditCtrl implements ControllerInit {
     }
 
     @FXML
+    public void freshCRL(ActionEvent event) throws IOException {
+        editTemp = File.createTempFile("edit", ".crl");
+        Label status = getLabelByFXID("status");
+        KeyStore appStore = KeyStoreTool.loadAppStore();
+        Tuple<PrivateKey, X509Certificate[]> keys = KeyStoreTool.getAppKeyEntry(appStore);
+        X509Certificate issuer = keys.getSecond()[0];
+        editCRL = new CRLEdit(issuer.getSubjectDN());
+        status.setText("CRL generated");
+        return;
+    }
+
+    @FXML
     public void upload(ActionEvent event) throws Exception {
         KeyStore appStore = KeyStoreTool.loadAppStore();
         Tuple<PrivateKey, X509Certificate[]> keys = KeyStoreTool.getAppKeyEntry(appStore);

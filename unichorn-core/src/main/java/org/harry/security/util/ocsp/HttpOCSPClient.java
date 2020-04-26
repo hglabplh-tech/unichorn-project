@@ -125,8 +125,9 @@ public class HttpOCSPClient {
         if (access != null) {
             AccessDescription description = access.getAccessDescription(ObjectID.ocsp);
             urlString = description.getUriAccessLocation();
+            return new URL(urlString);
         }
-        return new URL(urlString);
+        return new URL("http://localhost:8080/unichorn-responder-1.0-SNAPSHOT/rest/ocsp");
     }
 
     /**

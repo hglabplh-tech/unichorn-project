@@ -112,6 +112,46 @@ public class ResponderTest {
     }
 
     @Test
+    public void nativeCallerSigned2() throws Exception {
+        List<X509Certificate[]> certList= new ArrayList<>();
+        InputStream keystoreUser = ResponderTest.class.getResourceAsStream("/t-systems.jks");
+        KeyStore tsystems = KeyStoreTool.loadStore(keystoreUser, "geheim".toCharArray(), "JKS");
+        Enumeration<String> aliases = tsystems.aliases();
+        while (aliases.hasMoreElements())  {
+            String alias = aliases.nextElement();
+            X509Certificate[] cert = KeyStoreTool.getCertChainEntry(tsystems, alias);
+            certList.add(cert);
+        }
+        Tuple<PrivateKey, X509Certificate[]> keys = null;
+
+        InputStream
+                keyStore = ResponderTest.class.getResourceAsStream("/application.jks");
+        KeyStore store = KeyStoreTool.loadStore(keyStore, "geheim".toCharArray(), "JKS");
+        keys = KeyStoreTool.getKeyEntry(store, ALIAS, "geheim".toCharArray());
+        X509Certificate[] certs = new X509Certificate[2];
+        certs = keys.getSecond();
+        for (X509Certificate[] certArray : certList) {
+            if (certArray.length > 1) {
+                OCSPClient client = new OCSPClient();
+                OCSPRequest request = client.createOCSPRequest(keys.getFirst(),
+                        certs, certArray,
+                        false, ReqCert.pKCert);
+
+                ByteArrayInputStream stream = new ByteArrayInputStream(request.getEncoded());
+                ResponseGenerator respGen = null;
+                AlgorithmID sigAlg = null;
+                Map<String, String> msg = new HashMap<>();
+                OCSPResponse response = UnicHornResponderUtil.generateResponse(request,
+                        stream, respGen, sigAlg, msg);
+                client.parseOCSPResponse(response, false);
+            }
+
+        }
+
+    }
+
+
+    @Test
     public void testOCSPOK() throws Exception {
         List<X509Certificate> certList= new ArrayList<>();
         certList.add(new CertWriterReader().readFromFilePEM(
@@ -166,6 +206,38 @@ public class ResponderTest {
         }
 
     }
+
+    @Test
+    public void testOCSPOKSigned2() throws Exception {
+        List<X509Certificate> certList= new ArrayList<>();
+        InputStream keystoreUser = ResponderTest.class.getResourceAsStream("/t-systems.jks");
+        KeyStore tsystems = KeyStoreTool.loadStore(keystoreUser, "geheim".toCharArray(), "JKS");
+        Enumeration<String> aliases = tsystems.aliases();
+        while (aliases.hasMoreElements())  {
+            String alias = aliases.nextElement();
+            X509Certificate cert = KeyStoreTool.getCertificateEntry(tsystems, alias);
+            certList.add(cert);
+        }
+        Tuple<PrivateKey, X509Certificate[]> keys = null;
+
+        InputStream keyStore = ResponderTest.class.getResourceAsStream("/application.jks");
+        KeyStore store = KeyStoreTool.loadStore(keyStore, "geheim".toCharArray(), "JKS");
+
+        keys = KeyStoreTool.getKeyEntry(store, ALIAS, "geheim".toCharArray());
+        X509Certificate[] certs = new X509Certificate[2];
+        certs = keys.getSecond();
+        int responseStatus = 0;
+        for (X509Certificate cert : certList) {
+            URL ocspUrl = HttpOCSPClient.getOCSPUrl(cert);
+            ocspUrl= new URL("http://localhost:8080/unichorn-responder-1.0-SNAPSHOT/rest/ocsp");
+            OCSPResponse response = HttpOCSPClient.sendOCSPRequest(ocspUrl, keys.getFirst(),
+                    certs, certList.toArray(new X509Certificate[0]),
+                    true, ReqCert.certID);
+            responseStatus = HttpOCSPClient.getClient().parseOCSPResponse(response, false);
+        }
+
+    }
+
 
     @Test
     public void testPutPKCS12Store() throws Exception {

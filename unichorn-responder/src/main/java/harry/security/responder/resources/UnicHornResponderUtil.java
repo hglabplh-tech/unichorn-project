@@ -4,6 +4,7 @@ import iaik.asn1.ObjectID;
 import iaik.asn1.structures.AlgorithmID;
 import iaik.cms.IssuerAndSerialNumber;
 import iaik.utils.ASN1InputStream;
+import iaik.x509.RevokedCertificate;
 import iaik.x509.X509CRL;
 import iaik.x509.X509Certificate;
 import iaik.x509.extensions.ReasonCode;
@@ -26,10 +27,7 @@ import java.security.cert.CRLException;
 import java.security.cert.CRLReason;
 import java.security.cert.X509CRLEntry;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import static org.harry.security.util.ocsp.HttpOCSPClient.getCRLOfCert;
 
@@ -120,8 +118,10 @@ public class UnicHornResponderUtil {
         try {
             Request[] requests = ocspRequest.getRequestList();
             for (Request req:requests) {
-                Date endDate = getDate("2020-01-01");
+                Date endDate = getDate("2024-01-01");
                 Date startDate = getDate("2020-01-01");
+                Calendar cal = Calendar.getInstance();
+                Date actualDate = new Date(cal.getTimeInMillis());
                 ReqCert reqCert = req.getReqCert();
                 if (reqCert.getType() == ReqCert.certID){
                     CertID certID = (CertID)reqCert.getReqCert();
@@ -129,26 +129,30 @@ public class UnicHornResponderUtil {
                     AlgorithmID hashAlg = certID.getHashAlgorithm();
 
 
-                    if ( !crl.isRevoked(serial)) {
+                    if ( !checkRevocation(crl, serial)) {
                         responseGenerator.addResponseEntry(reqCert, new CertStatus(), endDate, null);
                     } else {
-                        X509CRLEntry entry = crl.getRevokedCertificate(serial);
-                        CRLReason reason = entry.getRevocationReason();
+                        if (crl.containsCertificate(serial) != null) {
+                            X509CRLEntry entry = crl.getRevokedCertificate(serial);
+                            CRLReason reason = entry.getRevocationReason();
+                        }
                         RevokedInfo info = new RevokedInfo(startDate);
-                        info.setRevocationReason(translateRevocationReason(reason));
+                        //info.setRevocationReason(translateRevocationReason(reason));
                         responseGenerator.addResponseEntry(reqCert, new CertStatus(info), endDate, null);
                     }
 
                 } else if (reqCert.getType() == ReqCert.issuerSerial){
                     IssuerAndSerialNumber number = (IssuerAndSerialNumber)reqCert.getReqCert();
 
-                    if ( !crl.isRevoked(number.getSerialNumber())) {
+                    if ( !checkRevocation(crl, number.getSerialNumber())) {
                         responseGenerator.addResponseEntry(reqCert, new CertStatus(), endDate, null);
                     } else {
-                        X509CRLEntry entry = crl.getRevokedCertificate(number.getSerialNumber());
-                        CRLReason reason = entry.getRevocationReason();
+                        if (crl.containsCertificate(number.getSerialNumber()) != null) {
+                            X509CRLEntry entry = crl.getRevokedCertificate(number.getSerialNumber());
+                            CRLReason reason = entry.getRevocationReason();
+                        }
                         RevokedInfo info = new RevokedInfo(startDate);
-                        info.setRevocationReason(translateRevocationReason(reason));
+                        //info.setRevocationReason(translateRevocationReason(reason));
                         responseGenerator.addResponseEntry(reqCert, new CertStatus(info),endDate, null);
                     }
                 } else if (reqCert.getType() == ReqCert.pKCert){
@@ -158,13 +162,16 @@ public class UnicHornResponderUtil {
                     if (crlToUse == null) {
                         crlToUse = crl;
                     }
-                    if (!crlToUse.isRevoked(certificate)) {
+
+                    if (!checkRevocation(crl, certificate.getSerialNumber())) {
                         responseGenerator.addResponseEntry(reqCert, new CertStatus(), certificate.getNotAfter(), null);
                     } else {
-                        X509CRLEntry entry = crl.getRevokedCertificate(certificate.getSerialNumber());
-                        CRLReason reason = entry.getRevocationReason();
-                        RevokedInfo info = new RevokedInfo(certificate.getNotAfter());
-                        info.setRevocationReason(translateRevocationReason(reason));
+                        if (crl.containsCertificate(certificate.getSerialNumber()) != null) {
+                            X509CRLEntry entry = crl.getRevokedCertificate(certificate.getSerialNumber());
+                            CRLReason reason = entry.getRevocationReason();
+                        }
+                        RevokedInfo info = new RevokedInfo(actualDate);
+                        //info.setRevocationReason(translateRevocationReason(reason));
                         responseGenerator.addResponseEntry(reqCert, new CertStatus(info), certificate.getNotAfter(), null);
                     }
                 } else if (reqCert.getType() == ReqCert.certHash) {
@@ -329,6 +336,28 @@ public class UnicHornResponderUtil {
             throw new IllegalStateException("get input stream failed", ex);
         }
 
+    }
+
+    private static boolean checkRevocation(X509CRL crl, BigInteger certSerial) {
+        Set<RevokedCertificate> revoked = crl.getRevokedCertificates();
+        for (RevokedCertificate cert: revoked) {
+            System.out.println(cert.getSerialNumber() + " " + certSerial);
+        }
+        Optional<RevokedCertificate> found = revoked.stream()
+                .filter(e -> e.getSerialNumber().equals(certSerial))
+                .findFirst();
+        if (found.isPresent()) {
+            Calendar cal = Calendar.getInstance();
+            Date actualDate = new Date(cal.getTimeInMillis());
+            Date rDate = found.get().getRevocationDate();
+            if (rDate.after(actualDate)) {
+                return false;
+            } else {
+                return true;
+            }
+
+        }
+        return false;
     }
 
 }

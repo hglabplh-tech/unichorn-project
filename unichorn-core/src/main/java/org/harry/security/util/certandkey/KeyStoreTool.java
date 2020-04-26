@@ -147,6 +147,27 @@ public class KeyStoreTool {
         }
     }
 
+    public static X509Certificate[] getCertChainEntry(KeyStore store, String alias) {
+        try {
+            X509Certificate result;
+            if (store.containsAlias(alias)) {
+                Certificate[] certChain = store.getCertificateChain(alias);
+                X509Certificate [] iaiks = new X509Certificate[certChain.length];
+                int index = 0;
+                for (Certificate thisCert: certChain) {
+                    X509Certificate iaik = new X509Certificate(thisCert.getEncoded());
+                    iaiks[index] = iaik;
+                    index++;
+                }
+                return iaiks;
+            } else {
+                throw new IllegalStateException("get entry failed");
+            }
+        } catch (Exception ex) {
+            throw new IllegalStateException("get entry failed", ex);
+        }
+    }
+
     public static void deleteEntry(KeyStore store, String alias) {
        try {
            if (store.containsAlias(alias)) {

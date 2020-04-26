@@ -161,10 +161,12 @@ public class ConfigReader {
         try {
             File trustFileDir = new File(APP_DIR_TRUST);
             for (File trustFile : trustFileDir.listFiles()) {
-                in = new FileInputStream(trustFile);
+                if (trustFile.getName().contains(".xml")) {
+                    in = new FileInputStream(trustFile);
                 TrustStatusListType trustList = TrustListLoader.loadTrust(in);
                 TrustListManager walker = new TrustListManager(trustList);
                 theTrusts.add(walker);
+                }
             }
             return theTrusts;
         } catch(Exception ex) {
