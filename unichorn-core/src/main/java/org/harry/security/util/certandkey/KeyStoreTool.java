@@ -4,6 +4,8 @@ import iaik.x509.X509Certificate;
 import org.harry.security.util.Tuple;
 
 
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.security.KeyStore;
@@ -12,21 +14,49 @@ import java.security.cert.Certificate;
 
 public class KeyStoreTool {
 
-   public static KeyStore loadStore(InputStream resource, char[] passwd, String type) {
-       try {
-           KeyStore store = KeyStore.getInstance(type);
-           store.load(resource, passwd);
-           resource.close();
-           return store;
-       } catch (Exception ex) {
-           throw new IllegalStateException("cannot load keystore", ex);
-       }
-   }
+    public static String APP_DIR;
+
+    public static final String KEYSTORE_FNAME = "application.jks";
+
+    public static final String ALIAS = "Common T-Systems Green TeamUserRSA";
+
+    static {
+        String userDir = System.getProperty("user.home");
+        userDir = userDir + "\\AppData\\Local\\MySigningApp";
+        File dir = new File(userDir);
+        if (!dir.exists()){
+            dir.mkdirs();
+        }
+        APP_DIR= userDir;
+    }
 
     public static KeyStore initStore(String type) {
         try {
             KeyStore store = KeyStore.getInstance(type);
             store.load(null, null);
+            return store;
+        } catch (Exception ex) {
+            throw new IllegalStateException("cannot load keystore", ex);
+        }
+    }
+
+    public static KeyStore loadAppStore() {
+        try {
+            KeyStore store = KeyStore.getInstance("JKS");
+            FileInputStream resource = new FileInputStream(new File(APP_DIR, KEYSTORE_FNAME));
+            store.load(resource, "geheim".toCharArray());
+            resource.close();
+            return store;
+        } catch (Exception ex) {
+            throw new IllegalStateException("cannot load keystore", ex);
+        }
+    }
+
+    public static KeyStore loadStore(InputStream resource, char[] passwd, String type) {
+        try {
+            KeyStore store = KeyStore.getInstance(type);
+            store.load(resource, passwd);
+            resource.close();
             return store;
         } catch (Exception ex) {
             throw new IllegalStateException("cannot load keystore", ex);
@@ -69,6 +99,36 @@ public class KeyStoreTool {
            }
            throw new IllegalStateException(message, ex);
        }
+
+    }
+
+    public static Tuple<PrivateKey, X509Certificate[]> getAppKeyEntry(KeyStore store) {
+        try {
+            Tuple<PrivateKey, X509Certificate[]> result;
+            if (store.containsAlias(ALIAS)) {
+                Certificate[] certChain = store.getCertificateChain(ALIAS);
+                X509Certificate [] iaiks = new X509Certificate[certChain.length];
+                int index = 0;
+                for (Certificate thisCert: certChain) {
+                    X509Certificate iaik = new X509Certificate(thisCert.getEncoded());
+                    iaiks[index] = iaik;
+                    index++;
+                }
+                PrivateKey key = (PrivateKey)store.getKey(ALIAS, "geheim".toCharArray());
+                result = new Tuple<PrivateKey, X509Certificate[]>(key, iaiks);
+            } else {
+                throw new IllegalStateException("get entry failed");
+            }
+            return result;
+        } catch (Exception ex) {
+            String message = "get entry failed: cause: ";
+            if (ex.getMessage() != null && ex.getCause() != null){
+                message = message + ex.getMessage() + "||" + ex.getCause().getMessage();
+            } else {
+                message = ex.getMessage();
+            }
+            throw new IllegalStateException(message, ex);
+        }
 
     }
 

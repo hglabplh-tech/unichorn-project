@@ -13,6 +13,7 @@ import org.apache.tools.ant.types.selectors.ReadableSelector;
 import org.apache.tools.ant.util.LeadPipeInputStream;
 import org.harry.security.util.Tuple;
 import org.harry.security.util.certandkey.KeyStoreTool;
+import org.pmw.tinylog.Logger;
 import sun.security.provider.certpath.CertId;
 
 import java.io.File;
@@ -82,7 +83,7 @@ public class UnicHornResponderUtil {
         signatureAlgorithm = getAlgorithmID(signatureAlgorithm, messages, responderKey);
         // read crl
 
-        X509CRL crl = readCrl(UnicHornResponderUtil.class.getResourceAsStream("/unichorn.crl"));
+        X509CRL crl = readCrl(loadActualCRL());
         List<X509CRL> crlList = new ArrayList<>();
         try {
             crl.verify(keys.getSecond()[0].getPublicKey());
@@ -314,5 +315,20 @@ public class UnicHornResponderUtil {
         return result;
     }
 
+    public static InputStream loadActualCRL()  {
+        File crlFile = new File(UnicHornResponderUtil.APP_DIR_TRUST, "privRevokation" + ".crl");
+        Logger.trace("CRL list file is: " + crlFile.getAbsolutePath());
+        try {
+            if (crlFile.exists()) {
+                return new FileInputStream(crlFile);
+            } else {
+                InputStream input = UnicHornResponderUtil.class.getResourceAsStream("/unichorn.crl");
+                return input;
+            }
+        } catch (IOException ex) {
+            throw new IllegalStateException("get input stream failed", ex);
+        }
+
+    }
 
 }

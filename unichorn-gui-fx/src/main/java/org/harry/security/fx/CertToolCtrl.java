@@ -121,7 +121,7 @@ public class CertToolCtrl implements ControllerInit {
 
     @FXML
     private void more(ActionEvent event) throws IOException {
-
+        SecHarry.setRoot("crledit");
     }
     @FXML
     private void editProps(ActionEvent event) throws IOException {

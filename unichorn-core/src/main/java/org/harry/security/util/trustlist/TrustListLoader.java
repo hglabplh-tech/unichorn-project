@@ -5,8 +5,7 @@ import org.etsi.uri._02231.v2_.*;
 
 import javax.xml.bind.*;
 import javax.xml.namespace.QName;
-import java.io.InputStream;
-import java.io.OutputStream;
+import java.io.*;
 import java.security.cert.CertificateEncodingException;
 import java.util.List;
 
@@ -25,9 +24,15 @@ public class TrustListLoader {
         TrustServiceProviderListType list = new TrustServiceProviderListType();
         TSPType type = new TSPType();
         TSPInformationType info = new TSPInformationType();
+        InternationalNamesType intNames = new InternationalNamesType();
+        intNames.getName().add("Trust List Unichorn");
+        info.setTSPName(intNames);
         TSPServicesListType tspList = new TSPServicesListType();
         TSPServiceType service = new TSPServiceType();
         TSPServiceInformationType tspInfo = new TSPServiceInformationType();
+        intNames = new InternationalNamesType();
+        intNames.getName().add("Trust List Service Unichorn(private)");
+        tspInfo.setServiceName(intNames);
         DigitalIdentityListType digital = new DigitalIdentityListType();
         listDigi = digital.getDigitalId();
         tspInfo.setServiceDigitalIdentity(digital);
@@ -38,15 +43,29 @@ public class TrustListLoader {
         trustList.setTrustServiceProviderList(list);
     }
 
-    public void addX509Cert(X509Certificate cert) throws CertificateEncodingException {
-        DigitalIdentityType identity = new DigitalIdentityType();
-        identity.setX509Certificate(cert.getEncoded());
-        listDigi.add(identity);
+    /**
+     * Get the class to manage the trust-list
+     * @param trustListFile the file from which we may load the list
+     * @return the manager
+     * @throws IOException error case
+     */
+    public TrustListManager getManager(File trustListFile) throws IOException {
+        if(trustListFile != null && trustListFile.exists()) {
+            TrustStatusListType trust = loadTrust(new FileInputStream(trustListFile));
+            TrustListManager mgr = new TrustListManager(trust);
+            trustList = trust;
+            return mgr;
+        } else {
+            makeRoot();
+            TrustListManager mgr = new TrustListManager(trustList);
+            return mgr;
+        }
+
     }
+
     public static TrustStatusListType loadTrust(InputStream trustList) {
         JAXBContext jaxbContext;
-        try
-        {
+        try {
             jaxbContext = JAXBContext.newInstance(TrustStatusListType.class);
             Unmarshaller umarshall  = jaxbContext.createUnmarshaller();
 

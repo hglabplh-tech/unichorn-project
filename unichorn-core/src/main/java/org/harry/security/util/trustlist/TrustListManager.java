@@ -3,11 +3,14 @@ package org.harry.security.util.trustlist;
 import iaik.x509.X509Certificate;
 import org.etsi.uri._02231.v2_.*;
 
+import java.security.cert.CertificateEncodingException;
 import java.security.cert.CertificateException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
+import java.util.Vector;
 
-public class TrustListWalkerAndGetter {
+public class TrustListManager {
 
     private final TrustStatusListType trustList;
 
@@ -18,8 +21,10 @@ public class TrustListWalkerAndGetter {
     private List<TSPServiceInformationType> flattenTspServiceInfoList = new ArrayList<>();
 
     private List<X509Certificate> allCerts = new ArrayList<>();
+    
+    private List<DigitalIdentityType> listDigi = new ArrayList();
 
-    public TrustListWalkerAndGetter(TrustStatusListType trustList) {
+    public TrustListManager(TrustStatusListType trustList) {
         this.trustList = trustList;
         preLoad();
     }
@@ -60,6 +65,58 @@ public class TrustListWalkerAndGetter {
 
     public List<DigitalIdentityType> getServiceDigitalId(TSPServiceInformationType infoType) {
         return infoType.getServiceDigitalIdentity().getDigitalId();
+    }
+    
+    public void addX509Cert(Vector<String> path, X509Certificate cert) throws CertificateEncodingException {
+        Optional<TSPType> item = trustList.getTrustServiceProviderList().getTrustServiceProvider().stream()
+                .filter(element -> element.getTSPInformation().
+                        getTSPName().getName().get(0).equals(path.get(0))).findFirst();
+
+
+        if (item.isPresent()) {
+            Optional<TSPServiceType> service = item.get().getTSPServices().getTSPService().stream().filter(e ->
+                    e.getServiceInformation()
+                        .getServiceName()
+                        .getName().get(0).equals(path.get(1))).findFirst();
+
+            if (service.isPresent()) {
+
+                List<DigitalIdentityType> digiIDList = service.get().getServiceInformation().getServiceDigitalIdentity().getDigitalId();
+                DigitalIdentityType identity = new DigitalIdentityType();
+                identity.setX509Certificate(cert.getEncoded());
+                digiIDList.add(identity);
+            }
+
+        }
+
+    }
+
+
+    public List<Vector<String>> collectPaths() {
+        List<Vector<String>> result = new ArrayList<>();
+        List<TSPType> tspTypeList = trustList.getTrustServiceProviderList().getTrustServiceProvider();
+        for (TSPType type: tspTypeList) {
+            List<String> name = type.getTSPInformation().getTSPName().getName();
+            for(TSPServiceType service: type.getTSPServices().getTSPService()) {
+                List<String> sname = service.getServiceInformation().getServiceName().getName();
+                for (String nameString: name) {
+                    for (String serviceString: sname) {
+                        Vector<String> path = new Vector<>();
+                        path.add(nameString);
+                        path.add(serviceString);
+                        result.add(path);
+                    }
+                }
+            }
+
+        }
+        return result;
+    }
+
+    public void addX509Cert(X509Certificate cert) throws CertificateEncodingException {
+        DigitalIdentityType identity = new DigitalIdentityType();
+        identity.setX509Certificate(cert.getEncoded());
+        listDigi.add(identity);
     }
 
     public TrustStatusListType getTrustList() {

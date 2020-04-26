@@ -8,7 +8,7 @@ import org.apache.http.client.methods.HttpGet;
 import org.etsi.uri._02231.v2_.TrustStatusListType;
 import org.harry.security.util.httpclient.ClientFactory;
 import org.harry.security.util.trustlist.TrustListLoader;
-import org.harry.security.util.trustlist.TrustListWalkerAndGetter;
+import org.harry.security.util.trustlist.TrustListManager;
 
 import java.io.*;
 import java.net.URL;
@@ -155,15 +155,15 @@ public class ConfigReader {
 
     }
 
-    public static List<TrustListWalkerAndGetter> loadAllTrusts()  {
-        List<TrustListWalkerAndGetter> theTrusts = new ArrayList<>();
+    public static List<TrustListManager> loadAllTrusts()  {
+        List<TrustListManager> theTrusts = new ArrayList<>();
         FileInputStream in;
         try {
             File trustFileDir = new File(APP_DIR_TRUST);
             for (File trustFile : trustFileDir.listFiles()) {
                 in = new FileInputStream(trustFile);
                 TrustStatusListType trustList = TrustListLoader.loadTrust(in);
-                TrustListWalkerAndGetter walker = new TrustListWalkerAndGetter(trustList);
+                TrustListManager walker = new TrustListManager(trustList);
                 theTrusts.add(walker);
             }
             return theTrusts;

@@ -4,7 +4,6 @@ import iaik.asn1.structures.AlgorithmID;
 import iaik.cms.*;
 import iaik.pdf.asn1objects.ContentTimeStamp;
 import iaik.pdf.asn1objects.SignatureTimeStamp;
-import iaik.pdf.cmscades.CadesSignature;
 import iaik.pdf.cmscades.CadesSignatureStream;
 import iaik.pdf.cmscades.CmsCadesException;
 import iaik.tsp.TimeStampToken;
@@ -15,11 +14,10 @@ import iaik.x509.ocsp.ReqCert;
 import org.harry.security.util.bean.SigningBean;
 import org.harry.security.util.ocsp.HttpOCSPClient;
 import org.harry.security.util.certandkey.CertWriterReader;
-import org.harry.security.util.trustlist.TrustListWalkerAndGetter;
+import org.harry.security.util.trustlist.TrustListManager;
 
 import java.io.*;
 import java.net.URL;
-import java.security.DigestInputStream;
 import java.security.DigestOutputStream;
 import java.security.MessageDigest;
 import java.security.PrivateKey;
@@ -36,7 +34,7 @@ public class VerifyUtil {
     /**
      * This is the list of trust-lists provided by EU to check the path of the signers certificate
      */
-    private final List<TrustListWalkerAndGetter> walkers;
+    private final List<TrustListManager> walkers;
 
     private final SigningBean bean;
 
@@ -45,7 +43,7 @@ public class VerifyUtil {
      * The default constructor for verification
      * @param walkers the trust lists
      */
-    public VerifyUtil(List<TrustListWalkerAndGetter> walkers, SigningBean bean) {
+    public VerifyUtil(List<TrustListManager> walkers, SigningBean bean) {
         this.walkers = walkers;
         this.bean = bean;
     }
@@ -325,7 +323,7 @@ public class VerifyUtil {
      * @return the optional holding the found cdertificate
      */
     public Optional<X509Certificate> getX509IssuerCertificate(X509Certificate signCert, Optional<X509Certificate> certOpt) {
-        for (TrustListWalkerAndGetter walker : walkers) {
+        for (TrustListManager walker : walkers) {
             certOpt = walker.getAllCerts()
                     .stream().filter(e ->
                             e.getSubjectDN().getName()

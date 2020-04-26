@@ -5,7 +5,7 @@ import org.harry.security.testutils.Generator;
 import org.harry.security.testutils.TestBase;
 import org.harry.security.util.bean.SigningBean;
 import org.harry.security.util.certandkey.CertWriterReader;
-import org.harry.security.util.trustlist.TrustListWalkerAndGetter;
+import org.harry.security.util.trustlist.TrustListManager;
 import org.junit.Test;
 
 import javax.activation.DataSource;
@@ -51,7 +51,7 @@ public class VerifyUtilTest extends TestBase {
         InputStream input = new FileInputStream(out);
         assertNotNull(input);
         in = this.getClass().getResourceAsStream("/certificates/example.pem");
-        List<TrustListWalkerAndGetter> walkers = ConfigReader.loadAllTrusts();
+        List<TrustListManager> walkers = ConfigReader.loadAllTrusts();
         VerifyUtil util = new VerifyUtil(walkers, bean);
         util.verifyCMSSignature(input, in);
     }

@@ -10,7 +10,7 @@ import org.harry.security.CMSSigner;
 import org.harry.security.util.CertificateWizzard;
 import org.harry.security.util.ConfigReader;
 import org.harry.security.util.bean.SigningBean;
-import org.harry.security.util.trustlist.TrustListWalkerAndGetter;
+import org.harry.security.util.trustlist.TrustListManager;
 
 import java.io.IOException;
 import java.net.URL;
@@ -29,7 +29,7 @@ public class SecHarry extends Application {
     public void start(Stage stage) throws IOException {
         CMSSigner.setProviders();
         CertificateWizzard.initThis();
-        List<TrustListWalkerAndGetter> walkers = ConfigReader.loadAllTrusts();
+        List<TrustListManager> walkers = ConfigReader.loadAllTrusts();
         SigningBean context = new SigningBean().setWalker(walkers);
         contexts.set(context);
         scene = new Scene(loadFXML("main"));

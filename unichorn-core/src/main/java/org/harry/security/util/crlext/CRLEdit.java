@@ -1,6 +1,7 @@
 package org.harry.security.util.crlext;
 
 import iaik.utils.ASN1InputStream;
+import iaik.x509.RevokedCertificate;
 import iaik.x509.X509CRL;
 import iaik.x509.X509Certificate;
 
@@ -21,6 +22,12 @@ public class CRLEdit {
     public void addCertificate(X509Certificate certificate) {
         Date date = certificate.getNotAfter();
         crList.addCertificate(certificate, date);
+    }
+
+    public void addRevokedCertificate(X509Certificate certificate) {
+        Date date = certificate.getNotAfter();
+        RevokedCertificate revoked = new RevokedCertificate(certificate, date);
+        crList.addCertificate(revoked);
     }
 
     public void signCRL(X509Certificate signer, PrivateKey key) {

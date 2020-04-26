@@ -79,6 +79,13 @@
             <artifactId>tinylog-impl</artifactId>
 
         </dependency>
+        <!-- https://mvnrepository.com/artifact/commons-io/commons-io -->
+        <dependency>
+            <groupId>commons-io</groupId>
+            <artifactId>commons-io</artifactId>
+
+        </dependency>
+
 
         <dependency>
             <groupId>org.glassfish.jersey.containers</groupId>

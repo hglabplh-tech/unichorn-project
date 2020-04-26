@@ -10,7 +10,7 @@ import org.harry.security.util.ConfigReader;
 import org.harry.security.util.Tuple;
 import org.harry.security.util.VerifyUtil;
 import org.harry.security.util.bean.SigningBean;
-import org.harry.security.util.trustlist.TrustListWalkerAndGetter;
+import org.harry.security.util.trustlist.TrustListManager;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -140,7 +140,7 @@ public class VerifierCtrl implements ControllerInit {
         ConfigReader.MainProperties params = ConfigReader.loadStore();
         downloadTrusts(params.getTrustLists());
         TrustStatusListType loaded = ConfigReader.loadSpecificTrust("TL-DE");
-        List<TrustListWalkerAndGetter> walkers = ConfigReader.loadAllTrusts();
+        List<TrustListManager> walkers = ConfigReader.loadAllTrusts();
         bean.setWalker(walkers);
         SecHarry.contexts.set(bean);
     }

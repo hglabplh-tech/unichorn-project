@@ -13,18 +13,18 @@ import iaik.x509.X509ExtensionInitException;
 import iaik.x509.extensions.*;
 import org.harry.security.util.certandkey.KeyStoreTool;
 import org.harry.security.util.trustlist.TrustListLoader;
+import org.harry.security.util.trustlist.TrustListManager;
 
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.math.BigInteger;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.security.*;
 import java.security.cert.CertificateException;
 import java.security.spec.AlgorithmParameterSpec;
-import java.util.Calendar;
-import java.util.GregorianCalendar;
-import java.util.Random;
+import java.util.*;
 
 /**
  * This is a class for generating valid certificate chains and add the
@@ -34,6 +34,7 @@ import java.util.Random;
  */
 public class CertificateWizzard {
     private TrustListLoader loader = new TrustListLoader();
+    private TrustListManager manager = null;
     private KeyPair ca_rsa;
     private KeyPair inter_rsa;
     private KeyPair ca_ec;
@@ -68,7 +69,11 @@ public class CertificateWizzard {
         APP_DIR= userDir;
     }
     public CertificateWizzard(ConfigReader.MainProperties properties) {
-        loader.makeRoot();
+        try {
+            manager = loader.getManager(null);
+        } catch (IOException e) {
+
+        }
         this.properties = properties;
         store = KeyStoreTool.initStore("JKS");
         // for verifying the created certificates
@@ -131,8 +136,10 @@ public class CertificateWizzard {
             KeyStoreTool.addKey(store, ca_ec.getPrivate(),
                     properties.getKeystorePass().toCharArray(),
                     certChain, properties.getCommonName() + "_EC");
-        loader.addX509Cert(caRSA);
-        loader.addX509Cert(caEC);
+
+            List<Vector<String>> paths = manager.collectPaths();
+            manager.addX509Cert(paths.get(0), caRSA);
+            manager.addX509Cert(paths.get(0),caEC);
         } catch (Exception ex) {
             throw new IllegalStateException("certificate generation failed", ex);
         }
@@ -190,8 +197,9 @@ public class CertificateWizzard {
                     properties.getKeystorePass().toCharArray(),
                     certChain, properties.getCommonName() + "IntermediateEC");
 
-            loader.addX509Cert(intermediateRSA);
-            loader.addX509Cert(intermediateEC);
+            List<Vector<String>> paths = manager.collectPaths();
+            manager.addX509Cert(paths.get(0), intermediateRSA);
+            manager.addX509Cert(paths.get(0),intermediateEC);
         } catch (Exception ex) {
             throw new IllegalStateException("certificate generation failed", ex);
         }

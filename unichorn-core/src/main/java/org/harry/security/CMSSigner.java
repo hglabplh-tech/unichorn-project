@@ -11,7 +11,7 @@ import iaik.security.random.SeedGenerator;
 import org.harry.security.util.*;
 import org.harry.security.util.bean.SigningBean;
 import org.harry.security.util.certandkey.CertWriterReader;
-import org.harry.security.util.trustlist.TrustListWalkerAndGetter;
+import org.harry.security.util.trustlist.TrustListManager;
 
 import javax.activation.DataSource;
 import java.io.File;
@@ -93,7 +93,7 @@ public class CMSSigner {
         setProviders();
         Commands command = cmds.getCommand();
         ConfigReader.MainProperties params = ConfigReader.loadStore();
-        List<TrustListWalkerAndGetter> walkers = ConfigReader.loadAllTrusts();
+        List<TrustListManager> walkers = ConfigReader.loadAllTrusts();
         try {
             CertWriterReader.KeyStoreBean bean = initKeyStoreBean(params);
             SigningBean signingBean = new SigningBean()

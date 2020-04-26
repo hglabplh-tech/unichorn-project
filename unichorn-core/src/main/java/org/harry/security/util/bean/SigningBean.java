@@ -2,12 +2,11 @@ package org.harry.security.util.bean;
 
 import iaik.cms.SignedData;
 import org.harry.security.CMSSigner;
-import org.harry.security.util.SigningUtil;
 import org.harry.security.util.algoritms.CryptoAlg;
 import org.harry.security.util.algoritms.DigestAlg;
 import org.harry.security.util.algoritms.SignatureAlg;
 import org.harry.security.util.certandkey.CertWriterReader;
-import org.harry.security.util.trustlist.TrustListWalkerAndGetter;
+import org.harry.security.util.trustlist.TrustListManager;
 
 import javax.activation.DataSource;
 import java.io.File;
@@ -54,7 +53,7 @@ public class SigningBean {
     private String tspURL;
     private File dataINPath;
 
-    List<TrustListWalkerAndGetter> walker = new ArrayList<>();
+    List<TrustListManager> walker = new ArrayList<>();
 
     public enum Mode {
         EXPLICIT(SignedData.EXPLICIT),
@@ -246,11 +245,11 @@ public class SigningBean {
         return this;
     }
 
-    public List<TrustListWalkerAndGetter> getWalker() {
+    public List<TrustListManager> getWalker() {
         return walker;
     }
 
-    public SigningBean setWalker(List<TrustListWalkerAndGetter> walker) {
+    public SigningBean setWalker(List<TrustListManager> walker) {
         this.walker = walker;
         return this;
     }

@@ -6,7 +6,7 @@ import org.harry.security.testutils.TestBase;
 import org.harry.security.util.Tuple;
 import org.harry.security.util.certandkey.KeyStoreTool;
 import org.harry.security.util.trustlist.TrustListLoader;
-import org.harry.security.util.trustlist.TrustListWalkerAndGetter;
+import org.harry.security.util.trustlist.TrustListManager;
 import org.junit.Test;
 
 import java.io.File;
@@ -16,8 +16,6 @@ import java.io.InputStream;
 
 import java.security.KeyStore;
 import java.security.PrivateKey;
-import java.util.Date;
-import java.util.Set;
 
 import static org.junit.Assert.assertNotNull;
 
@@ -50,7 +48,7 @@ public class CRLEditTest extends TestBase {
         InputStream stream = CRLEditTest.class.getResourceAsStream("/crl/unichorn.crl");
         InputStream streamTrust = CRLEditTest.class.getResourceAsStream("/crl/privateTrust.xml");
         TrustStatusListType trustList = TrustListLoader.loadTrust(streamTrust);
-        TrustListWalkerAndGetter trustGetter = new TrustListWalkerAndGetter(trustList);
+        TrustListManager trustGetter = new TrustListManager(trustList);
         assertNotNull(stream);
         CRLEdit editor = new CRLEdit(stream);
         for (X509Certificate trustCert: trustGetter.getAllCerts()) {

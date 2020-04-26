@@ -8,15 +8,17 @@ import iaik.security.provider.IAIKMD;
 import iaik.x509.X509Certificate;
 import iaik.x509.ocsp.*;
 import iaik.x509.ocsp.utils.ResponseGenerator;
-import org.apache.http.Header;
+import org.apache.commons.io.IOUtils;
 import org.harry.security.util.Tuple;
 import org.harry.security.util.certandkey.KeyStoreTool;
 import org.harry.security.util.crlext.CRLEdit;
 import org.harry.security.util.trustlist.TrustListLoader;
+import org.harry.security.util.trustlist.TrustListManager;
 import org.pmw.tinylog.Configurator;
 import org.pmw.tinylog.Level;
 import org.pmw.tinylog.Logger;
 import org.pmw.tinylog.writers.FileWriter;
+
 
 
 import javax.servlet.*;
@@ -111,48 +113,94 @@ public class UnichornResponder extends HttpServlet {
     @Override
     public void doPut(HttpServletRequest request, HttpServletResponse response) throws IOException {
        try {
-           File trustFile = new File(UnicHornResponderUtil.APP_DIR_TRUST, UUID.randomUUID().toString() + ".xml");
+           File trustFile = new File(UnicHornResponderUtil.APP_DIR_TRUST, "trustListPrivate" + ".xml");
            Logger.trace("Trust file is: " + trustFile.getAbsolutePath());
-           File crlFile = new File(UnicHornResponderUtil.APP_DIR_TRUST, UUID.randomUUID().toString() + ".crl");
+           File crlFile = new File(UnicHornResponderUtil.APP_DIR_TRUST, "privRevokation" + ".crl");
            Logger.trace("CRL list file is: " + crlFile.getAbsolutePath());
-           String passwdHeader = request.getHeader("passwd");
-           String decodedString = null;
-           if (passwdHeader != null) {
-               byte[] decodedPwd = Base64.getDecoder().decode(passwdHeader.getBytes());
-               decodedString = new String(decodedPwd);
-           }
-           String storeTypeHeader = request.getHeader("storeType");
-           if (storeTypeHeader != null && decodedString != null ) {
-               InputStream p12Stream = request.getInputStream();
-               KeyStore store = KeyStoreTool.loadStore(p12Stream, decodedString.toCharArray(), storeTypeHeader);
-               Enumeration<String> aliases = store.aliases();
-               InputStream keyStore = UnicHornResponderUtil.class.getResourceAsStream("/application.jks");
-               KeyStore storeApp = KeyStoreTool.loadStore(keyStore, "geheim".toCharArray(), "JKS");
-               Tuple<PrivateKey, X509Certificate[]> keys = null;
-               keys = KeyStoreTool.getKeyEntry(storeApp, UnichornResponder.ALIAS, "geheim".toCharArray());
-               CRLEdit crl = new CRLEdit(UnichornResponder.class.getResourceAsStream("/unichorn.crl"));
-               TrustListLoader loader = new TrustListLoader();
-               loader.makeRoot();
-               while (aliases.hasMoreElements()) {
-                   String alias = aliases.nextElement();
-                   Certificate cert = store.getCertificate(alias);
-                   X509Certificate iaikCert = new X509Certificate(cert.getEncoded());
-                   loader.addX509Cert(iaikCert);
-                   crl.addCertificate(iaikCert);
+           String type = request.getHeader("fileType");
+           if (type.equals("crl")) {
+               OutputStream  out = new FileOutputStream(crlFile);
+               InputStream in = request.getInputStream();
+               IOUtils.copy(in, out);
+               in.close();
+               out.close();
+           } else if (type.equals("pkcs12")) {
+               String pathHeader = request.getHeader("path");
+               String[] elements = pathHeader.split(";");
+               Vector<String> path = new Vector<>();
+               for (String element : elements) {
+                   path.add(element);
                }
-               crl.signCRL(keys.getSecond()[0], keys.getFirst());
-               crl.storeCRL(new FileOutputStream(crlFile));
-               loader.storeTrust(new FileOutputStream(trustFile));
-               response.setStatus(Response.Status.CREATED.getStatusCode());
-           } else {
-               response.setStatus(Response.Status.BAD_REQUEST.getStatusCode());
+               String passwdHeader = request.getHeader("passwd");
+               String decodedString = null;
+               if (passwdHeader != null) {
+                   byte[] decodedPwd = Base64.getDecoder().decode(passwdHeader.getBytes());
+                   decodedString = new String(decodedPwd);
+               }
+               String storeTypeHeader = request.getHeader("storeType");
+               if (storeTypeHeader != null && decodedString != null) {
+                   InputStream p12Stream = request.getInputStream();
+                   KeyStore store = KeyStoreTool.loadStore(p12Stream, decodedString.toCharArray(), storeTypeHeader);
+                   Enumeration<String> aliases = store.aliases();
+                   InputStream keyStore = UnicHornResponderUtil.class.getResourceAsStream("/application.jks");
+                   KeyStore storeApp = KeyStoreTool.loadStore(keyStore, "geheim".toCharArray(), "JKS");
+                   Tuple<PrivateKey, X509Certificate[]> keys = null;
+                   keys = KeyStoreTool.getKeyEntry(storeApp, UnichornResponder.ALIAS, "geheim".toCharArray());
+                   TrustListLoader loader = new TrustListLoader();
+                   TrustListManager manager = loader.getManager(trustFile);
+                   while (aliases.hasMoreElements()) {
+                       String alias = aliases.nextElement();
+                       Certificate cert = store.getCertificate(alias);
+                       X509Certificate iaikCert = new X509Certificate(cert.getEncoded());
+                       manager.addX509Cert(path, iaikCert);
+                   }
+                   loader.storeTrust(new FileOutputStream(trustFile));
+                   response.setStatus(Response.Status.CREATED.getStatusCode());
+               } else {
+                   response.setStatus(Response.Status.BAD_REQUEST.getStatusCode());
+               }
            }
        } catch (Exception ex) {
            response.setStatus(Response.Status.INTERNAL_SERVER_ERROR.getStatusCode());
        }
 
     }
+    @Override
+    public void doGet(HttpServletRequest servletRequest, HttpServletResponse servletResponse) {
+        String type = servletRequest.getHeader("fileType");
+        if (type.equals("crl")) {
+                try {
+                    InputStream stream = UnicHornResponderUtil.loadActualCRL();
+                    OutputStream out = servletResponse.getOutputStream();
+                    IOUtils.copy(stream, out);
+                    stream.close();
+                    servletResponse.setStatus(Response.Status.OK.getStatusCode());
+                    return;
+                } catch (IOException ex){
+                    servletResponse.setStatus(Response.Status.FORBIDDEN.getStatusCode());
+                    return;
+                }
 
+        } else if (type.equals("trust")){
+            File trustFile = new File(UnicHornResponderUtil.APP_DIR_TRUST, "trustListPrivate" + ".xml");
+            if (trustFile.exists()) {
+                try {
+                    FileInputStream stream = new FileInputStream(trustFile);
+                    OutputStream out = servletResponse.getOutputStream();
+                    IOUtils.copy(stream, out);
+                    stream.close();
+                    servletResponse.setStatus(Response.Status.OK.getStatusCode());
+                    return;
+                } catch (IOException ex){
+                    servletResponse.setStatus(Response.Status.FORBIDDEN.getStatusCode());
+                    return;
+                }
+            }
+        } else {
+            servletResponse.setStatus(Response.Status.PRECONDITION_FAILED.getStatusCode());
+            return;
+        }
+    }
 
     private ByteArrayInputStream copyTo(OCSPRequest request) {
        try {
