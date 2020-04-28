@@ -118,7 +118,7 @@ public class ResponderTest {
     public void nativeCallerSigned2() throws Exception {
         checkHttpsCertValidity("https://www.digicert.com", true, true);
         List<X509Certificate[]> certList= new ArrayList<>();
-        InputStream keystoreUser = ResponderTest.class.getResourceAsStream("/t-systems.jks");
+        InputStream keystoreUser = ResponderTest.class.getResourceAsStream("/appKeyStore.jks");
         KeyStore tsystems = KeyStoreTool.loadStore(keystoreUser, "geheim".toCharArray(), "JKS");
         Enumeration<String> aliases = tsystems.aliases();
         while (aliases.hasMoreElements())  {
@@ -140,7 +140,7 @@ public class ResponderTest {
                 OCSPClient client = new OCSPClient();
                 OCSPRequest request = client.createOCSPRequest(keys.getFirst(),
                         certs, certArray,
-                        false, ReqCert.pKCert, ocspURL);
+                        false, ReqCert.certID, ocspURL);
 
                 ByteArrayInputStream stream = new ByteArrayInputStream(request.getEncoded());
                 ResponseGenerator respGen = null;
@@ -215,7 +215,7 @@ public class ResponderTest {
     @Test
     public void testOCSPOKSigned2() throws Exception {
         List<X509Certificate[]> certList= new ArrayList<>();
-        InputStream keystoreUser = ResponderTest.class.getResourceAsStream("/t-systems.jks");
+        InputStream keystoreUser = ResponderTest.class.getResourceAsStream("/appKeyStore.jks");
         KeyStore tsystems = KeyStoreTool.loadStore(keystoreUser, "geheim".toCharArray(), "JKS");
         Enumeration<String> aliases = tsystems.aliases();
         while (aliases.hasMoreElements())  {
@@ -238,7 +238,7 @@ public class ResponderTest {
                 ocspUrl = "http://localhost:8080/unichorn-responder-1.0-SNAPSHOT/rest/ocsp";
                 OCSPResponse response = HttpOCSPClient.sendOCSPRequest(ocspUrl, keys.getFirst(),
                         certs, certArray,
-                        true, ReqCert.pKCert);
+                        true, ReqCert.certID);
                 responseStatus = HttpOCSPClient.getClient().parseOCSPResponse(response, false);
             }
         }
@@ -258,6 +258,27 @@ public class ResponderTest {
         String encodeString = new String(encoded);
         put.setHeader("passwd",encodeString);
         put.setHeader("storeType", "JKS");
+        put.setHeader("fileType", "pkcs12");
+        HttpEntity entity = new InputStreamEntity(keyStore);
+        put.setEntity(entity);
+        CloseableHttpResponse response = httpClient.execute(put);
+        assertThat(response.getStatusLine().getStatusCode(),
+                is(Response.Status.CREATED.getStatusCode()));
+    }
+
+    @Test
+    public void testPutTrustList() throws Exception {
+        InputStream keyStore = ResponderTest.class.getResourceAsStream("/TL-DE.xml");
+        URL ocspUrl= new URL("http://localhost:8080/unichorn-responder-1.0-SNAPSHOT/rest/ocsp");
+        // create closable http client and assign the certificate interceptor
+        CloseableHttpClient httpClient = HttpClients.createDefault();
+        System.out.println("Responder URL: " + ocspUrl.toString());
+        HttpPut put = new HttpPut(ocspUrl.toURI());
+        byte [] encoded = Base64.getEncoder().encode("geheim".getBytes());
+        String encodeString = new String(encoded);
+        put.setHeader("passwd",encodeString);
+        put.setHeader("storeType", "JKS");
+        put.setHeader("fileType", "trust");
         HttpEntity entity = new InputStreamEntity(keyStore);
         put.setEntity(entity);
         CloseableHttpResponse response = httpClient.execute(put);

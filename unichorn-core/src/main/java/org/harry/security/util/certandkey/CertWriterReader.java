@@ -94,10 +94,15 @@ public class CertWriterReader {
                 store.load(storeIN, keyPass.toCharArray());
 
             if (store.containsAlias(alias)) {
-                Certificate cert = store.getCertificate(alias);
+                Certificate []certChain = store.getCertificateChain(alias);
                 PrivateKey key = (PrivateKey) store.getKey(alias, keyPass.toCharArray());
-                if (cert != null && key != null) {
-                    bean = new KeyStoreBean(new X509Certificate(cert.getEncoded()), key);
+                if (certChain != null && key != null) {
+                    X509Certificate [] iaikChain = new X509Certificate[certChain.length];
+                    int index = 0;
+                    for (Certificate cert: certChain) {
+                        iaikChain[index]= new X509Certificate(cert.getEncoded());
+                    }
+                    bean = new KeyStoreBean(iaikChain, key);
                     return bean;
                 } else {
                     bean = new KeyStoreBean(null, null);
@@ -119,16 +124,20 @@ public class CertWriterReader {
         return null;
     }
     public static class KeyStoreBean {
-        private final X509Certificate selectedCert;
+        private final X509Certificate[] certChain;
         private final PrivateKey selectedKey;
 
-        public KeyStoreBean(X509Certificate selectedCert, PrivateKey selectedKey) {
-            this.selectedCert = selectedCert;
+        public KeyStoreBean(X509Certificate[] chain, PrivateKey selectedKey) {
+            this.certChain = chain;
             this.selectedKey = selectedKey;
         }
 
         public X509Certificate getSelectedCert() {
-            return selectedCert;
+            return this.certChain[0];
+        }
+
+        public X509Certificate[] getChain() {
+            return this.certChain;
         }
 
         public PrivateKey getSelectedKey() {

@@ -19,6 +19,8 @@ import org.apache.tools.ant.util.LeadPipeInputStream;
 import org.harry.security.util.Tuple;
 import org.harry.security.util.certandkey.KeyStoreTool;
 import org.harry.security.util.ocsp.HttpOCSPClient;
+import org.harry.security.util.trustlist.TrustListLoader;
+import org.harry.security.util.trustlist.TrustListManager;
 import org.pmw.tinylog.Logger;
 import sun.security.provider.certpath.CertId;
 
@@ -43,6 +45,8 @@ public class UnicHornResponderUtil {
 
     public  static String APP_DIR_TRUST;
 
+    private static List<X509Certificate[]> chainList = new ArrayList<>();
+
     static {
         String userDir = System.getProperty("user.home");
         userDir = userDir + "\\AppData\\Local\\MySigningApp";
@@ -63,6 +67,7 @@ public class UnicHornResponderUtil {
                                                 ResponseGenerator responseGenerator,
                                                 AlgorithmID signatureAlgorithm,
                                                 Map<String, String> messages) {
+        loadActualPrivStore();
         messages.put("beforeks", "before getting keys and certs");
         Tuple<PrivateKey, X509Certificate[]> keys = null;
         try {
@@ -75,7 +80,7 @@ public class UnicHornResponderUtil {
             messages.put("beforegen", "before getting keystoregen");
             responseGenerator = new ResponseGenerator(keys.getFirst(), certs);
             messages.put("aftergen", "after getting keystoregen");
-            signatureAlgorithm = AlgorithmID.sha256WithRSAEncryption;
+            signatureAlgorithm = AlgorithmID.sha1WithRSAEncryption;
 
 
         } catch (Exception ex){
@@ -164,15 +169,17 @@ public class UnicHornResponderUtil {
 
 
                     Date rDate = checkRevocation(crl, serial);
-                    if ( rDate == null) {
+                    X509Certificate actualCert = getX509Certificate(serial);
+                    if ( rDate == null && actualCert != null) {
                         responseGenerator.addResponseEntry(reqCert, new CertStatus(), endDate, null);
+                    } else if (actualCert == null && rDate == null) {
+                        responseGenerator.addResponseEntry(reqCert, new CertStatus(new UnknownInfo()), endDate, null);
                     } else {
                         if (crl.containsCertificate(serial) != null) {
                             X509CRLEntry entry = crl.getRevokedCertificate(serial);
                             CRLReason reason = entry.getRevocationReason();
                         }
                         RevokedInfo info = new RevokedInfo(rDate);
-                        //info.setRevocationReason(translateRevocationReason(reason));
                         responseGenerator.addResponseEntry(reqCert, new CertStatus(info), rDate, null);
                     }
 
@@ -186,20 +193,21 @@ public class UnicHornResponderUtil {
                     }
 
                     Date rDate = checkRevocation(crl, certificate.getSerialNumber());
-                    if (rDate == null) {
+                    X509Certificate actualCert = getX509Certificate(certificate.getSerialNumber());
+                    if (rDate == null && actualCert != null) {
                         responseGenerator.addResponseEntry(reqCert, new CertStatus(), certificate.getNotAfter(), null);
+                    } else if (actualCert == null && rDate == null) {
+                        responseGenerator.addResponseEntry(reqCert, new CertStatus(new UnknownInfo()), endDate, null);
                     } else {
                         if (crl.containsCertificate(certificate.getSerialNumber()) != null) {
                             X509CRLEntry entry = crl.getRevokedCertificate(certificate.getSerialNumber());
                             CRLReason reason = entry.getRevocationReason();
                         }
                         RevokedInfo info = new RevokedInfo(rDate);
-                        //info.setRevocationReason(translateRevocationReason(reason));
                         responseGenerator.addResponseEntry(reqCert, new CertStatus(info), rDate, null);
                     }
                 }
             }
-            // responseGenerator.addResponseEntries(crl, crlIssuer, ReqCert.certID);
             messages.put("info-4", "Message is: generator created");
             System.out.println("Generator created:");
             System.out.println(responseGenerator);
@@ -210,12 +218,26 @@ public class UnicHornResponderUtil {
         }
     }
 
+    private static X509Certificate getX509Certificate(BigInteger serial) {
+        Optional<X509Certificate[]> found = findSerialINPositiveList(serial);
+        X509Certificate actualCert = null;
+        if (found.isPresent()) {
+            for (X509Certificate cert: found.get()) {
+                if (cert.getSerialNumber().equals(serial)) {
+                    actualCert = cert;
+                }
+            }
+
+        }
+        return actualCert;
+    }
+
     private static AlgorithmID getAlgorithmID(AlgorithmID signatureAlgorithm, Map<String, String> messages, PrivateKey responderKey) {
         if (!(responderKey instanceof java.security.interfaces.RSAPrivateKey)) {
             if (responderKey instanceof java.security.interfaces.DSAPrivateKey) {
-                signatureAlgorithm = AlgorithmID.dsaWithSHA3_256;
+                signatureAlgorithm = AlgorithmID.dsaWithSHA1;
             } else {
-                signatureAlgorithm = AlgorithmID.sha256WithRSAEncryption;
+                signatureAlgorithm = AlgorithmID.sha1WithRSAEncryption;
             }
         }
         try {
@@ -344,6 +366,36 @@ public class UnicHornResponderUtil {
         }
         return result;
     }
+    public static void loadActualPrivStore() {
+        chainList = new ArrayList<>();
+        loadActualPrivTrust();
+        try {
+            File keyFile = new File(UnicHornResponderUtil.APP_DIR_TRUST, "privKeystore" + ".jks");
+            KeyStore storeApp = KeyStoreTool.loadStore(new FileInputStream(keyFile), null, "JKS");
+            Enumeration<String> aliasEnum = storeApp.aliases();
+            while (aliasEnum.hasMoreElements()) {
+                String alias = aliasEnum.nextElement();
+                X509Certificate[] chain = KeyStoreTool.getCertChainEntry(storeApp, alias);
+                chainList.add(chain);
+            }
+        } catch (Exception ex) {
+            throw new IllegalStateException("not loaded keys", ex);
+        }
+    }
+
+    public static void loadActualPrivTrust() {
+        try {
+            File trustFile = new File(UnicHornResponderUtil.APP_DIR_TRUST, "trustListPrivate" + ".xml");
+            TrustListLoader loader = new TrustListLoader();
+            TrustListManager manager = loader.getManager(trustFile);
+            X509Certificate[] array = manager.getAllCerts()
+                    .toArray(new X509Certificate[manager.getAllCerts().size()]);
+            chainList.add(array);
+        } catch (Exception ex) {
+            throw new IllegalStateException("not loaded keys", ex);
+        }
+    }
+
 
     public static InputStream loadActualCRL()  {
         File crlFile = new File(UnicHornResponderUtil.APP_DIR_TRUST, "privRevokation" + ".crl");
@@ -381,6 +433,18 @@ public class UnicHornResponderUtil {
 
         }
         return null;
+    }
+
+    private static Optional<X509Certificate[]> findSerialINPositiveList(BigInteger serial) {
+        Optional<X509Certificate[]> opt = chainList.stream().filter(e -> {
+            for (X509Certificate cert:e) {
+                if (cert.getSerialNumber().equals(serial)) {
+                    return true;
+                }
+            }
+            return false;
+        }).findFirst();
+        return opt;
     }
 
 }

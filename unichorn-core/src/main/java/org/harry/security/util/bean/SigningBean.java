@@ -10,6 +10,8 @@ import org.harry.security.util.trustlist.TrustListManager;
 
 import javax.activation.DataSource;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
@@ -30,6 +32,8 @@ public class SigningBean {
     private CertWriterReader.KeyStoreBean keyStoreBean;
 
     private InputStream dataIN;
+
+    private File dataINFile;
 
     private InputStream certIN;
 
@@ -141,8 +145,17 @@ public class SigningBean {
         return dataIN;
     }
 
+    public InputStream getDataINFile() throws IOException {
+        return new FileInputStream(dataINFile);
+    }
+
     public SigningBean setDataIN(InputStream dataIN) {
         this.dataIN = dataIN;
+        return this;
+    }
+
+    public SigningBean setDataINFile(File inFile) {
+        this.dataINFile = inFile;
         return this;
     }
 

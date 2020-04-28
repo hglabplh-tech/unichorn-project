@@ -9,13 +9,18 @@ import iaik.cms.attributes.CMSContentType;
 import iaik.cms.attributes.SigningTime;
 import iaik.pdf.cmscades.CadesSignatureStream;
 import iaik.pdf.parameters.CadesBESParameters;
+import iaik.pdf.parameters.CadesLTAParameters;
 import iaik.pdf.parameters.CadesTParameters;
 import iaik.smime.ess.SigningCertificate;
 import iaik.x509.X509Certificate;
+import iaik.x509.ocsp.OCSPResponse;
+import iaik.x509.ocsp.ReqCert;
 import org.harry.security.util.algoritms.DigestAlg;
 import org.harry.security.util.algoritms.SignatureAlg;
 import org.harry.security.util.bean.SigningBean;
 import org.harry.security.util.certandkey.CertWriterReader;
+import org.harry.security.util.ocsp.HttpOCSPClient;
+import org.harry.security.util.trustlist.TrustListManager;
 
 import javax.activation.DataSource;
 import java.io.*;
@@ -23,6 +28,7 @@ import java.security.*;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.security.spec.InvalidParameterSpecException;
+import java.util.List;
 
 public class SigningUtil {
 
@@ -74,7 +80,7 @@ public class SigningUtil {
      * @param signingBean the bean containing the parameters
      * @return the data source containing the signature
      */
-    public DataSource signCAdES(SigningBean signingBean)  {
+    public DataSource signCAdES(SigningBean signingBean, boolean upgradeSig)  {
 
         try {
 
@@ -84,6 +90,7 @@ public class SigningUtil {
                 params.addContentTimestampProps(signingBean.getTspURL(), null, null);
             } else {
                 params = new CadesBESParameters();
+
             }
             if (signingBean.getDigestAlgorithm() != null) {
                 params.setDigestAlgorithm(signingBean.getDigestAlgorithm().getAlgId().getImplementationName());
@@ -94,16 +101,55 @@ public class SigningUtil {
             X509Certificate [] signer = new X509Certificate[1];
             signer[0] = signingBean.getKeyStoreBean().getSelectedCert();
             int mode = signingBean.getSigningMode().getMode();
-            CadesSignatureStream signatureStream = new CadesSignatureStream(signingBean.getDataIN(), mode);
+
+
+            CadesSignatureStream signatureStream = new CadesSignatureStream(signingBean.getDataINFile(), mode);
             signatureStream.addSignerInfo(signingBean.getKeyStoreBean().getSelectedKey(),
                     signer, params);
             ByteArrayOutputStream out = new ByteArrayOutputStream();
             signatureStream.encodeSignature(out);
             ByteArrayInputStream  in = new ByteArrayInputStream(out.toByteArray());
             InputStreamDataSource ds = new InputStreamDataSource(in);
+            if (upgradeSig) {
+                upgradeSignature(signingBean, ds);
+            }
             return ds;
         } catch (Exception e) {
             throw new IllegalStateException("error occured", e);
+        }
+    }
+
+    public DataSource upgradeSignature(SigningBean signingBean, DataSource ds) {
+        ByteArrayOutputStream archivedSignatureStream;
+        archivedSignatureStream = new ByteArrayOutputStream();
+        String archiveTimestampDigestAlgorithm = "SHA512";
+        try {
+            InputStream data = signingBean.getDataIN();
+            CadesSignatureStream cadesSig = new CadesSignatureStream(ds.getInputStream(), data,
+            new String[] { archiveTimestampDigestAlgorithm }, archivedSignatureStream);
+
+            cadesSig.verifySignatureValue(signingBean.getKeyStoreBean().getSelectedCert());
+            CadesLTAParameters parameters = new CadesLTAParameters(signingBean.getTspURL(),
+                    null, null);
+
+            X509Certificate [] cert = signingBean.getKeyStoreBean().getChain();
+            String url = HttpOCSPClient.getOCSPUrl(signingBean.getKeyStoreBean().getSelectedCert());
+            if (url == null) {
+                url = "http://localhost:8080/unichorn-responder-1.0-SNAPSHOT/rest/ocsp";
+            }
+            OCSPResponse response = HttpOCSPClient.sendOCSPRequest(url, null, null,
+                    cert, false, ReqCert.certID);
+            OCSPResponse [] responses = new OCSPResponse[1];
+            responses[0] = response;
+            parameters.addArchiveDetails(cert, null, responses);
+            cadesSig.addArchiveTimeStamp(0, parameters);
+            cadesSig.encodeUpgradedSignature();
+            archivedSignatureStream = cadesSig.getEncodedSignedDataStream();
+            ByteArrayInputStream  in = new ByteArrayInputStream(archivedSignatureStream.toByteArray());
+            InputStreamDataSource dsResult = new InputStreamDataSource(in);
+            return dsResult;
+        } catch (Exception ex) {
+            throw new IllegalStateException("signing failed", ex);
         }
     }
 

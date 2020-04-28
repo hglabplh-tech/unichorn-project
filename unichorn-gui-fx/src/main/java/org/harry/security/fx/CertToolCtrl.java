@@ -62,6 +62,7 @@ public class CertToolCtrl implements ControllerInit {
         }
         signingBean.setKeyStoreBean(bean)
                 .setAction(action)
+                .setDataINFile(dataInput)
                 .setDataIN(dataInputStream)
                 .setDataINPath(dataInput)
                 .setOutputPath(outPathString);

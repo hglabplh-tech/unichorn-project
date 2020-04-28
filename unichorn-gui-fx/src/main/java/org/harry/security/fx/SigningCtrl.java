@@ -90,7 +90,7 @@ public class SigningCtrl implements ControllerInit {
         bean = filloutBean(bean);
         SigningUtil util = SigningUtil.newBuilder()
                 .withSignaturePath(bean.getOutputPath())
-                .withMode(2)
+                .withMode(bean.getSigningMode().getMode())
                 .build();
         if(bean.getAction().equals(CMSSigner.Commands.SIGN)) {
             if (bean.getSignatureType().equals(SigningBean.SigningType.CMS)) {
@@ -98,7 +98,7 @@ public class SigningCtrl implements ControllerInit {
                 util.writeToFile(outSrc, bean);
             } else if (bean.getSignatureType().equals(SigningBean.SigningType.CAdES)) {
                 DataSource outSrc = util.signCAdES(
-                        bean);
+                        bean, true);
                 util.writeToFile(outSrc, bean);
             }
         } else if (bean.getAction().equals(CMSSigner.Commands.ENCRYPT_SIGN)) {

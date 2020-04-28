@@ -11,9 +11,7 @@ import iaik.x509.ocsp.utils.ResponseGenerator;
 import org.apache.commons.io.IOUtils;
 import org.harry.security.util.Tuple;
 import org.harry.security.util.certandkey.KeyStoreTool;
-import org.harry.security.util.crlext.CRLEdit;
-import org.harry.security.util.trustlist.TrustListLoader;
-import org.harry.security.util.trustlist.TrustListManager;
+
 import org.pmw.tinylog.Configurator;
 import org.pmw.tinylog.Level;
 import org.pmw.tinylog.Logger;
@@ -30,10 +28,9 @@ import javax.ws.rs.*;
 import javax.ws.rs.core.Response;
 
 import java.io.*;
-import java.math.BigInteger;
+
 import java.security.*;
-import java.security.cert.*;
-import java.security.cert.Certificate;
+
 import java.util.*;
 
 import static iaik.x509.ocsp.CertStatus.*;
@@ -95,6 +92,7 @@ public class UnichornResponder extends HttpServlet {
             Logger.trace("written stream");
             servletResponse.setStatus(Response.Status.OK.getStatusCode());
             servletResponse.setHeader("success", "Seems to be ok:");
+            servletResponse.setHeader("Content-Type","application/ocsp-response");
             for(String key: messages.keySet()) {
                 servletResponse.addHeader(key, messages.get(key));
             }
@@ -117,6 +115,8 @@ public class UnichornResponder extends HttpServlet {
            Logger.trace("Trust file is: " + trustFile.getAbsolutePath());
            File crlFile = new File(UnicHornResponderUtil.APP_DIR_TRUST, "privRevokation" + ".crl");
            Logger.trace("CRL list file is: " + crlFile.getAbsolutePath());
+           File keyFile = new File(UnicHornResponderUtil.APP_DIR_TRUST, "privKeystore" + ".jks");
+           Logger.trace("CRL list file is: " + keyFile.getAbsolutePath());
            String type = request.getHeader("fileType");
            if (type.equals("crl")) {
                OutputStream  out = new FileOutputStream(crlFile);
@@ -125,12 +125,7 @@ public class UnichornResponder extends HttpServlet {
                in.close();
                out.close();
            } else if (type.equals("pkcs12")) {
-               String pathHeader = request.getHeader("path");
-               String[] elements = pathHeader.split(";");
-               Vector<String> path = new Vector<>();
-               for (String element : elements) {
-                   path.add(element);
-               }
+
                String passwdHeader = request.getHeader("passwd");
                String decodedString = null;
                if (passwdHeader != null) {
@@ -140,25 +135,25 @@ public class UnichornResponder extends HttpServlet {
                String storeTypeHeader = request.getHeader("storeType");
                if (storeTypeHeader != null && decodedString != null) {
                    InputStream p12Stream = request.getInputStream();
-                   KeyStore store = KeyStoreTool.loadStore(p12Stream, decodedString.toCharArray(), storeTypeHeader);
-                   Enumeration<String> aliases = store.aliases();
                    InputStream keyStore = UnicHornResponderUtil.class.getResourceAsStream("/application.jks");
                    KeyStore storeApp = KeyStoreTool.loadStore(keyStore, "geheim".toCharArray(), "JKS");
                    Tuple<PrivateKey, X509Certificate[]> keys = null;
                    keys = KeyStoreTool.getKeyEntry(storeApp, UnichornResponder.ALIAS, "geheim".toCharArray());
-                   TrustListLoader loader = new TrustListLoader();
-                   TrustListManager manager = loader.getManager(trustFile);
-                   while (aliases.hasMoreElements()) {
-                       String alias = aliases.nextElement();
-                       Certificate cert = store.getCertificate(alias);
-                       X509Certificate iaikCert = new X509Certificate(cert.getEncoded());
-                       manager.addX509Cert(path, iaikCert);
-                   }
-                   loader.storeTrust(new FileOutputStream(trustFile));
+                   OutputStream  out = new FileOutputStream(keyFile);
+                   IOUtils.copy(p12Stream, out);
+                   p12Stream.close();
+                   out.close();
                    response.setStatus(Response.Status.CREATED.getStatusCode());
-               } else {
-                   response.setStatus(Response.Status.BAD_REQUEST.getStatusCode());
                }
+           } else if (type.equals("trust")) {
+               InputStream trustStream = request.getInputStream();
+               OutputStream  out = new FileOutputStream(trustFile);
+               IOUtils.copy(trustStream, out);
+               trustStream.close();
+               out.close();
+               response.setStatus(Response.Status.CREATED.getStatusCode());
+           } else {
+               response.setStatus(Response.Status.BAD_REQUEST.getStatusCode());
            }
        } catch (Exception ex) {
            response.setStatus(Response.Status.INTERNAL_SERVER_ERROR.getStatusCode());
