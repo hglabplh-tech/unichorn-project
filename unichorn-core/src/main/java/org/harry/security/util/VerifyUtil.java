@@ -434,7 +434,7 @@ public class VerifyUtil {
             X509Certificate[] certs;
             certs = bean.getSecond();
             int responseStatus = 0;
-            URL ocspUrl = HttpOCSPClient.getOCSPUrl(chain[0]);
+            String ocspUrl = HttpOCSPClient.getOCSPUrl(chain[0]);
             OCSPResponse response = null;
             if (reqIsSigned == true && ocspUrl != null) {
                  response = HttpOCSPClient.sendOCSPRequest(ocspUrl, bean.getFirst(),

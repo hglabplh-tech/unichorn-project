@@ -23,7 +23,7 @@ public class OCSPClient {
 
     private X509Certificate[] targetCerts;
     private ReqCert reqCert;
-    private java.security.cert.X509Certificate[] responderCerts;
+
     private byte[] nonce;
     // the signature algorithm
     AlgorithmID signatureAlgorithm = AlgorithmID.sha256WithRSAEncryption;
@@ -56,7 +56,8 @@ public class OCSPClient {
     public OCSPRequest createOCSPRequest(PrivateKey requestorKey,
                                          X509Certificate[] requestorCerts,
                                          X509Certificate[] targetCerts,
-                                         boolean includeExtensions, int type)
+                                         boolean includeExtensions, int type,
+                                         String altResponder)
             throws OCSPException
 
     {
@@ -80,16 +81,16 @@ public class OCSPClient {
             Request request = new Request(reqCert);
 
             if (includeExtensions) {
-                if (responderCerts != null) {
+                if (requestorCerts != null && altResponder != null) {
                     // include service locator
                     ObjectID accessMethod = ObjectID.caIssuers;
                     GeneralName accessLocation = new GeneralName(
-                            GeneralName.uniformResourceIdentifier, "http://www.testResponder.at");
+                            GeneralName.uniformResourceIdentifier, altResponder);
                     AccessDescription accessDescription = new AccessDescription(accessMethod,
                             accessLocation);
                     AuthorityInfoAccess locator = new AuthorityInfoAccess(accessDescription);
                     ServiceLocator serviceLocator = new ServiceLocator(
-                            (Name) responderCerts[0].getSubjectDN());
+                            (Name) requestorCerts[0].getSubjectDN());
                     serviceLocator.setLocator(locator);
                     request.setServiceLocator(serviceLocator);
                 }
@@ -114,6 +115,7 @@ public class OCSPClient {
                 ocspRequest.setNonce(nonce);
 
             }
+
 
             if (requestorKey != null) {
                 if ((requestorCerts == null) || (requestorCerts.length == 0)) {

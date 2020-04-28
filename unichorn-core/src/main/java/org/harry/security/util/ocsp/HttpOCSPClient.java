@@ -22,6 +22,7 @@ import org.apache.http.impl.client.HttpClients;
 
 import java.io.InputStream;
 import java.net.MalformedURLException;
+import java.net.URI;
 import java.net.URL;
 import java.security.PrivateKey;
 import java.util.Enumeration;
@@ -52,7 +53,7 @@ public class HttpOCSPClient {
      * @param includeExtensions the include certificate extensions flag
      * @return the response from the responder
      */
-    public static  OCSPResponse sendOCSPRequest(URL ocspSedrverURL,
+    public static  OCSPResponse sendOCSPRequest(String ocspSedrverURL,
             PrivateKey requestorKey,
                                         X509Certificate[] requestorCerts,
                                         X509Certificate[] targetCerts,
@@ -60,8 +61,9 @@ public class HttpOCSPClient {
 
         client = new OCSPClient();
         try {
+            String altResponder = getOCSPUrl(targetCerts[0]);
             OCSPRequest request = client.createOCSPRequest(requestorKey, requestorCerts,
-                    targetCerts, includeExtensions, type);
+                    targetCerts, includeExtensions, type, altResponder);
             return getOcspResponseApache(ocspSedrverURL, request);
         } catch (Exception ex){
             throw new IllegalStateException("OCSP request failed", ex);
@@ -83,14 +85,14 @@ public class HttpOCSPClient {
      * @param request the request
      * @return the response
      */
-    public static OCSPResponse getOcspResponseApache(URL ocspServerURL, OCSPRequest request) {
+    public static OCSPResponse getOcspResponseApache(String ocspServerURL, OCSPRequest request) {
         CloseableHttpClient httpClient = null;
         try {
 
             // create closable http client and assign the certificate interceptor
             httpClient = HttpClients.createDefault();
             System.out.println("Responder URL: " + ocspServerURL.toString());
-            HttpPost post = new HttpPost(ocspServerURL.toURI());
+            HttpPost post = new HttpPost(new URL(ocspServerURL).toURI());
             post.setHeader("Content-Type","application/ocsp-request");
             post.setHeader("Accept", "application/ocsp-response");
             HttpEntity entity = new ByteArrayEntity(request.getEncoded());
@@ -119,15 +121,15 @@ public class HttpOCSPClient {
      * @throws X509ExtensionInitException error case
      * @throws MalformedURLException error case
      */
-    public static URL getOCSPUrl(X509Certificate cert) throws X509ExtensionInitException, MalformedURLException {
+    public static String getOCSPUrl(X509Certificate cert) throws X509ExtensionInitException, MalformedURLException {
         String urlString = null;
         AuthorityInfoAccess access = (AuthorityInfoAccess)cert.getExtension(ObjectID.certExt_AuthorityInfoAccess);
         if (access != null) {
             AccessDescription description = access.getAccessDescription(ObjectID.ocsp);
             urlString = description.getUriAccessLocation();
-            return new URL(urlString);
+            return urlString;
         }
-        return new URL("http://localhost:8080/unichorn-responder-1.0-SNAPSHOT/rest/ocsp");
+        return null;
     }
 
     /**

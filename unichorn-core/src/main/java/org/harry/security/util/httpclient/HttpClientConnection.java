@@ -15,6 +15,7 @@ import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.net.URL;
 import java.util.Base64;
+import java.util.Vector;
 
 public class HttpClientConnection {
 
@@ -49,6 +50,25 @@ public class HttpClientConnection {
         System.out.println("Responder URL: " + ocspUrl.toString());
         HttpPut put = new HttpPut(ocspUrl.toURI());
         put.setHeader("fileType", fileType);
+        byte [] encoded = Base64.getEncoder().encode("geheim".getBytes());
+        String encodeString = new String(encoded);
+        put.setHeader("passwd",encodeString);
+        put.setHeader("storeType", "JKS");
+        HttpEntity entity = new InputStreamEntity(data);
+        put.setEntity(entity);
+        CloseableHttpResponse response = httpClient.execute(put);
+    }
+
+
+    public static void sendPutDataWithPath(InputStream data, String fileType, Vector<String> path) throws Exception {
+        URL ocspUrl= new URL("http://localhost:8080/unichorn-responder-1.0-SNAPSHOT/rest/ocsp");
+        // create closable http client and assign the certificate interceptor
+        CloseableHttpClient httpClient = HttpClients.createDefault();
+        System.out.println("Responder URL: " + ocspUrl.toString());
+        HttpPut put = new HttpPut(ocspUrl.toURI());
+        put.setHeader("fileType", fileType);
+        String pathString = path.elementAt(0)+  ";" + path.elementAt(1);
+        put.setHeader("path", pathString);
         byte [] encoded = Base64.getEncoder().encode("geheim".getBytes());
         String encodeString = new String(encoded);
         put.setHeader("passwd",encodeString);

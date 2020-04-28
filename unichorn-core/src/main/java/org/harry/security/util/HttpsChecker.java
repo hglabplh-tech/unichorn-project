@@ -1,8 +1,11 @@
 package org.harry.security.util;
 
+import iaik.asn1.structures.AlgorithmID;
 import iaik.x509.X509Certificate;
+import iaik.x509.ocsp.OCSPRequest;
 import iaik.x509.ocsp.OCSPResponse;
 import iaik.x509.ocsp.ReqCert;
+import iaik.x509.ocsp.utils.ResponseGenerator;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.conn.ssl.TrustAllStrategy;
 import org.apache.http.impl.client.CloseableHttpClient;
@@ -15,6 +18,7 @@ import org.harry.security.util.httpclient.ClientFactory;
 import org.harry.security.util.ocsp.HttpOCSPClient;
 
 import javax.net.ssl.SSLContext;
+import java.io.ByteArrayInputStream;
 import java.io.FileNotFoundException;
 import java.io.InputStream;
 import java.net.URL;
@@ -142,13 +146,17 @@ public class HttpsChecker {
                         certs, certList.toArray(new X509Certificate[0]), false);*/
                 int responseStatus = 0;
                 for (X509Certificate cert : certList) {
-                    URL ocspUrl = HttpOCSPClient.getOCSPUrl(cert);
+                    String ocspUrl = HttpOCSPClient.getOCSPUrl(cert);
+
                     if (altResponder) {
-                        ocspUrl = new URL("http://localhost:8080/unichorn-responder-1.0-SNAPSHOT/rest/ocsp");
+                        ocspUrl ="http://localhost:8080/unichorn-responder-1.0-SNAPSHOT/rest/ocsp";
                     }
-                    OCSPResponse response = HttpOCSPClient.sendOCSPRequest(ocspUrl, bean.getFirst(),
-                            certs, certList.toArray(new X509Certificate[0]),
-                            true, ReqCert.pKCert);
+                    OCSPResponse response;
+
+                        response = HttpOCSPClient.sendOCSPRequest(ocspUrl, bean.getFirst(),
+                                certs, certList.toArray(new X509Certificate[0]),
+                                true, ReqCert.certID);
+
                     int oldStatus = responseStatus;
                     responseStatus = HttpOCSPClient.getClient().parseOCSPResponse(response, true);
                     if(oldStatus != OCSPResponse.successful) {

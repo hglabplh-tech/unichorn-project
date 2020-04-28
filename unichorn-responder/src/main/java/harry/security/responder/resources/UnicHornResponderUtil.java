@@ -1,19 +1,24 @@
 package harry.security.responder.resources;
 
 import iaik.asn1.ObjectID;
+import iaik.asn1.structures.AccessDescription;
 import iaik.asn1.structures.AlgorithmID;
 import iaik.cms.IssuerAndSerialNumber;
 import iaik.utils.ASN1InputStream;
 import iaik.x509.RevokedCertificate;
 import iaik.x509.X509CRL;
 import iaik.x509.X509Certificate;
+import iaik.x509.extensions.AuthorityInfoAccess;
 import iaik.x509.extensions.ReasonCode;
 import iaik.x509.ocsp.*;
+import iaik.x509.ocsp.extensions.ServiceLocator;
+import iaik.x509.ocsp.net.HttpOCSPRequest;
 import iaik.x509.ocsp.utils.ResponseGenerator;
 import org.apache.tools.ant.types.selectors.ReadableSelector;
 import org.apache.tools.ant.util.LeadPipeInputStream;
 import org.harry.security.util.Tuple;
 import org.harry.security.util.certandkey.KeyStoreTool;
+import org.harry.security.util.ocsp.HttpOCSPClient;
 import org.pmw.tinylog.Logger;
 import sun.security.provider.certpath.CertId;
 
@@ -22,6 +27,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigInteger;
+import java.net.URL;
 import java.security.*;
 import java.security.cert.CRLException;
 import java.security.cert.CRLReason;
@@ -94,11 +100,15 @@ public class UnicHornResponderUtil {
         System.out.println("Create response entries for crl...");
 
         messages.put("info-3", "Message is: before add resp entries" );
-        checkCertificateRevocation(ocspRequest, responseGenerator, messages, crl);
+        OCSPResponse response = checkCertificateRevocation(ocspRequest, responseGenerator, messages, crl);
 
 
         try {
-            return getOcspResponse(ocspReqInput, responseGenerator, signatureAlgorithm, messages, keys);
+            if (response != null) {
+                return response;
+            } else {
+                return getOcspResponse(ocspReqInput, responseGenerator, signatureAlgorithm, messages, keys);
+            }
         } catch (Exception ex) {
             messages.put("info-4", "Message is: try to output failed with: " + ex.getMessage());
             throw new IllegalStateException("response was not generated ", ex);
@@ -114,10 +124,34 @@ public class UnicHornResponderUtil {
         return response;
     }
 
-    private static void checkCertificateRevocation(OCSPRequest ocspRequest, ResponseGenerator responseGenerator, Map<String, String> messages, X509CRL crl) {
+    private static OCSPResponse checkCertificateRevocation(OCSPRequest ocspRequest, ResponseGenerator responseGenerator, Map<String, String> messages, X509CRL crl) {
         try {
             Request[] requests = ocspRequest.getRequestList();
             for (Request req:requests) {
+                ServiceLocator locator = req.getServiceLocator();
+                if (locator != null) {
+                    AuthorityInfoAccess access = locator.getLocator();
+                    if (access != null) {
+                        AccessDescription description = access.getAccessDescription(ObjectID.caIssuers);
+                        if (description != null) {
+                            String uri = description.getUriAccessLocation();
+                            if (uri != null ) {
+                                Logger.trace("Redirected to: " + uri);
+                                OCSPRequest newRequest = new OCSPRequest();
+                                Request[] requestList = { req};
+                                newRequest.setRequestList(requestList);
+                                HttpOCSPRequest request = new HttpOCSPRequest
+                                        (new URL(uri));
+                                request.postRequest(newRequest);
+                                OCSPResponse response =request.getOCSPResponse();
+                                return response;
+                            }
+                        }
+                    }
+
+
+                }
+
                 Date endDate = getDate("2024-01-01");
                 Date startDate = getDate("2020-01-01");
                 Calendar cal = Calendar.getInstance();
@@ -129,32 +163,20 @@ public class UnicHornResponderUtil {
                     AlgorithmID hashAlg = certID.getHashAlgorithm();
 
 
-                    if ( !checkRevocation(crl, serial)) {
+                    Date rDate = checkRevocation(crl, serial);
+                    if ( rDate == null) {
                         responseGenerator.addResponseEntry(reqCert, new CertStatus(), endDate, null);
                     } else {
                         if (crl.containsCertificate(serial) != null) {
                             X509CRLEntry entry = crl.getRevokedCertificate(serial);
                             CRLReason reason = entry.getRevocationReason();
                         }
-                        RevokedInfo info = new RevokedInfo(startDate);
+                        RevokedInfo info = new RevokedInfo(rDate);
                         //info.setRevocationReason(translateRevocationReason(reason));
-                        responseGenerator.addResponseEntry(reqCert, new CertStatus(info), endDate, null);
+                        responseGenerator.addResponseEntry(reqCert, new CertStatus(info), rDate, null);
                     }
 
-                } else if (reqCert.getType() == ReqCert.issuerSerial){
-                    IssuerAndSerialNumber number = (IssuerAndSerialNumber)reqCert.getReqCert();
 
-                    if ( !checkRevocation(crl, number.getSerialNumber())) {
-                        responseGenerator.addResponseEntry(reqCert, new CertStatus(), endDate, null);
-                    } else {
-                        if (crl.containsCertificate(number.getSerialNumber()) != null) {
-                            X509CRLEntry entry = crl.getRevokedCertificate(number.getSerialNumber());
-                            CRLReason reason = entry.getRevocationReason();
-                        }
-                        RevokedInfo info = new RevokedInfo(startDate);
-                        //info.setRevocationReason(translateRevocationReason(reason));
-                        responseGenerator.addResponseEntry(reqCert, new CertStatus(info),endDate, null);
-                    }
                 } else if (reqCert.getType() == ReqCert.pKCert){
                     X509Certificate certificate = (X509Certificate)reqCert.getReqCert();
                     X509CRL crlToUse = null;
@@ -163,27 +185,28 @@ public class UnicHornResponderUtil {
                         crlToUse = crl;
                     }
 
-                    if (!checkRevocation(crl, certificate.getSerialNumber())) {
+                    Date rDate = checkRevocation(crl, certificate.getSerialNumber());
+                    if (rDate == null) {
                         responseGenerator.addResponseEntry(reqCert, new CertStatus(), certificate.getNotAfter(), null);
                     } else {
                         if (crl.containsCertificate(certificate.getSerialNumber()) != null) {
                             X509CRLEntry entry = crl.getRevokedCertificate(certificate.getSerialNumber());
                             CRLReason reason = entry.getRevocationReason();
                         }
-                        RevokedInfo info = new RevokedInfo(actualDate);
+                        RevokedInfo info = new RevokedInfo(rDate);
                         //info.setRevocationReason(translateRevocationReason(reason));
-                        responseGenerator.addResponseEntry(reqCert, new CertStatus(info), certificate.getNotAfter(), null);
+                        responseGenerator.addResponseEntry(reqCert, new CertStatus(info), rDate, null);
                     }
-                } else if (reqCert.getType() == ReqCert.certHash) {
-                    reqCert.getReqCert();
                 }
             }
             // responseGenerator.addResponseEntries(crl, crlIssuer, ReqCert.certID);
             messages.put("info-4", "Message is: generator created");
             System.out.println("Generator created:");
             System.out.println(responseGenerator);
+            return null;
         } catch (Exception ex) {
             messages.put("err-gen", "Message is: generator is NOT created due to: " + ex.getMessage());
+            return null;
         }
     }
 
@@ -338,7 +361,7 @@ public class UnicHornResponderUtil {
 
     }
 
-    private static boolean checkRevocation(X509CRL crl, BigInteger certSerial) {
+    private static Date checkRevocation(X509CRL crl, BigInteger certSerial) {
         Set<RevokedCertificate> revoked = crl.getRevokedCertificates();
         for (RevokedCertificate cert: revoked) {
             System.out.println(cert.getSerialNumber() + " " + certSerial);
@@ -351,13 +374,13 @@ public class UnicHornResponderUtil {
             Date actualDate = new Date(cal.getTimeInMillis());
             Date rDate = found.get().getRevocationDate();
             if (rDate.after(actualDate)) {
-                return false;
+                return null;
             } else {
-                return true;
+                return rDate;
             }
 
         }
-        return false;
+        return null;
     }
 
 }
