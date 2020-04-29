@@ -7,14 +7,13 @@ import iaik.x509.X509CRL;
 import iaik.x509.X509Certificate;
 import iaik.x509.X509ExtensionInitException;
 import iaik.x509.extensions.AuthorityInfoAccess;
-import iaik.x509.extensions.CRLDistPointsSyntax;
 import iaik.x509.extensions.CRLDistributionPoints;
 import iaik.x509.ocsp.OCSPRequest;
 import iaik.x509.ocsp.OCSPResponse;
 import org.apache.http.Header;
-import org.apache.http.HeaderElement;
 import org.apache.http.HttpEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.ByteArrayEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
@@ -25,6 +24,7 @@ import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URL;
 import java.security.PrivateKey;
+import java.util.Base64;
 import java.util.Enumeration;
 
 /**
@@ -64,7 +64,13 @@ public class HttpOCSPClient {
             String altResponder = getOCSPUrl(targetCerts[0]);
             OCSPRequest request = client.createOCSPRequest(requestorKey, requestorCerts,
                     targetCerts, includeExtensions, type, altResponder);
-            return getOcspResponseApache(ocspSedrverURL, request);
+            OCSPResponse response;
+            if (true) {
+                response = getOcspResponseGETApache(ocspSedrverURL, request);
+            } else {
+                response = getOcspResponsePOSTApache(ocspSedrverURL, request);
+            }
+            return response;
         } catch (Exception ex){
             throw new IllegalStateException("OCSP request failed", ex);
         }
@@ -85,7 +91,7 @@ public class HttpOCSPClient {
      * @param request the request
      * @return the response
      */
-    public static OCSPResponse getOcspResponseApache(String ocspServerURL, OCSPRequest request) {
+    public static OCSPResponse getOcspResponsePOSTApache(String ocspServerURL, OCSPRequest request) {
         CloseableHttpClient httpClient = null;
         try {
 
@@ -113,6 +119,47 @@ public class HttpOCSPClient {
                 throw new IllegalStateException("OCSP request failed", ex);
         }
     }
+
+    /**
+     * This method sends the request to the server via apache Http client
+     * @param ocspServerURL the URL
+     * @param request the request
+     * @return the response
+     */
+    public static OCSPResponse getOcspResponseGETApache(String ocspServerURL, OCSPRequest request) {
+        CloseableHttpClient httpClient = null;
+        try {
+
+            // create closable http client and assign the certificate interceptor
+            httpClient = HttpClients.createDefault();
+            System.out.println("Responder URL: " + ocspServerURL.toString());
+            byte [] encoded = Base64.getEncoder().encode(request.getEncoded());
+            String encodedString = new String(encoded);
+            String ocspRequestUrl = ocspServerURL + "/" + encodedString;
+            HttpGet get = new HttpGet(new URI(ocspRequestUrl));
+            String result = get.getRequestLine().getUri();
+            get.setHeader("Content-Type","application/ocsp-request");
+            get.setHeader("Accept", "application/ocsp-response");
+
+            String reqLine = get.getRequestLine().getUri();
+
+            CloseableHttpResponse response = httpClient.execute(get);
+            int code = response.getStatusLine().getStatusCode();
+            System.out.println("ocsp ends with: " + code);
+            Header [] allheader = response.getAllHeaders();
+            if (code == 200) {
+                InputStream respInput = response.getEntity().getContent();
+                OCSPResponse ocspResp = new OCSPResponse(respInput);
+
+                return ocspResp;
+            } else {
+                return null;
+            }
+        } catch (Exception ex) {
+            throw new IllegalStateException("OCSP request failed", ex);
+        }
+    }
+
 
     /**
      * Get the responder URL from the certificate

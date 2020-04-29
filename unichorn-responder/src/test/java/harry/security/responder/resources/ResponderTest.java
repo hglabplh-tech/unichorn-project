@@ -5,6 +5,7 @@ import iaik.x509.X509Certificate;
 import iaik.x509.ocsp.OCSPRequest;
 import iaik.x509.ocsp.OCSPResponse;
 import iaik.x509.ocsp.ReqCert;
+import iaik.x509.ocsp.net.HttpOCSPRequest;
 import iaik.x509.ocsp.utils.ResponseGenerator;
 import org.apache.http.HttpEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
@@ -155,6 +156,48 @@ public class ResponderTest {
 
     }
 
+    @Test
+    public void ocspViaGet() throws Exception {
+        checkHttpsCertValidity("https://www.digicert.com", true, true);
+        List<X509Certificate[]> certList= new ArrayList<>();
+        InputStream keystoreUser = ResponderTest.class.getResourceAsStream("/appKeyStore.jks");
+        KeyStore tsystems = KeyStoreTool.loadStore(keystoreUser, "geheim".toCharArray(), "JKS");
+        Enumeration<String> aliases = tsystems.aliases();
+        while (aliases.hasMoreElements())  {
+            String alias = aliases.nextElement();
+            X509Certificate[] cert = KeyStoreTool.getCertChainEntry(tsystems, alias);
+            certList.add(cert);
+        }
+        Tuple<PrivateKey, X509Certificate[]> keys = null;
+
+        InputStream
+                keyStore = ResponderTest.class.getResourceAsStream("/application.jks");
+        KeyStore store = KeyStoreTool.loadStore(keyStore, "geheim".toCharArray(), "JKS");
+        keys = KeyStoreTool.getKeyEntry(store, ALIAS, "geheim".toCharArray());
+        X509Certificate[] certs = new X509Certificate[2];
+        certs = keys.getSecond();
+        for (X509Certificate[] certArray : certList) {
+            if (certArray.length > 1) {
+                String ocspURL = HttpOCSPClient.getOCSPUrl(certArray[0]);
+                OCSPClient client = new OCSPClient();
+                OCSPRequest ocspRequest = client.createOCSPRequest(keys.getFirst(),
+                        certs, certArray,
+                        false, ReqCert.certID, ocspURL);
+
+                String uri = "http://localhost:8080/unichorn-responder-1.0-SNAPSHOT/rest/ocsp";
+                HttpOCSPRequest request = new HttpOCSPRequest
+                        (new URL(uri));
+                request.sendGETRequest(ocspRequest);
+                OCSPResponse response =request.getOCSPResponse();
+                client.parseOCSPResponse(response, false);
+            }
+
+        }
+
+    }
+
+
+
 
     @Test
     public void testOCSPOK() throws Exception {
@@ -236,9 +279,14 @@ public class ResponderTest {
             if (certArray.length > 1) {
                 String ocspUrl =  HttpOCSPClient.getOCSPUrl(certArray[0]);
                 ocspUrl = "http://localhost:8080/unichorn-responder-1.0-SNAPSHOT/rest/ocsp";
-                OCSPResponse response = HttpOCSPClient.sendOCSPRequest(ocspUrl, keys.getFirst(),
+                /*OCSPResponse response = HttpOCSPClient.sendOCSPRequest(ocspUrl, keys.getFirst(),
                         certs, certArray,
                         true, ReqCert.certID);
+                        *
+                 */
+                OCSPResponse response = HttpOCSPClient.sendOCSPRequest(ocspUrl, null,
+                        null, certArray,
+                        false, ReqCert.certID);
                 responseStatus = HttpOCSPClient.getClient().parseOCSPResponse(response, false);
             }
         }
@@ -297,6 +345,7 @@ public class ResponderTest {
             Tuple<PrivateKey, X509Certificate[]> keys = KeyStoreTool.getKeyEntry(store, ALIAS, "geheim".toCharArray());
             X509Certificate[] certs = new X509Certificate[2];
             certs = keys.getSecond();
+
             List<X509Certificate> certList = HttpsChecker.getCertFromHttps(checkURL);
             Map<String, X509Certificate> certMap = CertLoader.loadCertificatesFromWIN();
             boolean success = HttpsChecker.checkCertChain(certList, certMap);

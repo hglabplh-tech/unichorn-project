@@ -245,6 +245,7 @@ public class GenerateKeyStore implements CertGeneratorConstants {
         generalNames.addName(new GeneralName(GeneralName.rfc822Name, "smimetest@harryglab.com"));
         SubjectAltName subjectAltName = new SubjectAltName(generalNames);
         cert.addExtension(subjectAltName);
+        setOCSPUrl(cert, "http://localhost:8080/unichorn-responder-1.0-SNAPSHOT/rest/ocsp");
       }
       String explicitText = "This certificate may be used for testing purposes only";
       PolicyQualifierInfo policyQualifier = new PolicyQualifierInfo(null, null, explicitText);

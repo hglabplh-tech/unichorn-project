@@ -1,5 +1,6 @@
 package harry.security.responder.resources;
 
+import iaik.asn1.CodingException;
 import iaik.asn1.structures.AlgorithmID;
 import iaik.cms.SecurityProvider;
 import iaik.cms.ecc.ECCelerateProvider;
@@ -7,6 +8,7 @@ import iaik.security.ec.provider.ECCelerate;
 import iaik.security.provider.IAIKMD;
 import iaik.x509.X509Certificate;
 import iaik.x509.ocsp.*;
+import iaik.x509.ocsp.net.HttpOCSPRequest;
 import iaik.x509.ocsp.utils.ResponseGenerator;
 import org.apache.commons.io.IOUtils;
 import org.harry.security.util.Tuple;
@@ -29,6 +31,7 @@ import javax.ws.rs.core.Response;
 
 import java.io.*;
 
+import java.net.URL;
 import java.security.*;
 
 import java.util.*;
@@ -52,7 +55,7 @@ public class UnichornResponder extends HttpServlet {
     /**
      * Algorithm to be used for signing the response.
 	 */
-    private AlgorithmID signatureAlgorithm = AlgorithmID.sha256WithRSAEncryption;
+    private AlgorithmID signatureAlgorithm = AlgorithmID.sha1WithRSAEncryption;
 
 
 
@@ -162,7 +165,45 @@ public class UnichornResponder extends HttpServlet {
     }
     @Override
     public void doGet(HttpServletRequest servletRequest, HttpServletResponse servletResponse) {
+        Logger.trace("Enter get");
         String type = servletRequest.getHeader("fileType");
+        Map<String,String> messages = new HashMap<>();
+        if (type == null) {
+
+            String path = servletRequest.getPathInfo();
+            Logger.trace("The path information is: -> " + path);
+            String ocsp = path.substring("/ocsp/".length());
+            Logger.trace("The extract information is: -> " + ocsp);
+
+            try {
+                byte [] encoded = Base64.getDecoder().decode(ocsp.getBytes());
+                Logger.trace("Before getting request");
+                OCSPRequest ocspRequest = new OCSPRequest(encoded);
+                Logger.trace("After getting request" + ocspRequest.toString(true));
+                OCSPResponse response = UnicHornResponderUtil.generateResponse(ocspRequest,
+                        copyTo(ocspRequest), responseGenerator, signatureAlgorithm, messages);
+                Logger.trace("Write stream");
+                response.writeTo(servletResponse.getOutputStream());
+                Logger.trace("written stream");
+                servletResponse.setStatus(Response.Status.OK.getStatusCode());
+                servletResponse.setHeader("success", "Seems to be ok:");
+                servletResponse.setHeader("Content-Type","application/ocsp-response");
+                for(String key: messages.keySet()) {
+                    servletResponse.addHeader(key, messages.get(key));
+                }
+            } catch (Exception ex) {
+                Logger.trace("exception type is ;; " + ex.getClass().getCanonicalName());
+                Logger.trace("Error casewith message :: " + ex.getMessage());
+                Logger.trace(" has cause " + ((ex.getCause() == null) ? "false" : "true"))
+                ;
+                servletResponse.setStatus(Response.Status.INTERNAL_SERVER_ERROR.getStatusCode());
+                servletResponse.setHeader("error", "Message is:" + ex.getMessage());
+                for(String key: messages.keySet()) {
+                    servletResponse.addHeader(key, messages.get(key));
+                }
+            }
+
+        }
         if (type.equals("crl")) {
                 try {
                     InputStream stream = UnicHornResponderUtil.loadActualCRL();
