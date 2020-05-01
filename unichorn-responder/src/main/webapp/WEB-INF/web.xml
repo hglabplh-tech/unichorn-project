@@ -1,5 +1,6 @@
 <web-app>
 
+    <display-name>Unichorn OCSP REST Service</display-name>
     <servlet>
 
         <servlet-name>OCSP REST Service</servlet-name>

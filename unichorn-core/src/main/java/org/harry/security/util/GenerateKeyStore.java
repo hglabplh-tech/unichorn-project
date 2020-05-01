@@ -54,6 +54,7 @@ import java.util.Calendar;
 import java.util.GregorianCalendar;
 import java.util.Random;
 
+import static org.harry.security.util.CertificateWizzard.isCertificateSelfSigned;
 import static org.harry.security.util.CertificateWizzard.setOCSPUrl;
 
 
@@ -660,7 +661,11 @@ public class GenerateKeyStore implements CertGeneratorConstants {
                                   true,
                                   false);
         // verify the self signed certificate
-        caRSA.verify();
+          boolean selfSigned = isCertificateSelfSigned(caRSA);
+          if (!selfSigned) {
+              throw new IllegalStateException("certificate should be self signed");
+          }
+          caRSA.verify();
         // set the CA cert as trusted root
         verifier.addTrustedCertificate(caRSA);
         chain[0] = caRSA;
@@ -748,6 +753,10 @@ public class GenerateKeyStore implements CertGeneratorConstants {
                                      true,
                                      false);
         chain[1] = caRSA;
+          boolean selfSigned = isCertificateSelfSigned(chain[0]);
+          if (selfSigned) {
+              throw new IllegalStateException("certificate should NOT be self signed");
+          }
         verifier.verifyChain(chain);
 
         addToKeyStore(rsa2048_sign, chain, RSA_2048_SIGN);

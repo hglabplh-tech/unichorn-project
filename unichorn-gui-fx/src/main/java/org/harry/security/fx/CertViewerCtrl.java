@@ -187,12 +187,12 @@ public class CertViewerCtrl implements ControllerInit {
 
     @FXML
     protected void goBack(ActionEvent event) throws IOException {
-        SecHarry.setRoot("main");
+        SecHarry.setRoot("main", SecHarry.CSS.ABBY);
     }
 
     @FXML
     protected void storeCertDialog(ActionEvent event) throws IOException, CertificateEncodingException {
-       SecHarry.setRoot("certStore");
+       SecHarry.setRoot("certStore", SecHarry.CSS.UNICHORN);
     }
 
     private void setColor(ObservableList list, String color) {

@@ -36,10 +36,8 @@ import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 
-import static harry.security.responder.resources.UnicHornResponderUtil.applyKeyStore;
 
-
-public class UnichornResponder extends HttpServlet {
+public class UnichornResponderSave extends HttpServlet {
 
     
 
@@ -141,11 +139,8 @@ public class UnichornResponder extends HttpServlet {
                    InputStream keyStore = UnicHornResponderUtil.class.getResourceAsStream("/application.jks");
                    KeyStore storeApp = KeyStoreTool.loadStore(keyStore, "geheim".toCharArray(), "JKS");
                    Tuple<PrivateKey, X509Certificate[]> keys = null;
-                   keys = KeyStoreTool.getKeyEntry(storeApp, UnichornResponder.ALIAS, "geheim".toCharArray());
+                   keys = KeyStoreTool.getKeyEntry(storeApp, UnichornResponderSave.ALIAS, "geheim".toCharArray());
                    OutputStream  out = new FileOutputStream(keyFile);
-                   KeyStore storeToApply = KeyStoreTool.loadStore(p12Stream,
-                           decodedString.toCharArray(), storeTypeHeader);
-                   applyKeyStore(keyFile, storeToApply, decodedString, storeTypeHeader);
                    IOUtils.copy(p12Stream, out);
                    p12Stream.close();
                    out.close();

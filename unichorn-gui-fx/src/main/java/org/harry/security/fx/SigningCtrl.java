@@ -71,7 +71,7 @@ public class SigningCtrl implements ControllerInit {
 
     @FXML
     public void cancelSigning(ActionEvent event) throws IOException {
-        SecHarry.setRoot("main");
+        SecHarry.setRoot("main", SecHarry.CSS.ABBY);
     }
 
     @FXML
@@ -88,10 +88,7 @@ public class SigningCtrl implements ControllerInit {
 
         SigningBean bean = SecHarry.contexts.get();
         bean = filloutBean(bean);
-        SigningUtil util = SigningUtil.newBuilder()
-                .withSignaturePath(bean.getOutputPath())
-                .withMode(bean.getSigningMode().getMode())
-                .build();
+        SigningUtil util = new SigningUtil();
         if(bean.getAction().equals(CMSSigner.Commands.SIGN)) {
             if (bean.getSignatureType().equals(SigningBean.SigningType.CMS)) {
                 DataSource outSrc = util.signCMS(bean);

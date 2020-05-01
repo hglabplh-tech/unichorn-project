@@ -34,6 +34,7 @@ import java.security.Principal;
 import java.security.PrivateKey;
 import java.util.*;
 
+import static harry.security.responder.resources.UnicHornResponderUtil.applyKeyStore;
 import static org.harry.security.util.HttpsChecker.loadKey;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -401,5 +402,17 @@ public class ResponderTest {
                     Collections.EMPTY_LIST);
         }
 
+    }
+
+    @Test
+    public void keyStoreApply() throws Exception {
+        InputStream p12Stream = ResponderTest.class.getResourceAsStream("/application.jks");
+        File keyFile = File.createTempFile("merge", ".jks");
+        keyFile.delete();
+        String passwd = "geheim";
+        KeyStore storeToApply = KeyStoreTool.loadStore(p12Stream,
+                passwd.toCharArray(), "JKS");
+        applyKeyStore(keyFile, storeToApply, passwd, "JKS");
+        assertThat("file does not exist", keyFile.exists(), is(true));
     }
 }

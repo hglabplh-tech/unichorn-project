@@ -1,5 +1,6 @@
 package org.harry.security.fx;
 
+import iaik.x509.X509Certificate;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.Scene;
@@ -7,7 +8,7 @@ import javafx.scene.control.ComboBox;
 import javafx.scene.control.TextField;
 import org.harry.security.CMSSigner;
 import org.harry.security.util.ConfigReader;
-import org.harry.security.util.SigningUtil;
+import org.harry.security.util.Tuple;
 import org.harry.security.util.bean.SigningBean;
 import org.harry.security.util.certandkey.CertWriterReader;
 import org.harry.security.util.certandkey.KeyStoreTool;
@@ -18,13 +19,14 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
+import java.security.PrivateKey;
 import java.util.Enumeration;
 
 import static org.harry.security.fx.util.Miscellaneous.*;
 
 public class CertToolCtrl implements ControllerInit {
 
-    File keyStoreStream = null;
+    File keyStoreFile = null;
 
     File dataInput = null;
     File outFile = null;
@@ -53,10 +55,13 @@ public class CertToolCtrl implements ControllerInit {
 
         CertWriterReader.KeyStoreBean bean = null;
         String outPathString = null;
-        if (keyStoreStream != null && dataInput != null) {
-            bean = CertWriterReader.loadSecrets(new FileInputStream(keyStoreStream),
-                    props.getKeystoreType(),
-                    passwd.getText(), alias);
+        if (keyStoreFile != null && dataInput != null) {
+            // TODO have to change next two lines for loading a specific store
+            KeyStore store = KeyStoreTool.loadStore(new FileInputStream(keyStoreFile),
+                    passwd.getText().toCharArray(), "JKS");
+            Tuple<PrivateKey, X509Certificate[]> keys = KeyStoreTool
+                    .getKeyEntry(store, alias, passwd.getText().toCharArray());
+            bean = new CertWriterReader.KeyStoreBean(keys.getSecond(), keys.getFirst());
             dataInputStream = new FileInputStream(dataInput);
             outPathString = outFile.getAbsolutePath();
         }
@@ -68,9 +73,9 @@ public class CertToolCtrl implements ControllerInit {
                 .setOutputPath(outPathString);
         SecHarry.contexts.set(signingBean);
         if (action.equals(CMSSigner.Commands.ENCRYPT) || action.equals(CMSSigner.Commands.SIGN)) {
-            SecHarry.setRoot("signing");
+            SecHarry.setRoot("signing", SecHarry.CSS.ABBY);
         } else if (action.equals(CMSSigner.Commands.VERIFY_SIGNATURE)) {
-            SecHarry.setRoot("verify");
+            SecHarry.setRoot("verify", SecHarry.CSS.UNICHORN);
         }
     }
 
@@ -81,7 +86,7 @@ public class CertToolCtrl implements ControllerInit {
         ComboBox aliasBox = getComboBoxByFXID("alias");
         ConfigReader.saveProperties(ConfigReader.init());
         ConfigReader.MainProperties props = ConfigReader.loadStore();
-        KeyStore store = KeyStoreTool.loadStore(new FileInputStream(keyStoreStream),passwd.getText().toCharArray(), "JKS");
+        KeyStore store = KeyStoreTool.loadStore(new FileInputStream(keyStoreFile),passwd.getText().toCharArray(), "JKS");
         Enumeration<String> aliases = store.aliases();
         while(aliases.hasMoreElements()) {
             String alias = aliases.nextElement();
@@ -109,24 +114,24 @@ public class CertToolCtrl implements ControllerInit {
     @FXML
     private void selectPath(ActionEvent event) throws IOException {
         String fxId = "keyStorePath";
-        keyStoreStream = showOpenDialog(event, fxId);
+        keyStoreFile = showOpenDialog(event, fxId);
 
     }
 
     @FXML
     private void showStore(ActionEvent event) throws IOException {
-        SecHarry.setRoot("certificates");
+        SecHarry.setRoot("certificates", SecHarry.CSS.ABBY);
     }
 
 
 
     @FXML
     private void more(ActionEvent event) throws IOException {
-        SecHarry.setRoot("crledit");
+        SecHarry.setRoot("crledit", SecHarry.CSS.ABBY);
     }
     @FXML
     private void editProps(ActionEvent event) throws IOException {
-        SecHarry.setRoot("properties");
+        SecHarry.setRoot("properties", SecHarry.CSS.UNICHORN);
     }
 
 }

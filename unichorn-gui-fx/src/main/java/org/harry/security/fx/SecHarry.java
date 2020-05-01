@@ -32,23 +32,27 @@ public class SecHarry extends Application {
         List<TrustListManager> walkers = ConfigReader.loadAllTrusts();
         SigningBean context = new SigningBean().setWalker(walkers);
         contexts.set(context);
-        scene = new Scene(loadFXML("main"));
+        scene = new Scene(loadFXML("main", CSS.UNICHORN));
         stage.setScene(scene);
         stage.show();
     }
 
-    static void setRoot(String fxml) throws IOException {
-        scene.setRoot(loadFXML(fxml));
-    }
+    static void setRoot(String fxml, CSS css) throws IOException {
+        scene.setRoot(loadFXML(fxml, css));
+}
 
 
 
-   private static Parent loadFXML(String fxml) throws IOException {
+    private static Parent loadFXML(String fxml, CSS css) throws IOException {
         URL resourceURL = SecHarry.class.getResource(fxml + ".fxml");
         fxmlLoader = new FXMLLoader(resourceURL);
         Pane root = (Pane) fxmlLoader.load();
         ControllerInit controller = (ControllerInit)fxmlLoader.getController();
-       root.getStylesheets().add(SecHarry.class.getResource("/org/harry/security/fx/unichorn.css").toExternalForm());
+        if (root.getStylesheets().size() > 0) {
+            root.getStylesheets().remove(0);
+        }
+       root.getStylesheets().add(css.getUrl());
+
         Scene scene = controller.init();
 
         return root;
@@ -73,6 +77,24 @@ public class SecHarry extends Application {
             // business logic
         } finally {
             contexts.remove(); // 'ensure' removal of thread-local variable
+        }
+    }
+
+    public static enum CSS {
+        ABBY(SecHarry.class.getResource("/org/harry/security/fx/abby.css").toExternalForm()),
+        UNICHORN(SecHarry.class.getResource("/org/harry/security/fx/unichorn.css").toExternalForm()),
+        ;
+
+
+
+        private String url;
+
+        CSS(String url) {
+            this.url = url;
+        }
+
+        public String getUrl() {
+            return url;
         }
     }
 

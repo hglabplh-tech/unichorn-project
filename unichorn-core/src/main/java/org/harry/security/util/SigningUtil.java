@@ -7,6 +7,7 @@ import iaik.asn1.structures.Attribute;
 import iaik.cms.*;
 import iaik.cms.attributes.CMSContentType;
 import iaik.cms.attributes.SigningTime;
+import iaik.pdf.asn1objects.ArchiveTimeStampv3;
 import iaik.pdf.cmscades.CadesSignatureStream;
 import iaik.pdf.parameters.CadesBESParameters;
 import iaik.pdf.parameters.CadesLTAParameters;
@@ -99,19 +100,21 @@ public class SigningUtil {
                 params.setSignatureAlgorithm(signingBean.getSignatureAlgorithm().getAlgId().getImplementationName());
             }
             X509Certificate [] signer = new X509Certificate[1];
-            signer[0] = signingBean.getKeyStoreBean().getSelectedCert();
+            signer = signingBean.getKeyStoreBean().getChain();
             int mode = signingBean.getSigningMode().getMode();
 
-
-            CadesSignatureStream signatureStream = new CadesSignatureStream(signingBean.getDataINFile(), mode);
+            InputStream stream = signingBean.getDataINFile();
+            CadesSignatureStream signatureStream = new CadesSignatureStream(stream, mode);
             signatureStream.addSignerInfo(signingBean.getKeyStoreBean().getSelectedKey(),
                     signer, params);
             ByteArrayOutputStream out = new ByteArrayOutputStream();
             signatureStream.encodeSignature(out);
             ByteArrayInputStream  in = new ByteArrayInputStream(out.toByteArray());
-            InputStreamDataSource ds = new InputStreamDataSource(in);
+            DataSource ds = new InputStreamDataSource(in);
+            stream.close();
+            out.close();
             if (upgradeSig) {
-                upgradeSignature(signingBean, ds);
+               ds = upgradeSignature(signingBean, ds);
             }
             return ds;
         } catch (Exception e) {
@@ -119,12 +122,12 @@ public class SigningUtil {
         }
     }
 
-    public DataSource upgradeSignature(SigningBean signingBean, DataSource ds) {
+    public DataSource upgradeSignature(SigningBean signingBean, DataSource ds) throws NoSuchAlgorithmException {
         ByteArrayOutputStream archivedSignatureStream;
         archivedSignatureStream = new ByteArrayOutputStream();
-        String archiveTimestampDigestAlgorithm = "SHA512";
+        String archiveTimestampDigestAlgorithm =  ArchiveTimeStampv3.DEFAULTHASHALGORITHM.getJcaStandardName();
         try {
-            InputStream data = signingBean.getDataIN();
+            InputStream data = signingBean.getDataINFile();
             CadesSignatureStream cadesSig = new CadesSignatureStream(ds.getInputStream(), data,
             new String[] { archiveTimestampDigestAlgorithm }, archivedSignatureStream);
 
@@ -144,7 +147,6 @@ public class SigningUtil {
             parameters.addArchiveDetails(cert, null, responses);
             cadesSig.addArchiveTimeStamp(0, parameters);
             cadesSig.encodeUpgradedSignature();
-            archivedSignatureStream = cadesSig.getEncodedSignedDataStream();
             ByteArrayInputStream  in = new ByteArrayInputStream(archivedSignatureStream.toByteArray());
             InputStreamDataSource dsResult = new InputStreamDataSource(in);
             return dsResult;

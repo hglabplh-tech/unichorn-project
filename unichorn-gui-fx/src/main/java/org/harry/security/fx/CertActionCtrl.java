@@ -165,6 +165,6 @@ public class CertActionCtrl implements ControllerInit {
 
     @FXML
     protected void goBack(ActionEvent event) throws IOException, CertificateEncodingException {
-        SecHarry.setRoot("certificates");
+        SecHarry.setRoot("certificates", SecHarry.CSS.ABBY);
     }
 }

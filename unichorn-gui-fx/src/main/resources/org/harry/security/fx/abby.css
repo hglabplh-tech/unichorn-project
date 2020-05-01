@@ -1,0 +1,87 @@
+
+.header-section {
+    -fx-padding: 10px;
+    -fx-font-size: 12px;
+    -fx-background-color: teal;
+}
+
+.header-section Label {
+    -fx-text-fill: #ffffff;
+    -fx-padding: 10px;
+}
+
+#account {
+    -fx-background-color: transparent;
+    -fx-text-fill: #ffffff;
+    -fx-font-size: 12px;
+    -fx-cursor: hand;
+}
+
+.sidebar-section {
+    -fx-min-width: 200px;
+    -fx-pref-width: 200px;
+    -fx-max-width: 200px;
+    -fx-border-width: 1;
+    -fx-border-color: transparent #E8E8E8 transparent transparent;
+}
+
+.sidebar-section Label {
+    -fx-font-size: 12px;
+    -fx-padding: 10 15 10 15;
+    -fx-border-width: 1;
+    -fx-border-color: transparent transparent rebeccapurple transparent;
+    -fx-min-width: 200px;
+    -fx-pref-width: 200px;
+    -fx-max-width: 200px;
+}
+
+.content-section {
+    -fx-padding: 0 0 5 0;
+    -fx-wrap-text: true;
+
+}
+
+.root{
+    -fx-font-size: 10pt;
+    -fx-base: grey;
+    -fx-background: black;
+    -fx-foreground: white
+}
+
+#content-header {
+    -fx-font-size: 12px;
+    -fx-padding: 0 0 5 0;
+    -fx-font-weight: 300;
+}
+
+#content {
+    -fx-wrap-text: true;
+    -fx-font-size: 12px;
+}
+
+#footer-section {
+    -fx-alignment: center-left;
+    -fx-padding: 10 10 10 10;
+    -fx-border-width: 1;
+    -fx-border-color: limegreen transparent transparent transparent;
+}
+
+.custom-red {
+  -fx-control-inner-background: red;
+}
+
+.custom-green {
+  -fx-control-inner-background: green;
+}
+
+.custom-yellow {
+  -fx-control-inner-background: yellow;
+}
+
+.custom-white {
+  -fx-control-inner-background: white;
+}
+
+.custom {
+  -fx-control-inner-background: transparent;
+}

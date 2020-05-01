@@ -65,11 +65,9 @@ public class HttpOCSPClient {
             OCSPRequest request = client.createOCSPRequest(requestorKey, requestorCerts,
                     targetCerts, includeExtensions, type, altResponder);
             OCSPResponse response;
-            if (true) {
-                response = getOcspResponseGETApache(ocspSedrverURL, request);
-            } else {
-                response = getOcspResponsePOSTApache(ocspSedrverURL, request);
-            }
+
+            response = getOcspResponsePOSTApache(ocspSedrverURL, request);
+
             return response;
         } catch (Exception ex){
             throw new IllegalStateException("OCSP request failed", ex);

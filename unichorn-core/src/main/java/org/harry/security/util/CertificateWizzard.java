@@ -444,4 +444,24 @@ public class CertificateWizzard {
         access.setCritical(false);
         cert.addExtension(access);
     }
+
+    public static boolean isCertificateSelfSigned(X509Certificate certificate) {
+        try {
+            AuthorityKeyIdentifier authKeyID = (AuthorityKeyIdentifier)
+                    certificate.getExtension(AuthorityKeyIdentifier.oid);
+            SubjectKeyIdentifier subjKeyID = (SubjectKeyIdentifier)
+                    certificate.getExtension(SubjectKeyIdentifier.oid);
+
+            if (authKeyID == null) {
+                return true;
+            } else if (subjKeyID != null && authKeyID != null) {
+                return Arrays.equals(authKeyID.getKeyIdentifier(), subjKeyID.get());
+            } else {
+                return false;
+            }
+        } catch (Exception ex) {
+            throw new IllegalStateException("cannot detect self signed ??!!", ex);
+        }
+
+    }
 }

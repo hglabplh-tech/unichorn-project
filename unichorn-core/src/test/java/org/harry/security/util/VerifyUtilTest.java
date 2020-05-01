@@ -77,9 +77,11 @@ public class VerifyUtilTest extends TestBase {
         SigningUtil util = new SigningUtil();
         File out = File.createTempFile(
                 "sig", "pkcs7");
-        InputStream in = this.getClass().getResourceAsStream("/certificates/example.pem");
+        //
+        // InputStream in = this.getClass().getResourceAsStream("/certificates/example.pem");
         URL url = this.getClass().getResource("/certificates/example.pem");
         File urlFile = new File(url.toURI());
+        FileInputStream in = new FileInputStream(urlFile);
         SigningBean bean = setBean(keys.getSecond(), keys.getFirst(), out, urlFile, true);
         DataSource ds = util.signCAdES(bean, true);
         bean = setBean(keys.getSecond(), keys.getFirst(), out, urlFile, false);
@@ -108,8 +110,10 @@ public class VerifyUtilTest extends TestBase {
 
         FileInputStream input = new FileInputStream(in);
         SigningBean bean = new SigningBean()
+                .setSigningMode(SigningBean.Mode.EXPLICIT)
                 .setDataIN(input)
                 .setDataINFile(in).setOutputPath(out.getAbsolutePath())
+                .setDataINPath(in)
                 .setOutputDS(new FileDataSource(out))
                 .setKeyStoreBean(keys)
                 .setSigningMode(SigningBean.Mode.EXPLICIT);

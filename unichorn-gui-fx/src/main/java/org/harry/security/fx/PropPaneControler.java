@@ -65,13 +65,13 @@ public class PropPaneControler implements ControllerInit {
     @FXML
     public void save(ActionEvent event) throws IOException {
         ConfigReader.saveProperties(signingProperties);
-        SecHarry.setRoot("main");
+        SecHarry.setRoot("main", SecHarry.CSS.ABBY);
 
     }
 
     @FXML
     public void cancel(ActionEvent event) throws IOException {
-        SecHarry.setRoot("main");
+        SecHarry.setRoot("main", SecHarry.CSS.UNICHORN);
 
     }
 }

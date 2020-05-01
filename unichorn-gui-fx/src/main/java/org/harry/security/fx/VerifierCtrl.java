@@ -49,7 +49,7 @@ public class VerifierCtrl implements ControllerInit {
 
     @FXML
     public void goBack(ActionEvent event) throws IOException {
-        SecHarry.setRoot("main");
+        SecHarry.setRoot("main", SecHarry.CSS.UNICHORN);
     }
 
     @FXML
