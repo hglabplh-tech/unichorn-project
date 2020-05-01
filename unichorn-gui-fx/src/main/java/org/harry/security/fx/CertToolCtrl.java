@@ -109,7 +109,7 @@ public class CertToolCtrl implements ControllerInit {
     }
     @FXML
     private void cancelSigning(ActionEvent event) throws IOException {
-        System.out.println("cancel");
+        SecHarry.setRoot("crledit", SecHarry.CSS.ABBY);
     }
     @FXML
     private void selectPath(ActionEvent event) throws IOException {
@@ -127,7 +127,8 @@ public class CertToolCtrl implements ControllerInit {
 
     @FXML
     private void more(ActionEvent event) throws IOException {
-        SecHarry.setRoot("crledit", SecHarry.CSS.ABBY);
+        //SecHarry.setRoot("crledit", SecHarry.CSS.ABBY);
+        SecHarry.setRoot("trustEdit", SecHarry.CSS.ABBY);
     }
     @FXML
     private void editProps(ActionEvent event) throws IOException {

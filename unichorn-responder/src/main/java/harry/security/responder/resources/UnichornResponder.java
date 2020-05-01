@@ -235,6 +235,21 @@ public class UnichornResponder extends HttpServlet {
                     return;
                 }
             }
+        } else if (type.equals("pkcs12")){
+            File keyFile = new File(UnicHornResponderUtil.APP_DIR_TRUST, "privKeystore" + ".jks");
+            if (keyFile.exists()) {
+                try {
+                    FileInputStream stream = new FileInputStream(keyFile);
+                    OutputStream out = servletResponse.getOutputStream();
+                    IOUtils.copy(stream, out);
+                    stream.close();
+                    servletResponse.setStatus(Response.Status.OK.getStatusCode());
+                    return;
+                } catch (IOException ex){
+                    servletResponse.setStatus(Response.Status.FORBIDDEN.getStatusCode());
+                    return;
+                }
+            }
         } else {
             servletResponse.setStatus(Response.Status.PRECONDITION_FAILED.getStatusCode());
             return;

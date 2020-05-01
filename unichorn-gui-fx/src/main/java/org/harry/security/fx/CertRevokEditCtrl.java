@@ -72,6 +72,11 @@ public class CertRevokEditCtrl implements ControllerInit {
     }
 
     @FXML
+    public void back(ActionEvent event) throws Exception {
+        SecHarry.setRoot("main", SecHarry.CSS.UNICHORN);
+    }
+
+    @FXML
     public void upload(ActionEvent event) throws Exception {
         KeyStore appStore = KeyStoreTool.loadAppStore();
         Tuple<PrivateKey, X509Certificate[]> keys = KeyStoreTool.getAppKeyEntry(appStore);

@@ -27,12 +27,15 @@ public class TrustListLoader {
         InternationalNamesType intNames = new InternationalNamesType();
         intNames.getName().add("Trust List Unichorn");
         info.setTSPName(intNames);
+        type.setTSPInformation(info);
+        type.getTSPInformation().setTSPName(intNames);
         TSPServicesListType tspList = new TSPServicesListType();
         TSPServiceType service = new TSPServiceType();
         TSPServiceInformationType tspInfo = new TSPServiceInformationType();
         intNames = new InternationalNamesType();
         intNames.getName().add("Trust List Service Unichorn(private)");
         tspInfo.setServiceName(intNames);
+
         DigitalIdentityListType digital = new DigitalIdentityListType();
         listDigi = digital.getDigitalId();
         tspInfo.setServiceDigitalIdentity(digital);
@@ -51,9 +54,11 @@ public class TrustListLoader {
      */
     public TrustListManager getManager(File trustListFile) throws IOException {
         if(trustListFile != null && trustListFile.exists()) {
-            TrustStatusListType trust = loadTrust(new FileInputStream(trustListFile));
+            InputStream stream = new FileInputStream(trustListFile);
+            TrustStatusListType trust = loadTrust(stream);
             TrustListManager mgr = new TrustListManager(trust);
             trustList = trust;
+            stream.close();
             return mgr;
         } else {
             makeRoot();
