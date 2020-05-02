@@ -18,7 +18,7 @@ public class KeyStoreTool {
 
     public static final String KEYSTORE_FNAME = "application.jks";
 
-    public static final String ALIAS = "Common T-Systems Green TeamUserRSA";
+    public static final String ALIAS = "Common T-Systems ImageMasterUserRSA";
 
     static {
         String userDir = System.getProperty("user.home");
@@ -56,7 +56,9 @@ public class KeyStoreTool {
         try {
             KeyStore store = KeyStore.getInstance(type);
             store.load(resource, passwd);
-            resource.close();
+            if (resource != null) {
+                resource.close();
+            }
             return store;
         } catch (Exception ex) {
             throw new IllegalStateException("cannot load keystore", ex);

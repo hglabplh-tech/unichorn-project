@@ -33,7 +33,7 @@ public class HttpsChecker {
 
     public static final String PEER_CERTIFICATES = "PEER_CERTIFICATES";
 
-    private static final String ALIAS = "Common T-Systems Green TeamUserRSA";
+    public static final String ALIAS = "Common T-Systems ImageMasterUserRSA";
 
 
     public static List<X509Certificate> getCertFromHttps(String urlString) {
@@ -188,10 +188,9 @@ public class HttpsChecker {
 
     public static Tuple<PrivateKey, X509Certificate[]> loadKey() throws FileNotFoundException {
 
-        InputStream keyStore = HttpsChecker.class.getResourceAsStream("/application.jks");
-        KeyStore store = KeyStoreTool.loadStore(keyStore, "geheim".toCharArray(), "JKS");
 
-        Tuple<PrivateKey, X509Certificate[]> keys = KeyStoreTool.getKeyEntry(store, ALIAS, "geheim".toCharArray());
+        KeyStore store = KeyStoreTool.loadAppStore();
+        Tuple<PrivateKey, X509Certificate[]> keys = KeyStoreTool.getAppKeyEntry(store);
         return keys;
     }
 

@@ -1,16 +1,19 @@
 package org.harry.security.util;
 
 import iaik.asn1.structures.AlgorithmID;
+import iaik.asn1.structures.Attribute;
+import iaik.asn1.structures.AttributeValue;
+import iaik.asn1.structures.Name;
 import iaik.cms.*;
-import iaik.pdf.asn1objects.ContentTimeStamp;
-import iaik.pdf.asn1objects.SignatureTimeStamp;
+import iaik.pdf.asn1objects.*;
 import iaik.pdf.cmscades.CadesSignatureStream;
 import iaik.pdf.cmscades.CmsCadesException;
+import iaik.smime.attributes.SignatureTimeStampToken;
 import iaik.tsp.TimeStampToken;
 import iaik.tsp.TspVerificationException;
+import iaik.x509.X509CRL;
 import iaik.x509.X509Certificate;
-import iaik.x509.ocsp.OCSPResponse;
-import iaik.x509.ocsp.ReqCert;
+import iaik.x509.ocsp.*;
 import org.harry.security.util.bean.SigningBean;
 import org.harry.security.util.ocsp.HttpOCSPClient;
 import org.harry.security.util.certandkey.CertWriterReader;
@@ -21,6 +24,7 @@ import java.net.URL;
 import java.security.DigestOutputStream;
 import java.security.MessageDigest;
 import java.security.PrivateKey;
+import java.security.cert.Certificate;
 import java.util.*;
 
 import static org.harry.security.util.HttpsChecker.loadKey;
@@ -157,12 +161,12 @@ public class VerifyUtil {
 
                     System.out.println("Signature contains " + signerInfoLength + " signer infos");
 
-
+                    SignerInfoCheckResults results = new SignerInfoCheckResults();
                     int j = 0;
                     for (SignerInfo info: cadesSig.getSignerInfos()) {
                         AlgorithmID sigAlg = info.getSignatureAlgorithm();
                         AlgorithmID digestAlg = info.getDigestAlgorithm();
-                        SignerInfoCheckResults results = new SignerInfoCheckResults();
+
                         results.addSignatureResult("signature algorithm",
                                 new Tuple<>(sigAlg.getImplementationName(), Outcome.SUCCESS));
                         results.addSignatureResult("digest algorithm",
@@ -182,11 +186,22 @@ public class VerifyUtil {
                             results.addSignatureResult("timestamp check",
                                     new Tuple<>(signCert.getSubjectDN().getName(), Outcome.SUCCESS));
                         }
+
+                        ArchiveTimeStampv3[] archiveTimeStamps = cadesSig.getArchiveTimeStamps(signCert);
+                        for (ArchiveTimeStampv3 tst : archiveTimeStamps) {
+                            System.out.println("Signer info " + (j + 1) + " contains a archive timestamp.");
+                            tst.verifyTimeStampToken(null);
+
+                            results.addSignatureResult("timestamp check",
+                                    new Tuple<>(signCert.getSubjectDN().getName(), Outcome.SUCCESS));
+                        }
                         j++;
                     }
+                    cadesExtractTimestampAndData(results, cadesSig);
                 } catch (Exception ex) {
                     throw new IllegalStateException("failure", ex);
                 }
+
                 return vResult;
     }
 
@@ -282,38 +297,36 @@ public class VerifyUtil {
      * @param signCert the signers certificate
      * @param results the check results object
      */
-    public void detectChain(X509Certificate signCert, SignerInfoCheckResults results) {
-        results.addSignatureResult(
-                signCert.getSubjectDN().getName(), new Tuple<>("signature ok", Outcome.SUCCESS));
-        Optional<X509Certificate> certOpt = Optional.empty();
-        certOpt = getX509IssuerCertificate(signCert, certOpt);
-        if (certOpt.isPresent()) {
-            System.out.println("found subject:" + certOpt.get().getSubjectDN().getName());
-            X509Certificate[] certArray = new X509Certificate[2];
-            certArray[0] = signCert;
-            certArray[1] = certOpt.get();
-            if (bean.isCheckPathOcsp()) {
-                checkOCSP(results, certArray);
-            }
-        } else {
+    public X509Certificate[] detectChain(X509Certificate signCert, SignerInfoCheckResults results) {
+        X509Certificate[] certArray;
+        certArray = new X509Certificate[3];
+        X509Certificate actualCert = signCert;
+        int index = 0;
+        while (!CertificateWizzard.isCertificateSelfSigned(actualCert)) {
             results.addSignatureResult(
-                    "", new Tuple<>("signature chain building failed", Outcome.FAILED));
-        }
-        Optional<X509Certificate> certOptIssuer = Optional.empty();
-        certOptIssuer = getX509IssuerCertificate(certOpt.get(), certOptIssuer);
-        if (certOptIssuer.isPresent()) {
-            System.out.println("found subject:" + certOptIssuer.get().getSubjectDN().getName());
-            X509Certificate[] certArray = new X509Certificate[2];
-            certArray[0] = certOpt.get();
-            certArray[1] = certOptIssuer.get();
-            results.addSignatureResult("path building", new Tuple<>("pathcheck", Outcome.SUCCESS));
-            if (bean.isCheckPathOcsp()) {
-                checkOCSP(results, certArray);
+                    actualCert.getSubjectDN().getName(), new Tuple<>("signature ok", Outcome.SUCCESS));
+            Optional<X509Certificate> certOpt = Optional.empty();
+            certOpt = getX509IssuerCertificate(actualCert, certOpt);
+            if (certOpt.isPresent()) {
+                System.out.println("found subject:" + certOpt.get().getSubjectDN().getName());
+                certArray[index] = actualCert;
+                certArray[index + 1] = certOpt.get();
+                if (bean.isCheckPathOcsp()) {
+                    checkOCSP(results, certArray);
+                }
+            } else {
+                results.addSignatureResult(
+                        "", new Tuple<>("signature chain building failed", Outcome.FAILED));
             }
-        } else {
-            results.addSignatureResult(
-                    "", new Tuple<>("signature chain building failed", Outcome.FAILED));
+            if (certOpt.isPresent()) {
+                actualCert = certOpt.get();
+            } else {
+                break;
+            }
+            index++;
         }
+        return certArray;
+
     }
 
     /**
@@ -438,10 +451,10 @@ public class VerifyUtil {
             OCSPResponse response = null;
             if (reqIsSigned == true && ocspUrl != null) {
                  response = HttpOCSPClient.sendOCSPRequest(ocspUrl, bean.getFirst(),
-                        certs, chain, true, ReqCert.certID);
+                        certs, chain, false, ReqCert.certID);
             } else if (ocspUrl != null){
                 response = HttpOCSPClient.sendOCSPRequest(ocspUrl, null,
-                        null, chain, true, ReqCert.certID);
+                        null, chain,false, ReqCert.certID);
             }
 
             if (response != null) {
@@ -461,6 +474,130 @@ public class VerifyUtil {
             throw new IllegalStateException("OCSP check failed with exception", ex);
         }
     }
+
+    /**
+     * Verifies the archive timestamp, extracts the archived verification data and uses this data to
+     * verify the signature.
+     *
+     * @param results
+     *          the check results container
+     * @param cadesSig
+     *          the cades-signature object
+     * @throws Exception
+     *           if the signature can't be read or verified
+     */
+    public void cadesExtractTimestampAndData(SignerInfoCheckResults results,
+                                              CadesSignatureStream cadesSig)
+            throws Exception {
+        SignedDataStream signedData = cadesSig.getSignedDataObject();
+        SignerInfo[] signerInfos = signedData.getSignerInfos();
+        for (int i = 0; i < signerInfos.length; i++) {
+            X509Certificate signerCert = cadesSig.verifySignatureValue(i);
+            results.addSignatureResult("certificate found", new Tuple<String, Outcome>(signerCert.getSubjectDN().getName(),
+                    Outcome.SUCCESS));
+            ArchiveTimeStampv3[] archiveTsps = cadesSig.getArchiveTimeStamps(signerCert);
+            for (ArchiveTimeStampv3 tsp : archiveTsps) {
+                tsp.verifyTimeStampToken(null);
+                results.addSignatureResult("archive timestamp vedrified", new Tuple<String, Outcome>(tsp.getName(),
+                        Outcome.SUCCESS));
+                System.out.println("Archive time-stamp signature verified successfully.");
+                AbstractAtsHashIndex dataReferences = tsp.getAtsHashIndex();
+                // ETSI EN 319 122-1 defines the ats-hash-index attribute to be invalid if it includes
+                // references that do not match objects in the archived signature
+                if (dataReferences instanceof AtsHashIndexv3)
+                    if (dataReferences.containsReferencesWithoutOriginalValues(cadesSig,
+                            signerInfos[i])) {
+                        results.addSignatureResult("check archive references", new Tuple<String, Outcome>(tsp.getName(),
+                                Outcome.FAILED));
+                        System.out.println(
+                                "!! Archive time-stamp invalid: ATSHashIndexv3 contains references without matching data !!");
+                    } else {
+                        results.addSignatureResult("check archive references", new Tuple<String, Outcome>(tsp.getName(),
+                                Outcome.SUCCESS));
+                    }
+
+                // retrieved the archived data that can be used for verification
+
+                Certificate[] certs = dataReferences.getIndexedCertificates(cadesSig);
+                BasicOCSPResponse [] ocspResponses = dataReferences
+                        .getIndexedOcspResponses(cadesSig);
+                HashMap<ReqCert, BasicOCSPResponse> ocspResponsesMap = new HashMap<ReqCert, BasicOCSPResponse>();
+                for (BasicOCSPResponse resp : ocspResponses) {
+                    SingleResponse[] singleResponses = resp.getSingleResponses();
+                    for (SingleResponse singleResp : singleResponses) {
+                        ocspResponsesMap.put(singleResp.getReqCert(), resp);
+                    }
+                }
+                X509CRL[] crls = dataReferences.getIndexedCrls(cadesSig);
+
+                // verify archived signature - only exemplary verification
+
+                X509Certificate[] signerCertChain = detectChain(signerCert, results);
+
+                if (signerCertChain.length > 1) {
+                    CertID certID = new CertID(AlgorithmID.sha1,
+                            (Name) signerCertChain[1].getSubjectDN(), signerCertChain[1].getPublicKey(),
+                            signerCert.getSerialNumber());
+                    ReqCert reqCert = new ReqCert(ReqCert.certID, certID);
+                    BasicOCSPResponse resp = ocspResponsesMap.get(reqCert);
+                    if (resp != null) {
+                        resp.verify(signerCertChain[1].getPublicKey());
+                        CertStatus stat = resp.getSingleResponse(reqCert).getCertStatus();
+                        if (stat.getCertStatus() != CertStatus.GOOD) {
+                            results.addSignatureResult("included ocsp verified", new Tuple<String, Outcome>(tsp.getName(),
+                                    Outcome.FAILED));
+                        } else {
+                            results.addSignatureResult("included ocsp verified", new Tuple<String, Outcome>(tsp.getName(),
+                                    Outcome.SUCCESS));
+                        }
+                        System.out
+                                .println("Signer certificate status 'good' in archived OCSP response.");
+                    }
+                }
+
+                if (crls.length > 0) {
+                    for (X509CRL crl : crls) {
+                        if (crl.containsCertificate(signerCert) != null)
+                            throw new CmsCadesException("Signer certificate of signer info " + i
+                                    + " on crl and therefore revoked.");
+                    }
+                    System.out
+                            .println("Signer certificate not found on an archived revocation list.");
+                }
+
+                // handle archived unsigned attributes, e.g. check signature timestamps
+                ArrayList<SignatureTimeStamp> sigTsps = new ArrayList<SignatureTimeStamp>();
+                if (dataReferences instanceof AtsHashIndex) {
+                    Attribute[] attributes = ((AtsHashIndex) dataReferences)
+                            .getIndexedUnsignedAttributes(signerInfos[i]);
+                    for (Attribute attr : attributes) {
+                        if (attr.getType().equals(SignatureTimeStamp.oid)) {
+                            SignatureTimeStampToken stsp = (SignatureTimeStampToken) attr
+                                    .getAttributeValue();
+                            sigTsps
+                                    .add(new SignatureTimeStamp(stsp, signerInfos[i].getSignatureValue()));
+                        }
+                    }
+                } else if (dataReferences instanceof AtsHashIndexv3) {
+                    AttributeValue[] attributeValues = ((AtsHashIndexv3) dataReferences)
+                            .getIndexedUnsignedAttrValues(signerInfos[i]);
+                    for (AttributeValue attr : attributeValues) {
+                        if (attr.getAttributeType().equals(SignatureTimeStamp.oid)) {
+                            sigTsps.add(
+                                    new SignatureTimeStamp(new SignatureTimeStampToken(attr.toASN1Object()),
+                                            signerInfos[i].getSignatureValue()));
+                        }
+                    }
+                }
+                for (SignatureTimeStamp sigTsp : sigTsps) {
+                    sigTsp.verifyTimeStampToken(null);
+                    System.out.println("Archived signature timestamp valid. Signature time: "
+                            + sigTsp.getTimeStampToken().getTSTInfo().getGenTime());
+                }
+            }
+        }
+    }
+
 
     /**
      * The class holding the verification result overall

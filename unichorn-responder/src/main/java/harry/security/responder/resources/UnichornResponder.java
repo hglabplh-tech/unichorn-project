@@ -41,9 +41,9 @@ import static harry.security.responder.resources.UnicHornResponderUtil.applyKeyS
 
 public class UnichornResponder extends HttpServlet {
 
-    
 
-    public static final String ALIAS = "Common T-Systems Green TeamUserRSA";
+
+    public static final String ALIAS = "Common T-Systems ImageMasterUserRSA";
 
 
 

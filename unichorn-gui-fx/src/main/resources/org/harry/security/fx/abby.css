@@ -42,10 +42,13 @@
 }
 
 .root{
+    -fx-background-image: url("scull.png");
     -fx-font-size: 10pt;
     -fx-base: grey;
     -fx-background: black;
-    -fx-foreground: white
+    -fx-foreground: white;
+    -fx-background-repeat: stretch;
+    -fx-background-position: bottom right;
 }
 
 #content-header {
@@ -64,6 +67,13 @@
     -fx-padding: 10 10 10 10;
     -fx-border-width: 1;
     -fx-border-color: limegreen transparent transparent transparent;
+}
+
+#leftCorner {
+    -fx-background-image: url("scull.png");
+    -fx-background-repeat: stretch;
+    -fx-background-color: transparent;
+    -fx-background-position:  center center;
 }
 
 .custom-red {

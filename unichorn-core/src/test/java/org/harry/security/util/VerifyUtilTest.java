@@ -1,5 +1,7 @@
 package org.harry.security.util;
 
+import iaik.pdf.cmscades.CadesSignatureStream;
+import iaik.pdf.cmscades.CmsCadesException;
 import iaik.x509.X509Certificate;
 import org.harry.security.testutils.Generator;
 import org.harry.security.testutils.TestBase;
@@ -23,6 +25,7 @@ import java.security.PrivateKey;
 import java.util.List;
 
 import static junit.framework.Assert.assertNotNull;
+import static junit.framework.TestCase.assertNull;
 import static junit.framework.TestCase.assertTrue;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -90,6 +93,39 @@ public class VerifyUtilTest extends TestBase {
         vutil.verifyCadesSignature(ds.getInputStream(), in);
     }
 
+    @Test
+    public void detectChainTest() {
+        KeyStore store = KeyStoreTool.loadAppStore();
+        Tuple<PrivateKey, X509Certificate[]> keys = KeyStoreTool.getAppKeyEntry(store);
+        SigningBean bean = new SigningBean();
+        List<TrustListManager> walkers = ConfigReader.loadAllTrusts();
+        VerifyUtil vutil = new VerifyUtil(walkers, bean);
+        VerifyUtil.SignerInfoCheckResults results = new VerifyUtil.SignerInfoCheckResults();
+        X509Certificate[] chain = vutil.detectChain(keys.getSecond()[0], results);
+        int index = 0;
+        for (X509Certificate cert: chain) {
+            X509Certificate other = keys.getSecond()[index];
+            System.out.println(cert.getSubjectDN().getName());
+            System.out.println(other.getSubjectDN().getName());
+            index++;
+        }
+
+    }
+
+    @Test
+    public void checkArchiveTimestamp() throws Exception {
+        InputStream data = this.getClass().getResourceAsStream("/data/pom.xml");
+        InputStream signature =this.getClass().getResourceAsStream("/data/pom.xml.pkcs7");
+        assertNotNull("signature is null", signature);
+        assertNotNull("data is null", data);
+        CadesSignatureStream sigData = getSignature(signature, data);
+        SigningBean bean = new SigningBean();
+        List<TrustListManager> walkers = ConfigReader.loadAllTrusts();
+        VerifyUtil vutil = new VerifyUtil(walkers, bean);
+        VerifyUtil.SignerInfoCheckResults results = new VerifyUtil.SignerInfoCheckResults();
+        vutil.cadesExtractTimestampAndData(results, sigData);
+    }
+
 
     private SigningBean initVerify(X509Certificate[] cert, PrivateKey key, File out, File in) {
         SigningUtil util = new SigningUtil();
@@ -122,5 +158,10 @@ public class VerifyUtilTest extends TestBase {
         }
         return bean;
 
+    }
+
+    private CadesSignatureStream getSignature(InputStream signature, InputStream data) throws CmsCadesException {
+        CadesSignatureStream sigStream = new CadesSignatureStream(signature, data);
+        return sigStream;
     }
 }
