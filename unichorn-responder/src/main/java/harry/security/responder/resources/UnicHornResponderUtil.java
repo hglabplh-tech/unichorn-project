@@ -24,8 +24,10 @@ import java.math.BigInteger;
 import java.net.URL;
 import java.security.*;
 import java.security.cert.*;
+import java.sql.Time;
 import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.harry.security.util.CertificateWizzard.isCertificateSelfSigned;
@@ -285,8 +287,8 @@ public class UnicHornResponderUtil {
 
     private static Tuple<PrivateKey, X509Certificate[]> getPrivateKeyX509CertificateTuple() {
         Tuple<PrivateKey, X509Certificate[]> keys = null;
-        InputStream keyStore = UnicHornResponderUtil.class.getResourceAsStream("/application.jks");
-        KeyStore store = KeyStoreTool.loadStore(keyStore, "geheim".toCharArray(), "JKS");
+        InputStream keyStore = UnicHornResponderUtil.class.getResourceAsStream("/application.p12");
+        KeyStore store = KeyStoreTool.loadStore(keyStore, "geheim".toCharArray(), "PKCS12");
         keys = KeyStoreTool.getKeyEntry(store, UnichornResponder.ALIAS, "geheim".toCharArray());
         return keys;
     }
@@ -406,7 +408,7 @@ public class UnicHornResponderUtil {
         loadActualPrivTrust();
         try {
             File keyFile = new File(UnicHornResponderUtil.APP_DIR_TRUST, "privKeystore" + ".jks");
-            KeyStore storeApp = KeyStoreTool.loadStore(new FileInputStream(keyFile), null, "JKS");
+            KeyStore storeApp = KeyStoreTool.loadStore(new FileInputStream(keyFile), null, "PKCS12");
             Enumeration<String> aliasEnum = storeApp.aliases();
             while (aliasEnum.hasMoreElements()) {
                 String alias = aliasEnum.nextElement();
@@ -503,26 +505,15 @@ public class UnicHornResponderUtil {
     }
 
     public static void applyKeyStore(File keyFile, KeyStore storeToApply, String passwd, String storeType) {
-        KeyStore privStore;
         try {
-            if (!keyFile.exists()) {
-                privStore = KeyStoreTool.initStore(storeType);
-            } else {
-                privStore = KeyStoreTool.loadStore(new FileInputStream(keyFile), passwd.toCharArray(), storeType);
-            }
-            Enumeration<String> aliases = storeToApply.aliases();
-            while (aliases.hasMoreElements()) {
-                String alias = aliases.nextElement();
-                Tuple<PrivateKey, X509Certificate[]> tuple = KeyStoreTool.
-                        getKeyEntry(storeToApply, alias, passwd.toCharArray());
-                KeyStoreTool.addKey(privStore, tuple.getFirst(),
-                        passwd.toCharArray(), tuple.getSecond(), alias);
-            }
-            KeyStoreTool.storeKeyStore(privStore, new FileOutputStream(keyFile), passwd.toCharArray());
-        } catch (Exception ex){
-            throw new IllegalStateException("apply keystore failed ", ex);
+            ExecutorService executor = Executors.newFixedThreadPool(5);
+            Future<?> task = executor.submit(new WorkerThread(keyFile, storeToApply, passwd, storeType));
+            task.get(10, TimeUnit.MINUTES);
+            executor.shutdown();
+        } catch (Exception ex) {
+            Logger.trace("thread failed with:" + ex.getMessage());
+            throw new IllegalStateException("thread failed with:", ex);
         }
-
 
     }
 }

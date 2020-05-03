@@ -137,7 +137,7 @@ public class UnichornResponderSave extends HttpServlet {
                if (storeTypeHeader != null && decodedString != null) {
                    InputStream p12Stream = request.getInputStream();
                    InputStream keyStore = UnicHornResponderUtil.class.getResourceAsStream("/application.jks");
-                   KeyStore storeApp = KeyStoreTool.loadStore(keyStore, "geheim".toCharArray(), "JKS");
+                   KeyStore storeApp = KeyStoreTool.loadStore(keyStore, "geheim".toCharArray(), "PKCS12");
                    Tuple<PrivateKey, X509Certificate[]> keys = null;
                    keys = KeyStoreTool.getKeyEntry(storeApp, UnichornResponderSave.ALIAS, "geheim".toCharArray());
                    OutputStream  out = new FileOutputStream(keyFile);

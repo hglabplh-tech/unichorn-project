@@ -1,6 +1,10 @@
 package harry.security.responder.resources;
 
 import iaik.asn1.structures.AlgorithmID;
+import iaik.cms.SecurityProvider;
+import iaik.cms.ecc.ECCelerateProvider;
+import iaik.security.ec.provider.ECCelerate;
+import iaik.security.provider.IAIKMD;
 import iaik.x509.X509Certificate;
 import iaik.x509.ocsp.OCSPRequest;
 import iaik.x509.ocsp.OCSPResponse;
@@ -22,7 +26,12 @@ import org.harry.security.util.certandkey.CertWriterReader;
 import org.harry.security.util.certandkey.KeyStoreTool;
 import org.harry.security.util.ocsp.HttpOCSPClient;
 import org.harry.security.util.ocsp.OCSPClient;
+import org.junit.Before;
 import org.junit.Test;
+import org.pmw.tinylog.Configurator;
+import org.pmw.tinylog.Level;
+import org.pmw.tinylog.writers.ConsoleWriter;
+import org.pmw.tinylog.writers.FileWriter;
 
 import javax.servlet.*;
 import javax.servlet.http.*;
@@ -32,6 +41,7 @@ import java.net.URL;
 import java.security.KeyStore;
 import java.security.Principal;
 import java.security.PrivateKey;
+import java.security.Security;
 import java.util.*;
 
 import static harry.security.responder.resources.UnicHornResponderUtil.applyKeyStore;
@@ -39,10 +49,24 @@ import static org.harry.security.util.HttpsChecker.loadKey;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 
-public class ResponderTest {
+public class ResponderTest  {
 
 
     private static final String ALIAS = "Common T-Systems Green TeamUserRSA";
+
+    @Before
+    public void init () {
+        IAIKMD.addAsProvider();
+        ECCelerate ecProvider = ECCelerate.getInstance();
+        Security.insertProviderAt(ecProvider, 3);
+        SecurityProvider.setSecurityProvider(new ECCelerateProvider());
+
+        Configurator.defaultConfig()
+                .writer(new ConsoleWriter())
+                .locale(Locale.GERMANY)
+                .level(Level.TRACE)
+                .activate();
+    }
 
     @Test
     public void nativeCaller() throws Exception {
@@ -54,7 +78,7 @@ public class ResponderTest {
 
         InputStream
                 keyStore = ResponderTest.class.getResourceAsStream("/application.jks");
-        KeyStore store = KeyStoreTool.loadStore(keyStore, "geheim".toCharArray(), "JKS");
+        KeyStore store = KeyStoreTool.loadStore(keyStore, "geheim".toCharArray(), "PKCS12");
         keys = KeyStoreTool.getKeyEntry(store, ALIAS, "geheim".toCharArray());
         X509Certificate[] certs = new X509Certificate[2];
         certs = keys.getSecond();
@@ -93,7 +117,7 @@ public class ResponderTest {
 
         InputStream
                 keyStore = ResponderTest.class.getResourceAsStream("/application.jks");
-        KeyStore store = KeyStoreTool.loadStore(keyStore, "geheim".toCharArray(), "JKS");
+        KeyStore store = KeyStoreTool.loadStore(keyStore, "geheim".toCharArray(), "PKCS12");
         keys = KeyStoreTool.getKeyEntry(store, ALIAS, "geheim".toCharArray());
         X509Certificate[] certs = new X509Certificate[2];
         certs = keys.getSecond();
@@ -121,7 +145,7 @@ public class ResponderTest {
         checkHttpsCertValidity("https://www.digicert.com", true, true);
         List<X509Certificate[]> certList= new ArrayList<>();
         InputStream keystoreUser = ResponderTest.class.getResourceAsStream("/appKeyStore.jks");
-        KeyStore tsystems = KeyStoreTool.loadStore(keystoreUser, "geheim".toCharArray(), "JKS");
+        KeyStore tsystems = KeyStoreTool.loadStore(keystoreUser, "geheim".toCharArray(), "PKCS12");
         Enumeration<String> aliases = tsystems.aliases();
         while (aliases.hasMoreElements())  {
             String alias = aliases.nextElement();
@@ -132,7 +156,7 @@ public class ResponderTest {
 
         InputStream
                 keyStore = ResponderTest.class.getResourceAsStream("/application.jks");
-        KeyStore store = KeyStoreTool.loadStore(keyStore, "geheim".toCharArray(), "JKS");
+        KeyStore store = KeyStoreTool.loadStore(keyStore, "geheim".toCharArray(), "PKCS12");
         keys = KeyStoreTool.getKeyEntry(store, ALIAS, "geheim".toCharArray());
         X509Certificate[] certs = new X509Certificate[2];
         certs = keys.getSecond();
@@ -162,7 +186,7 @@ public class ResponderTest {
         checkHttpsCertValidity("https://www.digicert.com", true, true);
         List<X509Certificate[]> certList= new ArrayList<>();
         InputStream keystoreUser = ResponderTest.class.getResourceAsStream("/appKeyStore.jks");
-        KeyStore tsystems = KeyStoreTool.loadStore(keystoreUser, "geheim".toCharArray(), "JKS");
+        KeyStore tsystems = KeyStoreTool.loadStore(keystoreUser, "geheim".toCharArray(), "PKCS12");
         Enumeration<String> aliases = tsystems.aliases();
         while (aliases.hasMoreElements())  {
             String alias = aliases.nextElement();
@@ -173,7 +197,7 @@ public class ResponderTest {
 
         InputStream
                 keyStore = ResponderTest.class.getResourceAsStream("/application.jks");
-        KeyStore store = KeyStoreTool.loadStore(keyStore, "geheim".toCharArray(), "JKS");
+        KeyStore store = KeyStoreTool.loadStore(keyStore, "geheim".toCharArray(), "PKCS12");
         keys = KeyStoreTool.getKeyEntry(store, ALIAS, "geheim".toCharArray());
         X509Certificate[] certs = new X509Certificate[2];
         certs = keys.getSecond();
@@ -209,7 +233,7 @@ public class ResponderTest {
         Tuple<PrivateKey, X509Certificate[]> keys = null;
 
             InputStream keyStore = ResponderTest.class.getResourceAsStream("/application.jks");
-            KeyStore store = KeyStoreTool.loadStore(keyStore, "geheim".toCharArray(), "JKS");
+            KeyStore store = KeyStoreTool.loadStore(keyStore, "geheim".toCharArray(), "PKCS12");
 
             keys = KeyStoreTool.getKeyEntry(store, ALIAS, "geheim".toCharArray());
         X509Certificate[] certs = new X509Certificate[2];
@@ -239,7 +263,7 @@ public class ResponderTest {
         Tuple<PrivateKey, X509Certificate[]> keys = null;
 
         InputStream keyStore = ResponderTest.class.getResourceAsStream("/application.jks");
-        KeyStore store = KeyStoreTool.loadStore(keyStore, "geheim".toCharArray(), "JKS");
+        KeyStore store = KeyStoreTool.loadStore(keyStore, "geheim".toCharArray(), "PKCS12");
 
         keys = KeyStoreTool.getKeyEntry(store, ALIAS, "geheim".toCharArray());
         X509Certificate[] certs = new X509Certificate[2];
@@ -260,7 +284,7 @@ public class ResponderTest {
     public void testOCSPOKSigned2() throws Exception {
         List<X509Certificate[]> certList= new ArrayList<>();
         InputStream keystoreUser = ResponderTest.class.getResourceAsStream("/appKeyStore.jks");
-        KeyStore tsystems = KeyStoreTool.loadStore(keystoreUser, "geheim".toCharArray(), "JKS");
+        KeyStore tsystems = KeyStoreTool.loadStore(keystoreUser, "geheim".toCharArray(), "PKCS12");
         Enumeration<String> aliases = tsystems.aliases();
         while (aliases.hasMoreElements())  {
             String alias = aliases.nextElement();
@@ -271,7 +295,7 @@ public class ResponderTest {
 
         InputStream
                 keyStore = ResponderTest.class.getResourceAsStream("/application.jks");
-        KeyStore store = KeyStoreTool.loadStore(keyStore, "geheim".toCharArray(), "JKS");
+        KeyStore store = KeyStoreTool.loadStore(keyStore, "geheim".toCharArray(), "PKCS12");
         keys = KeyStoreTool.getKeyEntry(store, ALIAS, "geheim".toCharArray());
         X509Certificate[] certs = new X509Certificate[2];
         certs = keys.getSecond();
@@ -306,7 +330,7 @@ public class ResponderTest {
         byte [] encoded = Base64.getEncoder().encode("geheim".getBytes());
         String encodeString = new String(encoded);
         put.setHeader("passwd",encodeString);
-        put.setHeader("storeType", "JKS");
+        put.setHeader("storeType", "PKCS12");
         put.setHeader("fileType", "pkcs12");
         HttpEntity entity = new InputStreamEntity(keyStore);
         put.setEntity(entity);
@@ -326,7 +350,7 @@ public class ResponderTest {
         byte [] encoded = Base64.getEncoder().encode("geheim".getBytes());
         String encodeString = new String(encoded);
         put.setHeader("passwd",encodeString);
-        put.setHeader("storeType", "JKS");
+        put.setHeader("storeType", "PKCS12");
         put.setHeader("fileType", "trust");
         HttpEntity entity = new InputStreamEntity(keyStore);
         put.setEntity(entity);
@@ -342,7 +366,7 @@ public class ResponderTest {
         try {
             InputStream
                     keyStore = ResponderTest.class.getResourceAsStream("/application.jks");
-            KeyStore store = KeyStoreTool.loadStore(keyStore, "geheim".toCharArray(), "JKS");
+            KeyStore store = KeyStoreTool.loadStore(keyStore, "geheim".toCharArray(), "PKCS12");
             Tuple<PrivateKey, X509Certificate[]> keys = KeyStoreTool.getKeyEntry(store, ALIAS, "geheim".toCharArray());
             X509Certificate[] certs = new X509Certificate[2];
             certs = keys.getSecond();
@@ -406,13 +430,12 @@ public class ResponderTest {
 
     @Test
     public void keyStoreApply() throws Exception {
-        InputStream p12Stream = ResponderTest.class.getResourceAsStream("/application.jks");
-        File keyFile = File.createTempFile("merge", ".jks");
-        keyFile.delete();
+        InputStream p12Stream = ResponderTest.class.getResourceAsStream("/appKeyStore.jks");
+        File keyFile = new File(UnicHornResponderUtil.APP_DIR_TRUST, "privKeystore" + ".jks");
         String passwd = "geheim";
         KeyStore storeToApply = KeyStoreTool.loadStore(p12Stream,
-                passwd.toCharArray(), "JKS");
-        applyKeyStore(keyFile, storeToApply, passwd, "JKS");
+                passwd.toCharArray(), "PKCS12");
+        applyKeyStore(keyFile, storeToApply, passwd, "PKCS12");
         assertThat("file does not exist", keyFile.exists(), is(true));
     }
 }

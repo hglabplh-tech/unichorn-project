@@ -66,10 +66,13 @@
           <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
           <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
             <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+            <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+            <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
         </rowConstraints>
          <children>
             <Button fx:id="save" mnemonicParsing="false" onAction="#save" text="Save" GridPane.rowIndex="1" />
             <Button fx:id="back" mnemonicParsing="false" onAction="#back" text="Go Back" GridPane.columnIndex="1" GridPane.rowIndex="1" />
+            <Button fx:id="download" mnemonicParsing="false" onAction="#download" text="Download Trust" GridPane.rowIndex="4" />
          </children>
       </GridPane>
       <Label text="Label" />

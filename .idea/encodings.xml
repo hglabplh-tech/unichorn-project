@@ -3,9 +3,11 @@
   <component name="Encoding">
     <file url="file://$PROJECT_DIR$/unichorn-core/src/main/java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/unichorn-core/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/unichorn-core/src/test/resources" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/unichorn-gui-fx/src/main/java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/unichorn-gui-fx/src/main/resources" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/unichorn-responder/src/main/java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/unichorn-responder/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/unichorn-responder/src/test/resources" charset="UTF-8" />
   </component>
 </project>

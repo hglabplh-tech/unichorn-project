@@ -13,6 +13,7 @@ import javax.xml.ws.Response;
 import java.io.ByteArrayInputStream;
 import java.io.FileOutputStream;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.URL;
 import java.util.Base64;
 import java.util.Vector;
@@ -20,7 +21,7 @@ import java.util.Vector;
 public class HttpClientConnection {
 
     public static InputStream sendGetForResources(URL connectUrl,
-                                                            String fileType, FileOutputStream output) {
+                                                            String fileType, OutputStream output) {
         try {
             CloseableHttpClient httpClient = HttpClients.createDefault();
             System.out.println("Responder URL: " + connectUrl.toString());
@@ -53,7 +54,7 @@ public class HttpClientConnection {
         byte [] encoded = Base64.getEncoder().encode("geheim".getBytes());
         String encodeString = new String(encoded);
         put.setHeader("passwd",encodeString);
-        put.setHeader("storeType", "JKS");
+        put.setHeader("storeType", "PKCS12");
         HttpEntity entity = new InputStreamEntity(data);
         put.setEntity(entity);
         CloseableHttpResponse response = httpClient.execute(put);
@@ -72,7 +73,7 @@ public class HttpClientConnection {
         byte [] encoded = Base64.getEncoder().encode("geheim".getBytes());
         String encodeString = new String(encoded);
         put.setHeader("passwd",encodeString);
-        put.setHeader("storeType", "JKS");
+        put.setHeader("storeType", "PKCS12");
         HttpEntity entity = new InputStreamEntity(data);
         put.setEntity(entity);
         CloseableHttpResponse response = httpClient.execute(put);

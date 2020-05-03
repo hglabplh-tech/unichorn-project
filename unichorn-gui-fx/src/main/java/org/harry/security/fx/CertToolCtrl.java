@@ -7,11 +7,13 @@ import javafx.scene.Scene;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.TextField;
 import org.harry.security.CMSSigner;
+import org.harry.security.util.CertificateWizzard;
 import org.harry.security.util.ConfigReader;
 import org.harry.security.util.Tuple;
 import org.harry.security.util.bean.SigningBean;
 import org.harry.security.util.certandkey.CertWriterReader;
 import org.harry.security.util.certandkey.KeyStoreTool;
+import org.harry.security.util.httpclient.HttpClientConnection;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -58,7 +60,7 @@ public class CertToolCtrl implements ControllerInit {
         if (keyStoreFile != null && dataInput != null) {
             // TODO have to change next two lines for loading a specific store
             KeyStore store = KeyStoreTool.loadStore(new FileInputStream(keyStoreFile),
-                    passwd.getText().toCharArray(), "JKS");
+                    passwd.getText().toCharArray(), "PKCS12");
             Tuple<PrivateKey, X509Certificate[]> keys = KeyStoreTool
                     .getKeyEntry(store, alias, passwd.getText().toCharArray());
             bean = new CertWriterReader.KeyStoreBean(keys.getSecond(), keys.getFirst());
@@ -76,6 +78,8 @@ public class CertToolCtrl implements ControllerInit {
             SecHarry.setRoot("signing", SecHarry.CSS.ABBY);
         } else if (action.equals(CMSSigner.Commands.VERIFY_SIGNATURE)) {
             SecHarry.setRoot("verify", SecHarry.CSS.UNICHORN);
+        } else if (action.equals(CMSSigner.Commands.GEN_KEYSTORE)) {
+            CertificateWizzard.generateThis();
         }
     }
 
@@ -86,7 +90,7 @@ public class CertToolCtrl implements ControllerInit {
         ComboBox aliasBox = getComboBoxByFXID("alias");
         ConfigReader.saveProperties(ConfigReader.init());
         ConfigReader.MainProperties props = ConfigReader.loadStore();
-        KeyStore store = KeyStoreTool.loadStore(new FileInputStream(keyStoreFile),passwd.getText().toCharArray(), "JKS");
+        KeyStore store = KeyStoreTool.loadStore(new FileInputStream(keyStoreFile),passwd.getText().toCharArray(), "PKCS12");
         Enumeration<String> aliases = store.aliases();
         while(aliases.hasMoreElements()) {
             String alias = aliases.nextElement();
@@ -115,6 +119,12 @@ public class CertToolCtrl implements ControllerInit {
     private void selectPath(ActionEvent event) throws IOException {
         String fxId = "keyStorePath";
         keyStoreFile = showOpenDialog(event, fxId);
+
+    }
+
+    @FXML
+    private void uploadStore(ActionEvent event) throws Exception {
+        HttpClientConnection.sendPutData(new FileInputStream(keyStoreFile), "pkcs12");
 
     }
 

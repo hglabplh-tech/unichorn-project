@@ -13,10 +13,8 @@ import org.harry.security.util.httpclient.HttpClientConnection;
 import org.harry.security.util.trustlist.TrustListLoader;
 import org.harry.security.util.trustlist.TrustListManager;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
+import java.io.*;
+import java.net.URL;
 import java.security.KeyStore;
 import java.security.PrivateKey;
 import java.util.Enumeration;
@@ -60,6 +58,24 @@ public class TrustListEditCtrl implements ControllerInit {
     }
 
     @FXML
+    public void download(ActionEvent event) throws IOException  {
+        trustListFile = showSaveDialogFromButton(event, "trustFile");
+        URL ocspUrl= new URL("http://localhost:8080/unichorn-responder-1.0-SNAPSHOT/rest/ocsp");
+        OutputStream out = new FileOutputStream(trustListFile);
+        HttpClientConnection.sendGetForResources(ocspUrl, "trust", out);
+        out.flush();
+        out.close();
+        loader = new TrustListLoader();
+        manager = loader.getManager(trustListFile);
+        List<Vector<String>> paths = manager.collectPaths();
+        ComboBox pathBox = getComboBoxByFXID("paths");
+        for(Vector<String> path: paths) {
+            String pathString = path.get(0) + "/" + path.get(1);
+            pathBox.getItems().add(pathString);
+        }
+    }
+
+    @FXML
     public void selectOut(ActionEvent event) throws IOException  {
         trustListFileOut = showSaveDialog(event, "trustOut");
     }
@@ -76,7 +92,7 @@ public class TrustListEditCtrl implements ControllerInit {
             path.addElement(list[1]);
             KeyStore store = KeyStoreTool.loadStore(new FileInputStream(keyStoreFile),
                     passwd.getText().toCharArray(),
-                    "JKS");
+                    "PKCS12");
             Enumeration<String> aliases = store.aliases();
             while (aliases.hasMoreElements()) {
                 String alias = aliases.nextElement();

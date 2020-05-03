@@ -1,28 +1,36 @@
 package org.harry.security;
 
 import com.beust.jcommander.JCommander;
+import com.sun.crypto.provider.SunJCE;
 import iaik.cms.SecurityProvider;
 import iaik.cms.SignedDataStream;
 import iaik.cms.ecc.ECCelerateProvider;
 import iaik.security.ec.provider.ECCelerate;
+
 import iaik.security.provider.IAIKMD;
 import iaik.security.random.MetaSeedGenerator;
 import iaik.security.random.SeedGenerator;
+import iaik.x509.X509Certificate;
 import org.harry.security.util.*;
 import org.harry.security.util.bean.SigningBean;
 import org.harry.security.util.certandkey.CertWriterReader;
+import org.harry.security.util.certandkey.KeyStoreTool;
 import org.harry.security.util.trustlist.TrustListManager;
+import sun.security.provider.Sun;
 
 import javax.activation.DataSource;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.security.KeyStore;
+import java.security.PrivateKey;
 import java.security.Security;
 import java.util.Collection;
 import java.util.List;
 import java.util.Random;
 
+import static org.harry.security.util.CertificateWizzard.generateThis;
 import static org.harry.security.util.certandkey.CertWriterReader.loadSecrets;
 
 public class CMSSigner {
@@ -91,11 +99,15 @@ public class CMSSigner {
 
     public void run() {
         setProviders();
+        CertificateWizzard.initThis();
         Commands command = cmds.getCommand();
         ConfigReader.MainProperties params = ConfigReader.loadStore();
         List<TrustListManager> walkers = ConfigReader.loadAllTrusts();
         try {
-            CertWriterReader.KeyStoreBean bean = initKeyStoreBean(params);
+            KeyStore store = KeyStoreTool.loadAppStore();
+            Tuple<PrivateKey, X509Certificate[]> keys = KeyStoreTool.getAppKeyEntry(store);
+            CertWriterReader.KeyStoreBean bean = new
+                    CertWriterReader.KeyStoreBean(keys.getSecond(), keys.getFirst());
             SigningBean signingBean = new SigningBean()
                     .setKeyStoreBean(bean)
                     .setSigningMode(SigningBean.Mode.EXPLICIT)
@@ -166,12 +178,7 @@ public class CMSSigner {
                 }
             } else if (command.equals(Commands.GEN_KEYSTORE)) {
                 try {
-                    GenerateKeyStore gen = new GenerateKeyStore(params);
-                    gen.initializeKeyStore();
-                    gen.generatePrivateKeys();
-
-                    gen.generateCertificates();
-                    gen.saveKeyStore();
+                    generateThis();
                 } catch (Exception e) {
                     throw new IllegalStateException("error occured when generating keyStore", e);
                 }
@@ -241,7 +248,7 @@ public class CMSSigner {
     public static void setProviders() {
         IAIKMD.addAsProvider();
         ECCelerate ecProvider = ECCelerate.getInstance();
-        Security.insertProviderAt(ecProvider, 3);
+        Security.insertProviderAt(ecProvider, 4);
         SecurityProvider.setSecurityProvider(new ECCelerateProvider());
 
     }

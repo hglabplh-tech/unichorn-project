@@ -52,7 +52,7 @@ public class CertificateWizzard {
 
     public static String APP_DIR_TRUST;
 
-    public static final String PROP_STORE_NAME = "application.jks";
+    public static final String PROP_STORE_NAME = "application.p12";
     public static final String PROP_TRUST_NAME = "privateTrust.xml";
     static {
         String userDir = System.getProperty("user.home");
@@ -75,7 +75,7 @@ public class CertificateWizzard {
 
         }
         this.properties = properties;
-        store = KeyStoreTool.initStore("JKS");
+        store = KeyStoreTool.initStore("PKCS12", "geheim");
         // for verifying the created certificates
 
     }
@@ -103,7 +103,7 @@ public class CertificateWizzard {
         subject.addRDN(ObjectID.organization , properties.getOrganization());
         subject.addRDN(ObjectID.organizationalUnit ,properties.getUnit());
         issuer.addRDN(ObjectID.commonName ,properties.getCommonName() +"RSA" );
-        ca_rsa = generateKeyPair("RSA", 4096);
+        ca_rsa = generateKeyPair("RSA", 2048);
         caRSA = createCertificate(issuer,
                 ca_rsa.getPublic(),
                 issuer,
@@ -162,7 +162,7 @@ public class CertificateWizzard {
             subject.addRDN(ObjectID.organizationalUnit, properties.getUnit());
             issuer.addRDN(ObjectID.commonName, properties.getCommonName() + "RSA");
             subject.addRDN(ObjectID.commonName ,properties.getCommonName() + "RSA_Inter");
-            inter_rsa = generateKeyPair("RSA", 4096);
+            inter_rsa = generateKeyPair("RSA", 2048);
             intermediateRSA = createCertificate(subject,
                     inter_rsa.getPublic(),
                     issuer,
@@ -222,7 +222,7 @@ public class CertificateWizzard {
             issuer.addRDN(ObjectID.commonName, properties.getCommonName() + "" +
                     "RSA_Inter");
             subject.addRDN(ObjectID.commonName ,properties.getCommonName() + "_RSA_User");
-            KeyPair userKeys = generateKeyPair("RSA", 4096);
+            KeyPair userKeys = generateKeyPair("RSA", 2048);
             KeyUsage usage = signUsage();
              X509Certificate userCert = createCertificate(subject,
                     userKeys.getPublic(),
@@ -392,6 +392,26 @@ public class CertificateWizzard {
         }
     }
 
+    public static void generateThis() {
+
+        ConfigReader.MainProperties properties = ConfigReader.loadStore();
+        File keystore = new File(properties.getKeystorePath());
+        properties.setKeystorePass("geheim");
+        CertificateWizzard wizzard = new CertificateWizzard(properties);
+        wizzard.generateCA();
+        wizzard.generateIntermediate();
+        wizzard.generateUser();
+        try {
+            KeyStoreTool.storeKeyStore(wizzard.getStore(),
+                    new FileOutputStream(keystore),
+                    properties.getKeystorePass().toCharArray());
+        } catch(Exception ex) {
+            throw new IllegalStateException("could not initialize", ex);
+        }
+
+    }
+
+
     /**
      * Generates a key pair for a curve with a certain name
      *
@@ -422,11 +442,11 @@ public class CertificateWizzard {
         }
     }
 
-    KeyUsage certUsage() {
+    public static KeyUsage certUsage() {
         return new KeyUsage(KeyUsage.keyCertSign | KeyUsage.cRLSign);
     }
 
-    KeyUsage signUsage() {
+    public static KeyUsage signUsage() {
         return new KeyUsage(KeyUsage.digitalSignature |KeyUsage.cRLSign |
                 KeyUsage.nonRepudiation);
     }

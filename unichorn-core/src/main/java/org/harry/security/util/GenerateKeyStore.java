@@ -35,24 +35,27 @@ package org.harry.security.util;
 import iaik.asn1.CodingException;
 import iaik.asn1.ObjectID;
 import iaik.asn1.structures.*;
+import iaik.asn1.structures.PolicyQualifierInfo;
 import iaik.cms.Utils;
 import iaik.security.ec.common.ECStandardizedParameterFactory;
 import iaik.security.ec.provider.ECCelerate;
 import iaik.security.provider.IAIK;
+import iaik.utils.Util;
 import iaik.x509.SimpleChainVerifier;
 import iaik.x509.X509Certificate;
 import iaik.x509.X509ExtensionException;
 import iaik.x509.extensions.*;
+import org.harry.security.util.certandkey.KeyStoreTool;
+import sun.security.x509.X509CertImpl;
 
 import java.io.*;
 import java.math.BigInteger;
 import java.net.MalformedURLException;
 import java.security.*;
-import java.security.cert.CertificateException;
+import java.security.cert.*;
+import java.security.cert.Certificate;
 import java.security.spec.AlgorithmParameterSpec;
-import java.util.Calendar;
-import java.util.GregorianCalendar;
-import java.util.Random;
+import java.util.*;
 
 import static org.harry.security.util.CertificateWizzard.isCertificateSelfSigned;
 import static org.harry.security.util.CertificateWizzard.setOCSPUrl;
@@ -87,6 +90,11 @@ public class GenerateKeyStore implements CertGeneratorConstants {
   KeyPair ca_dsa = null;
   KeyPair ca_rsa = null;
   KeyPair ca_ecc = null;
+
+  // Intermediate Keys
+  KeyPair inter_dsa = null;
+  KeyPair inter_rsa = null;
+  KeyPair inter_ecc = null;
   
   // RSA for signing
   KeyPair rsa512_sign = null;
@@ -295,13 +303,13 @@ public class GenerateKeyStore implements CertGeneratorConstants {
       if (ks.exists()) {
         ks.delete();
       }
-      key_store = KeyStore.getInstance(properties.getKeystoreType());
+      key_store = KeyStoreTool.initStore("PKCS12", properties.getKeystorePass());
       if (create_only_certificates) {
         // take private keys from existing KeyStore
         FileInputStream fis = null;
         try {
           fis = new FileInputStream(ks);
-          key_store.load(fis, properties.getKeystorePass().toCharArray());
+          key_store = KeyStoreTool.loadStore(fis, properties.getKeystorePass().toCharArray(), "PKCS12");
         } finally {
           if (fis != null) {
             try {
@@ -429,8 +437,8 @@ public class GenerateKeyStore implements CertGeneratorConstants {
    *
    * @exception KeyStoreException if an error occurs when trying to add the key
    */
-  public void addToKeyStore(KeyPair keyPair, X509Certificate[] chain, String alias) throws KeyStoreException {
-    key_store.setKeyEntry(alias, keyPair.getPrivate(), properties.getKeystorePass().toCharArray(), chain);
+  public void addToKeyStore(KeyPair keyPair, Certificate[] chain, String alias) throws KeyStoreException {
+    KeyStoreTool.addKey(key_store,keyPair.getPrivate(), properties.getKeystorePass().toCharArray(), chain, alias);
   }
 
   /**
@@ -441,9 +449,9 @@ public class GenerateKeyStore implements CertGeneratorConstants {
    * @exception Exception if some error occurs
    */
   private KeyPair getKeyPair(String type) throws Exception {
-    PrivateKey privKey = (PrivateKey)key_store.getKey(type, properties.getKeystorePass().toCharArray());
-    PublicKey pubKey = key_store.getCertificateChain(type)[0].getPublicKey();
-    return new KeyPair(pubKey, privKey);
+    Tuple<PrivateKey, X509Certificate[]>tuple = KeyStoreTool.getKeyEntry(key_store,type, properties.getKeystorePass().toCharArray());
+    PublicKey pubKey = tuple.getSecond()[0].getPublicKey();
+    return new KeyPair(pubKey, tuple.getFirst());
   }
 
   /**
@@ -520,20 +528,21 @@ public class GenerateKeyStore implements CertGeneratorConstants {
   	    try {
           System.out.println("generate RSA KeyPair for CA certificate ["+CA_KEYLENGTH+" bits]...");
   	      ca_rsa = generateKeyPair("RSA", CA_KEYLENGTH);
+  	      inter_rsa = generateKeyPair("RSA", CA_KEYLENGTH);
           System.out.println("Generate RSA signing keys...");
           System.out.println("generate RSA KeyPair for a test certificate [512 bits]...");
-    	  rsa512_sign = generateKeyPair("RSA", 512);
+    	  rsa512_sign = generateKeyPair("RSA", 2048);
           System.out.println("generate RSA KeyPair for a test certificate [1024 bits]...");
-    	  rsa1024_sign = generateKeyPair("RSA", 1024);
+    	  rsa1024_sign = generateKeyPair("RSA", 2048);
           System.out.println("generate RSA KeyPair for a test certificate [2048 bits]...");
     	  rsa2048_sign = generateKeyPair("RSA", 2048);
        	  System.out.println("Generate RSA encryption keys...");
           System.out.println("generate RSA KeyPair for a test certificate [512 bits]...");
-    	  rsa512_crypt = generateKeyPair("RSA", 512);
+    	  rsa512_crypt = generateKeyPair("RSA", 2048);
           System.out.println("generate RSA KeyPair for a test certificate [1024 bits]...");
-    	  rsa1024_crypt = generateKeyPair("RSA", 1024);
+    	  rsa1024_crypt = generateKeyPair("RSA", 2048);
     	  System.out.println("generate second RSA KeyPair for a test certificate [1024 bits]...");
-    	  rsa1024_crypt_ = generateKeyPair("RSA", 1024);
+    	  rsa1024_crypt_ = generateKeyPair("RSA", 2048);
           System.out.println("generate RSA KeyPair for a test certificate [2048 bits]...");
     	  rsa2048_crypt = generateKeyPair("RSA", 2048);
     	  rsaKey = generateKeyPair("RSA", 4096);
@@ -548,8 +557,9 @@ public class GenerateKeyStore implements CertGeneratorConstants {
   	    try {
           System.out.println("generate DSA KeyPair for CA certificate ["+CA_KEYLENGTH+" bits]...");
   	      ca_dsa = generateKeyPair("DSA", CA_KEYLENGTH);
+          inter_dsa = generateKeyPair("DSA", CA_KEYLENGTH);
           System.out.println("generate DSA KeyPair for a test certificate [512 bits]...");
-    	  dsa512 = generateKeyPair("DSA", 512);
+    	  dsa512 = generateKeyPair("DSA", 1024);
           System.out.println("generate DSA KeyPair for a test certificate [1024 bits]...");
     	  dsa1024 = generateKeyPair("DSA", 1024);
   	    } catch (NoSuchAlgorithmException ex) {
@@ -561,7 +571,7 @@ public class GenerateKeyStore implements CertGeneratorConstants {
       if (create_dsa_sha2) {
         try {
           System.out.println("generate DSA SHA-224 KeyPair for a test certificate [2048 bits]...");
-          dsa2048 = generateKeyPair("SHA224withDSA", 2048);
+          dsa2048 = generateKeyPair("SHA224withDSA", 3072);
           System.out.println("generate DSA SHA-256 KeyPair for a test certificate [3072 bits]...");
           dsa3072 = generateKeyPair("SHA256withDSA", 3072);
         } catch (NoSuchAlgorithmException ex) {
@@ -573,13 +583,13 @@ public class GenerateKeyStore implements CertGeneratorConstants {
       if (create_esdh) {
         try {
           System.out.println("generate ESDH KeyPair for a test certificate [512 bits]...");
-    	  esdh512 = generateKeyPair("ESDH", 512);
+    	  esdh512 = generateKeyPair("ESDH", 1024);
           System.out.println("generate ESDH KeyPair for a test certificate [1024 bits]...");
     	  esdh1024 = generateKeyPair("ESDH", 1024);
     	  System.out.println("generate ESDH KeyPair for a test certificate [1024 bits]...");
     	  esdh1024_ = generateKeyPair("ESDH", 1024);
           System.out.println("generate ESDH KeyPair for a test certificate [2048 bits]...");
-    	  esdh2048 = generateKeyPair("ESDH", 2048);
+    	  esdh2048 = generateKeyPair("ESDH", 1024);
   	    } catch (NoSuchAlgorithmException ex) {
           create_esdh = false;
           System.out.println("No implementation for ESDH! ESDH certificates are not created!\n");
@@ -645,21 +655,23 @@ public class GenerateKeyStore implements CertGeneratorConstants {
       //
       X509Certificate caRSA = null;
       X509Certificate caDSA = null;
+      X509Certificate interRSA = null;
+      X509Certificate interDSA = null;
       X509Certificate[] chain = new X509Certificate[1];
       // for verifying the created certificates
       SimpleChainVerifier verifier = new SimpleChainVerifier();
 
       if (create_rsa) {
+        KeyUsage usage = CertificateWizzard.certUsage();
         issuer.addRDN(ObjectID.commonName ,properties.getCommonName());
         System.out.println("create self signed RSA CA certificate...");
-        caRSA = createCertificate(issuer,
-                                  ca_rsa.getPublic(),
-                                  issuer,
-                                  ca_rsa.getPrivate(),
-                                  (AlgorithmID)AlgorithmID.sha256WithRSAEncryption.clone(),
-                                  null,
-                                  true,
-                                  false);
+        caRSA = CertificateWizzard.createCertificate(issuer,
+                ca_rsa.getPublic(),
+                issuer,
+                ca_rsa.getPrivate(),
+                (AlgorithmID)AlgorithmID.sha256WithRSAEncryption.clone(),
+                null,
+                usage);
         // verify the self signed certificate
           boolean selfSigned = isCertificateSelfSigned(caRSA);
           if (!selfSigned) {
@@ -670,6 +682,28 @@ public class GenerateKeyStore implements CertGeneratorConstants {
         verifier.addTrustedCertificate(caRSA);
         chain[0] = caRSA;
         addToKeyStore(ca_rsa, chain, CA_RSA);
+        issuer.removeRDN(ObjectID.commonName);
+        chain = new X509Certificate[2];
+        issuer.addRDN(ObjectID.commonName ,properties.getCommonName() + "_Inter");
+        System.out.println("create self signed RSA CA certificate...");
+        interRSA =  CertificateWizzard.createCertificate(subject,
+                inter_rsa.getPublic(),
+                issuer,
+                ca_rsa.getPrivate(),
+                (AlgorithmID)AlgorithmID.sha256WithRSAEncryption.clone(),
+                null,
+                usage);
+        chain[0] = interRSA;
+        // verify the self signed certificate
+        selfSigned = isCertificateSelfSigned(chain[0]);
+        if (selfSigned) {
+          throw new IllegalStateException("certificate should be self signed");
+        }
+        caRSA.verify();
+        // set the CA cert as trusted root
+        verifier.addTrustedCertificate(caRSA);
+        chain[1] = caRSA;
+        addToKeyStore(ca_rsa, chain, CA_RSA + "_Inter");
         issuer.removeRDN(ObjectID.commonName);
       }
 
@@ -696,10 +730,11 @@ public class GenerateKeyStore implements CertGeneratorConstants {
       //
       // create certificates
       //
-      chain = new X509Certificate[2];
+      chain = new X509Certificate[3];
 
       // create a RSA certificate
       if (create_rsa) {
+        KeyUsage usage = CertificateWizzard.signUsage();
         issuer.addRDN(ObjectID.commonName ,properties.getCommonName() + "RSA");
         SubjectKeyIdentifier subjectKeyID = (SubjectKeyIdentifier)caRSA.getExtension(SubjectKeyIdentifier.oid);
         // 512
@@ -709,15 +744,16 @@ public class GenerateKeyStore implements CertGeneratorConstants {
         // 512
         subject.addRDN(ObjectID.commonName, "RSA 512 bit Demo Signing Certificate");
         System.out.println("create 512 bit RSA demo certificate...");
-        chain[0] = createCertificate(subject,
-                                     rsa512_sign.getPublic(),
-                                     issuer,
-                                     ca_rsa.getPrivate(),
-                                     (AlgorithmID)AlgorithmID.sha1WithRSAEncryption.clone(),
-                                     subjectKeyID.get(),
-                                     true,
-                                     false);
-        chain[1] = caRSA;
+        chain[0] =  CertificateWizzard.createCertificate(subject,
+                rsa512_sign.getPublic(),
+                issuer,
+                inter_rsa.getPrivate(),
+                (AlgorithmID)AlgorithmID.sha256WithRSAEncryption.clone(),
+                null,
+                usage);
+
+        chain[1] = interRSA;
+        chain[2] = caRSA;
         // and verify the chain
         verifier.verifyChain(chain);
         addToKeyStore(rsa512_sign, chain, RSA_512_SIGN);

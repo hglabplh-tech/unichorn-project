@@ -134,7 +134,7 @@ public class CertActionCtrl implements ControllerInit {
                            passwd.getText().toCharArray(),
                            storeType.getType());
                 } else {
-                   store =  KeyStoreTool.initStore(storeType.getType());
+                   store =  KeyStoreTool.initStore(storeType.getType(), passwd.getText());
                 }
                 File outFile = showSaveDialogFromButton(event, "expTarget");
                 targetStream = new FileOutputStream(outFile);

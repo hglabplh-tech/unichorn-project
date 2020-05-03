@@ -95,20 +95,7 @@
 
     </dependencies>
     <build>
-        <resources>
-            <resource>
-                <directory>src/main/resources</directory>
-                <includes>
-                <include>src/main/resources/**</include>
-            </includes>
-            </resource>
-            <resource>
-                <directory>src/test/resources</directory>
-                <includes>
-                    <include>src/test/resources/**</include>
-                </includes>
-            </resource>
-        </resources>
+
 
 
         <plugins>

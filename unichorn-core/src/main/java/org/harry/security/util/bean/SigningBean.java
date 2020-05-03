@@ -23,7 +23,7 @@ public class SigningBean {
 
     private String alias;
 
-    private String keyStoreType = "JKS";
+    private String keyStoreType = "PKCS12";
 
     private boolean checkPathOcsp = false;
 

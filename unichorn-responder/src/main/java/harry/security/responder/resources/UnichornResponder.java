@@ -118,7 +118,7 @@ public class UnichornResponder extends HttpServlet {
            Logger.trace("Trust file is: " + trustFile.getAbsolutePath());
            File crlFile = new File(UnicHornResponderUtil.APP_DIR_TRUST, "privRevokation" + ".crl");
            Logger.trace("CRL list file is: " + crlFile.getAbsolutePath());
-           File keyFile = new File(UnicHornResponderUtil.APP_DIR_TRUST, "privKeystore" + ".jks");
+           File keyFile = new File(UnicHornResponderUtil.APP_DIR_TRUST, "privKeystore" + ".p12");
            Logger.trace("CRL list file is: " + keyFile.getAbsolutePath());
            String type = request.getHeader("fileType");
            if (type.equals("crl")) {
@@ -138,17 +138,12 @@ public class UnichornResponder extends HttpServlet {
                String storeTypeHeader = request.getHeader("storeType");
                if (storeTypeHeader != null && decodedString != null) {
                    InputStream p12Stream = request.getInputStream();
-                   InputStream keyStore = UnicHornResponderUtil.class.getResourceAsStream("/application.jks");
-                   KeyStore storeApp = KeyStoreTool.loadStore(keyStore, "geheim".toCharArray(), "JKS");
-                   Tuple<PrivateKey, X509Certificate[]> keys = null;
-                   keys = KeyStoreTool.getKeyEntry(storeApp, UnichornResponder.ALIAS, "geheim".toCharArray());
-                   OutputStream  out = new FileOutputStream(keyFile);
+                   Logger.trace("Before loading keystore");
                    KeyStore storeToApply = KeyStoreTool.loadStore(p12Stream,
                            decodedString.toCharArray(), storeTypeHeader);
+                   Logger.trace("Before calling merge");
                    applyKeyStore(keyFile, storeToApply, decodedString, storeTypeHeader);
-                   IOUtils.copy(p12Stream, out);
-                   p12Stream.close();
-                   out.close();
+                   Logger.trace("After calling merge --> created");
                    response.setStatus(Response.Status.CREATED.getStatusCode());
                }
            } else if (type.equals("trust")) {
@@ -162,6 +157,7 @@ public class UnichornResponder extends HttpServlet {
                response.setStatus(Response.Status.BAD_REQUEST.getStatusCode());
            }
        } catch (Exception ex) {
+           Logger.trace("Error case load trust or pkcs7 or crl : ", ex.getMessage());
            response.setStatus(Response.Status.INTERNAL_SERVER_ERROR.getStatusCode());
        }
 
@@ -236,7 +232,7 @@ public class UnichornResponder extends HttpServlet {
                 }
             }
         } else if (type.equals("pkcs12")){
-            File keyFile = new File(UnicHornResponderUtil.APP_DIR_TRUST, "privKeystore" + ".jks");
+            File keyFile = new File(UnicHornResponderUtil.APP_DIR_TRUST, "privKeystore" + ".p12");
             if (keyFile.exists()) {
                 try {
                     FileInputStream stream = new FileInputStream(keyFile);
