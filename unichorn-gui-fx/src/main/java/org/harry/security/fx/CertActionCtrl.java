@@ -29,7 +29,8 @@ public class CertActionCtrl implements ControllerInit {
 
     private OutputStream targetStream = null;
 
-    private InputStream storeStream = null;
+
+    private File storeFile;
 
     @Override
     public Scene init() {
@@ -47,7 +48,7 @@ public class CertActionCtrl implements ControllerInit {
         ComboBox impBox = getComboBoxByFXID("impFormat");
         ComboBox typeBox = getComboBoxByFXID("keyStoreType");
         TextField passwd = getTextFieldByFXID("passwd");
-        TextField alias = getTextFieldByFXID("alias");
+        ComboBox aliases = getComboBoxByFXID("aliases");
         KeyStoreTool.StoreType storeType = (KeyStoreTool.StoreType)
                 typeBox.getSelectionModel().getSelectedItem();
         CertWriterReader.CertType certType = (CertWriterReader.CertType)
@@ -70,11 +71,12 @@ public class CertActionCtrl implements ControllerInit {
 
         } else if (certType.equals(CertWriterReader.CertType.P12)) {
         KeyStore store = null;
-        if (storeStream !=null) {
-            store = KeyStoreTool.loadStore(storeStream,
+        if (storeFile !=null) {
+            store = KeyStoreTool.loadStore(new FileInputStream(storeFile),
                     passwd.getText().toCharArray(),
                     storeType.getType());
-            actualCert = KeyStoreTool.getCertificateEntry(store, alias.getText());
+            String alias = (String)aliases.getSelectionModel().getSelectedItem();
+            actualCert = KeyStoreTool.getCertificateEntry(store, alias);
             TextArea area = getTextAreaByFXID("certView");
             area.setWrapText(true);
             area.setText(actualCert.toString());
@@ -87,7 +89,7 @@ public class CertActionCtrl implements ControllerInit {
     protected void genChain(ActionEvent event) throws KeyStoreException, IOException {
         ComboBox typeBox = getComboBoxByFXID("keyStoreType");
         TextField passwd = getTextFieldByFXID("passwd");
-        TextField alias = getTextFieldByFXID("alias");
+        ComboBox aliases = getComboBoxByFXID("aliases");
         KeyStoreTool.StoreType storeType = (KeyStoreTool.StoreType)
                 typeBox.getSelectionModel().getSelectedItem();
         ConfigReader.MainProperties props = ConfigReader.loadStore();
@@ -97,13 +99,10 @@ public class CertActionCtrl implements ControllerInit {
             wizzard.generateIntermediate();
             wizzard.generateUser();
             KeyStore store = wizzard.getStore();
-            Enumeration<String> aliases = store.aliases();
-            if (aliases.hasMoreElements()) {
-                alias.setText(aliases.nextElement());
-            }
             File outFile = showSaveDialogFromButton(event, "expTarget");
             KeyStoreTool.storeKeyStore(store, new FileOutputStream(outFile), passwd.getText().toCharArray());
-            actualCert = KeyStoreTool.getCertificateEntry(store, alias.getText());
+            String alias = (String)aliases.getSelectionModel().getSelectedItem();
+            actualCert = KeyStoreTool.getCertificateEntry(store, alias);
             TextArea area = getTextAreaByFXID("certView");
             area.setWrapText(true);
             area.setText(actualCert.toString());
@@ -115,7 +114,7 @@ public class CertActionCtrl implements ControllerInit {
         ComboBox expBox = getComboBoxByFXID("expFormat");
         ComboBox typeBox = getComboBoxByFXID("keyStoreType");
         TextField passwd = getTextFieldByFXID("passwd");
-        TextField alias = getTextFieldByFXID("alias");
+        ComboBox aliases = getComboBoxByFXID("aliases");
         if (actualCert !=null) {
             CertWriterReader.CertType certType = (CertWriterReader.CertType)
                     expBox.getSelectionModel().getSelectedItem();
@@ -129,8 +128,8 @@ public class CertActionCtrl implements ControllerInit {
                 reader.writeX509(targetStream);
             } else if (certType.equals(CertWriterReader.CertType.P12)) {
                 KeyStore store = null;
-                if (storeStream !=null) {
-                   store = KeyStoreTool.loadStore(storeStream,
+                if (storeFile !=null) {
+                   store = KeyStoreTool.loadStore(new FileInputStream(storeFile),
                            passwd.getText().toCharArray(),
                            storeType.getType());
                 } else {
@@ -138,9 +137,29 @@ public class CertActionCtrl implements ControllerInit {
                 }
                 File outFile = showSaveDialogFromButton(event, "expTarget");
                 targetStream = new FileOutputStream(outFile);
-                KeyStoreTool.addCertificate(store, actualCert, alias.getText());
+                String alias =
+                        (String)aliases.getSelectionModel().getSelectedItem();
+                KeyStoreTool.addCertificate(store, actualCert, alias);
                 KeyStoreTool.storeKeyStore(store, targetStream, passwd.getText().toCharArray());
             }
+        }
+
+    }
+
+    @FXML
+    public void loadStore(ActionEvent event) throws Exception {
+        TextField passwd = getTextFieldByFXID("passwd");
+        ComboBox typeBox = getComboBoxByFXID("keyStoreType");
+        ComboBox aliasBox = getComboBoxByFXID("aliases");
+        KeyStoreTool.StoreType storeType = (KeyStoreTool.StoreType)
+                typeBox.getSelectionModel().getSelectedItem();
+        KeyStore store = KeyStoreTool.loadStore(new FileInputStream(storeFile),
+                passwd.getText().toCharArray(),
+                storeType.getType());
+        Enumeration<String> aliases = store.aliases();
+        while(aliases.hasMoreElements()) {
+            String alias = aliases.nextElement();
+            aliasBox.getItems().add(alias);
         }
 
     }
@@ -160,7 +179,8 @@ public class CertActionCtrl implements ControllerInit {
     @FXML
     public void selectStore(ActionEvent event) throws IOException {
         File inFile = showOpenDialog(event, "storeFile");
-        storeStream = new FileInputStream(inFile);
+        storeFile = inFile
+        ;
     }
 
     @FXML

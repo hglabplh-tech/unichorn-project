@@ -24,38 +24,74 @@
         </dependency>
         <dependency>
             <groupId>iaik</groupId>
-            <artifactId>iaik-cms-eval</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>iaik</groupId>
-            <artifactId>iaik-cpades-eval</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>iaik</groupId>
-            <artifactId>iaik-ecc-eval</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>iaik</groupId>
-            <artifactId>iaik-ecc-cms-eval</artifactId>
+            <artifactId>iaik-jce-full-ima-license-trustedlib-unlimited</artifactId>
         </dependency>
 
         <dependency>
             <groupId>iaik</groupId>
-            <artifactId>iaik-jce-full</artifactId>
+            <artifactId>iaik-cms-ima-license</artifactId>
         </dependency>
+
         <dependency>
             <groupId>iaik</groupId>
-            <artifactId>iaik-tsp-eval</artifactId>
+            <artifactId>iaik-tsp-ima-license</artifactId>
         </dependency>
-        <!--dependency>
+
+        <dependency>
             <groupId>iaik</groupId>
-            <artifactId>iaik-jce-crypto</artifactId>
-            <version>5.60</version>
+            <artifactId>iaik-pades-ima-license</artifactId>
         </dependency>
-  -->
+
+        <dependency>
+            <groupId>iaik</groupId>
+            <artifactId>iaik-eccelerate-ima-license</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>iaik</groupId>
+            <artifactId>iaik-eccelerate-addon-ima-license</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>iaik</groupId>
+            <artifactId>iaik-eccelerate-cms-ima-license</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>iaik</groupId>
+            <artifactId>iaik-eccelerate-ssl-ima-license</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>iaik</groupId>
+            <artifactId>iaik-xsect-ima-license</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>iaik</groupId>
+            <artifactId>iaik-xades-ima-license</artifactId>
+        </dependency>
+
         <dependency>
             <groupId>javax.activation</groupId>
             <artifactId>javax.activation-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.tinylog</groupId>
+            <artifactId>tinylog</artifactId>
+
+        </dependency>
+        <!-- https://mvnrepository.com/artifact/org.tinylog/tinylog-api -->
+        <dependency>
+            <groupId>org.tinylog</groupId>
+            <artifactId>tinylog-api</artifactId>
+
+        </dependency>
+        <!-- https://mvnrepository.com/artifact/org.tinylog/tinylog-impl -->
+        <dependency>
+            <groupId>org.tinylog</groupId>
+            <artifactId>tinylog-impl</artifactId>
+
         </dependency>
 
         <!-- https://mvnrepository.com/artifact/org.apache.httpcomponents/httpclient -->

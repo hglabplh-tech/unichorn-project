@@ -31,7 +31,6 @@
             <Label text="Format" GridPane.columnIndex="1" />
             <Label text="Alias/Password" GridPane.rowIndex="3" />
             <Label text="Source / Target" GridPane.columnIndex="2" />
-            <TextField fx:id="alias" GridPane.columnIndex="1" GridPane.rowIndex="3" />
             <PasswordField fx:id="passwd" GridPane.columnIndex="2" GridPane.rowIndex="3" />
             <TextField fx:id="impSource" GridPane.columnIndex="2" GridPane.rowIndex="1">
                <contextMenu>
@@ -63,6 +62,8 @@
                </contextMenu>
             </TextField>
             <Button fx:id="genCert" mnemonicParsing="false" onAction="#genChain" text="Generate Chain" GridPane.columnIndex="2" GridPane.rowIndex="6" />
+            <ComboBox fx:id="aliases" prefWidth="150.0" GridPane.columnIndex="1" GridPane.rowIndex="3" />
+            <Button fx:id="loadStore" mnemonicParsing="false" onAction="#loadStore" text="BuLoad Store" GridPane.columnIndex="1" GridPane.rowIndex="6" />
          </children>
       </GridPane>
       <TextArea fx:id="certView" prefHeight="200.0" prefWidth="200.0" />

@@ -37,13 +37,14 @@ import java.util.Locale;
 import java.util.Map;
 
 import static harry.security.responder.resources.UnicHornResponderUtil.applyKeyStore;
+import static harry.security.responder.resources.UnicHornResponderUtil.encryptPassword;
 
 
 public class UnichornResponder extends HttpServlet {
 
 
 
-    public static final String ALIAS = "Common T-Systems ImageMasterUserRSA";
+    public static final String ALIAS = "b998b1f7-04fe-42c6-8284-9fb21e604b60UserRSA";
 
 
 
@@ -76,7 +77,7 @@ public class UnichornResponder extends HttpServlet {
    @Override
     public void doPost(HttpServletRequest servletRequest, HttpServletResponse servletResponse) throws ServletException, IOException {
         String output = "Jersey say : ";
-        System.out.println("Hallo here I am");
+        Logger.trace("Hallo here I am");
         Logger.trace("enter ocsp method");
         Map<String,String> messages = new HashMap<>();
         messages.put("pre", "pre started: ");
@@ -84,24 +85,24 @@ public class UnichornResponder extends HttpServlet {
             HttpServletRequestWrapper wrapper = new HttpServletRequestWrapper(servletRequest);
             InputStream stream = servletRequest.getInputStream();
             String indicator = (stream == null) ? "null" : "not null";
-            messages.put("info-pre", "pre request read stream is: " + indicator);
+            Logger.trace("pre request read stream is: " + indicator);
             OCSPRequest ocspRequest = new OCSPRequest(stream);
 
-            messages.put("info-pre2", "request read");
+            Logger.trace( "request read");
             OCSPResponse response = UnicHornResponderUtil.generateResponse(ocspRequest,
                     copyTo(ocspRequest), responseGenerator, signatureAlgorithm, messages);
             Logger.trace("Write stream");
             response.writeTo(servletResponse.getOutputStream());
             Logger.trace("written stream");
             servletResponse.setStatus(Response.Status.OK.getStatusCode());
-            servletResponse.setHeader("success", "Seems to be ok:");
+            Logger.trace("Seems to be ok:");
             servletResponse.setHeader("Content-Type","application/ocsp-response");
             for(String key: messages.keySet()) {
                 servletResponse.addHeader(key, messages.get(key));
             }
         } catch (Exception ex) {
             servletResponse.setStatus(Response.Status.INTERNAL_SERVER_ERROR.getStatusCode());
-            servletResponse.setHeader("error", "Message is:" + ex.getMessage());
+            Logger.trace("Error Message is:" + ex.getMessage());
             for(String key: messages.keySet()) {
                 servletResponse.addHeader(key, messages.get(key));
             }
@@ -134,10 +135,12 @@ public class UnichornResponder extends HttpServlet {
                if (passwdHeader != null) {
                    byte[] decodedPwd = Base64.getDecoder().decode(passwdHeader.getBytes());
                    decodedString = new String(decodedPwd);
+                   encryptPassword("pwdFile", decodedString);
                }
                String storeTypeHeader = request.getHeader("storeType");
                if (storeTypeHeader != null && decodedString != null) {
-                   InputStream p12Stream = request.getInputStream();
+                   File temp = saveToTemp(request.getInputStream());
+                   InputStream p12Stream = new FileInputStream(temp);
                    Logger.trace("Before loading keystore");
                    KeyStore storeToApply = KeyStoreTool.loadStore(p12Stream,
                            decodedString.toCharArray(), storeTypeHeader);
@@ -157,7 +160,7 @@ public class UnichornResponder extends HttpServlet {
                response.setStatus(Response.Status.BAD_REQUEST.getStatusCode());
            }
        } catch (Exception ex) {
-           Logger.trace("Error case load trust or pkcs7 or crl : ", ex.getMessage());
+           Logger.trace("Error case load trust or pkcs7 or crl : " +  ex.getMessage());
            response.setStatus(Response.Status.INTERNAL_SERVER_ERROR.getStatusCode());
        }
 
@@ -253,18 +256,27 @@ public class UnichornResponder extends HttpServlet {
     }
 
     private ByteArrayInputStream copyTo(OCSPRequest request) {
-       try {
-           ByteArrayOutputStream out = new ByteArrayOutputStream();
-           request.writeTo(out);
-           ByteArrayInputStream bufferIN = new ByteArrayInputStream(out.toByteArray());
-           out.close();
-           return bufferIN;
-       } catch(Exception ex) {
-           throw new IllegalStateException("cannot copy stream", ex);
-       }
-   }
+        try {
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            request.writeTo(out);
+            ByteArrayInputStream bufferIN = new ByteArrayInputStream(out.toByteArray());
+            out.close();
+            return bufferIN;
+        } catch (Exception ex) {
+            throw new IllegalStateException("cannot copy stream", ex);
+        }
+    }
 
-
+    public File saveToTemp(InputStream input) throws IOException {
+        File tempFile = File.createTempFile("upload", ".dat");
+        tempFile.deleteOnExit();
+        FileOutputStream out = new FileOutputStream(tempFile);
+        IOUtils.copy(input, out);
+        input.close();
+        out.flush();
+        out.close();
+        return tempFile;
+    }
 
 
 }

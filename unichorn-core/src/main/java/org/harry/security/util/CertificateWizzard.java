@@ -47,6 +47,7 @@ public class CertificateWizzard {
     private final SimpleChainVerifier verifier = new SimpleChainVerifier();
     private final ConfigReader.MainProperties properties;
     private KeyStore store = null;
+    private KeyStore storeEC = null;
 
     public static String APP_DIR;
 
@@ -76,12 +77,17 @@ public class CertificateWizzard {
         }
         this.properties = properties;
         store = KeyStoreTool.initStore("PKCS12", "geheim");
+        storeEC = KeyStoreTool.initStore("PKCS12", "geheim");
         // for verifying the created certificates
 
     }
 
     public KeyStore getStore() {
         return store;
+    }
+
+    public KeyStore getStoreEC() {
+        return storeEC;
     }
 
     public TrustListLoader getLoader() {
@@ -117,7 +123,7 @@ public class CertificateWizzard {
             certChain[0] = caRSA;
             KeyStoreTool.addKey(store, ca_rsa.getPrivate(),
                     properties.getKeystorePass().toCharArray(),
-                    certChain, properties.getCommonName() + "" +
+                    certChain, UUID.randomUUID().toString() + "" +
                             "RSA");
             issuer.removeRDN(ObjectID.commonName);
             issuer.addRDN(ObjectID.commonName ,properties.getCommonName() +"_EC" );
@@ -126,16 +132,16 @@ public class CertificateWizzard {
                     ca_ec.getPublic(),
                     issuer,
                     ca_ec.getPrivate(),
-                    (AlgorithmID)AlgorithmID.ecdsa_With_SHA3_256.clone(),
+                    (AlgorithmID)AlgorithmID.ecdsa.clone(),
                     null,
                     usage);
             caEC.verify();
             // set the CA cert as trusted root
             verifier.addTrustedCertificate(caEC);
             certChain[0] = caEC;
-            KeyStoreTool.addKey(store, ca_ec.getPrivate(),
+            KeyStoreTool.addKey(storeEC, ca_ec.getPrivate(),
                     properties.getKeystorePass().toCharArray(),
-                    certChain, properties.getCommonName() + "_EC");
+                    certChain, UUID.randomUUID().toString() + "_EC");
 
             List<Vector<String>> paths = manager.collectPaths();
             manager.addX509Cert(paths.get(0), caRSA);
@@ -176,7 +182,7 @@ public class CertificateWizzard {
             verifier.verifyChain(certChain);
             KeyStoreTool.addKey(store, inter_rsa.getPrivate(),
                     properties.getKeystorePass().toCharArray(),
-                    certChain, properties.getCommonName() + "IntermediateRSA");
+                    certChain, UUID.randomUUID().toString() + "IntermediateRSA");
             issuer.removeRDN(ObjectID.commonName);
             issuer.addRDN(ObjectID.commonName ,properties.getCommonName() + "_EC");
             subject.removeRDN(ObjectID.commonName);
@@ -186,16 +192,16 @@ public class CertificateWizzard {
                     inter_ec.getPublic(),
                     issuer,
                     ca_ec.getPrivate(),
-                    (AlgorithmID) AlgorithmID.ecdsa_With_SHA3_256.clone(),
+                    (AlgorithmID) AlgorithmID.ecdsa.clone(),
                     subjectKeyID.get(),
                     usage);
             certChain[0] = intermediateEC;
             certChain[1] = caEC;
             // and verify the chain
             verifier.verifyChain(certChain);
-            KeyStoreTool.addKey(store, inter_ec.getPrivate(),
+            KeyStoreTool.addKey(storeEC, inter_ec.getPrivate(),
                     properties.getKeystorePass().toCharArray(),
-                    certChain, properties.getCommonName() + "IntermediateEC");
+                    certChain, UUID.randomUUID().toString() + "IntermediateEC");
 
             List<Vector<String>> paths = manager.collectPaths();
             manager.addX509Cert(paths.get(0), intermediateRSA);
@@ -238,7 +244,7 @@ public class CertificateWizzard {
             verifier.verifyChain(certChain);
             KeyStoreTool.addKey(store, userKeys.getPrivate(),
                     properties.getKeystorePass().toCharArray(),
-                    certChain, properties.getCommonName() + "UserRSA");
+                    certChain, UUID.randomUUID().toString() + "UserRSA");
             issuer.removeRDN(ObjectID.commonName);
             issuer.addRDN(ObjectID.commonName ,properties.getCommonName() + "_EC_Inter");
             subject.removeRDN(ObjectID.commonName);
@@ -248,16 +254,16 @@ public class CertificateWizzard {
                     userKeysEC.getPublic(),
                     issuer,
                     inter_ec.getPrivate(),
-                    (AlgorithmID) AlgorithmID.ecdsa_With_SHA3_256.clone(),
+                    (AlgorithmID) AlgorithmID.ecdsa.clone(),
                     subjectKeyID.get(), usage);
             certChain[0] = userCertEC;
             certChain[1] = intermediateEC;
             certChain[2] = caEC;
             // and verify the chain
             verifier.verifyChain(certChain);
-            KeyStoreTool.addKey(store, userKeysEC.getPrivate(),
+            KeyStoreTool.addKey(storeEC, userKeysEC.getPrivate(),
                     properties.getKeystorePass().toCharArray(),
-                    certChain, properties.getCommonName() + "UserEC");
+                    certChain, UUID.randomUUID().toString() + "UserEC");
         } catch (Exception ex) {
             throw new IllegalStateException("certificate generation failed", ex);
         }
@@ -373,6 +379,7 @@ public class CertificateWizzard {
 
     public static void initThis() {
         File keystore = new File(APP_DIR, PROP_STORE_NAME);
+        File keystoreEC = new File(APP_DIR, PROP_STORE_NAME + "_EC");
         File trustFile = new File(APP_DIR_TRUST, PROP_TRUST_NAME);
         if (!keystore.exists() && !trustFile.exists()) {
             ConfigReader.MainProperties properties = ConfigReader.loadStore();
@@ -385,6 +392,9 @@ public class CertificateWizzard {
                 KeyStoreTool.storeKeyStore(wizzard.getStore(),
                         new FileOutputStream(keystore),
                         properties.getKeystorePass().toCharArray());
+                KeyStoreTool.storeKeyStore(wizzard.getStoreEC(),
+                        new FileOutputStream(keystoreEC),
+                        properties.getKeystorePass().toCharArray());
                 wizzard.getLoader().storeTrust(new FileOutputStream(trustFile));
             } catch(Exception ex) {
                 throw new IllegalStateException("could not initialize", ex);
@@ -396,6 +406,7 @@ public class CertificateWizzard {
 
         ConfigReader.MainProperties properties = ConfigReader.loadStore();
         File keystore = new File(properties.getKeystorePath());
+        File keystoreEC = new File(properties.getKeystorePath() + "_EC");
         properties.setKeystorePass("geheim");
         CertificateWizzard wizzard = new CertificateWizzard(properties);
         wizzard.generateCA();
@@ -404,6 +415,9 @@ public class CertificateWizzard {
         try {
             KeyStoreTool.storeKeyStore(wizzard.getStore(),
                     new FileOutputStream(keystore),
+                    properties.getKeystorePass().toCharArray());
+            KeyStoreTool.storeKeyStore(wizzard.getStoreEC(),
+                    new FileOutputStream(keystoreEC),
                     properties.getKeystorePass().toCharArray());
         } catch(Exception ex) {
             throw new IllegalStateException("could not initialize", ex);

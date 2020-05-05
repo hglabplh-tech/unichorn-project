@@ -13,12 +13,16 @@ import iaik.x509.ocsp.*;
 import iaik.x509.ocsp.extensions.ServiceLocator;
 import iaik.x509.ocsp.net.HttpOCSPRequest;
 import iaik.x509.ocsp.utils.ResponseGenerator;
+import org.harry.security.util.SigningUtil;
 import org.harry.security.util.Tuple;
+import org.harry.security.util.algoritms.CryptoAlg;
+import org.harry.security.util.bean.SigningBean;
 import org.harry.security.util.certandkey.KeyStoreTool;
 import org.harry.security.util.trustlist.TrustListLoader;
 import org.harry.security.util.trustlist.TrustListManager;
 import org.pmw.tinylog.Logger;
 
+import javax.activation.DataSource;
 import java.io.*;
 import java.math.BigInteger;
 import java.net.URL;
@@ -62,23 +66,23 @@ public class UnicHornResponderUtil {
                                                 AlgorithmID signatureAlgorithm,
                                                 Map<String, String> messages) {
         loadActualPrivStore();
-        messages.put("beforeks", "before getting keys and certs");
+       Logger.trace("before getting keys and certs");
         Tuple<PrivateKey, X509Certificate[]> keys = null;
         try {
             checkRequestSigning(ocspRequest);
-            messages.put("afterks", "after getting keys and certs");
+            Logger.trace( "after getting keys and certs");
             keys = getPrivateKeyX509CertificateTuple();
             X509Certificate[] certs = new X509Certificate[1];
             certs = keys.getSecond();
 
-            messages.put("beforegen", "before getting keystoregen");
+            Logger.trace( "before getting keystoregen");
             responseGenerator = new ResponseGenerator(keys.getFirst(), certs);
-            messages.put("aftergen", "after getting keystoregen");
+            Logger.trace("after getting keystoregen");
             signatureAlgorithm = AlgorithmID.sha1WithRSAEncryption;
 
 
         } catch (Exception ex) {
-            messages.put("keysexcp", "IO keystore exception" + ex.getMessage() + " of Type: " + ex.getClass().getName());
+            Logger.trace("IO keystore exception" + ex.getMessage() + " of Type: " + ex.getClass().getName());
         }
         //
         PrivateKey responderKey = responseGenerator.getResponderKey();
@@ -95,10 +99,10 @@ public class UnicHornResponderUtil {
         }
         crlList.add(crl);
         crlList.addAll(getMoreCRLs());
-        messages.put("info-2", "Message is: crl loaded");
+        Logger.trace("Message is: crl loaded");
         System.out.println("Create response entries for crl...");
 
-        messages.put("info-3", "Message is: before add resp entries");
+        Logger.trace( "Message is: before add resp entries");
         OCSPResponse response = checkCertificateRevocation(ocspRequest, responseGenerator, messages, crl);
 
 
@@ -109,17 +113,17 @@ public class UnicHornResponderUtil {
                 return getOcspResponse(ocspReqInput, responseGenerator, signatureAlgorithm, messages, keys);
             }
         } catch (Exception ex) {
-            messages.put("info-4", "Message is: try to output failed with: " + ex.getMessage());
+            Logger.trace("Message is: try to output failed with: " + ex.getMessage());
             throw new IllegalStateException("response was not generated ", ex);
         }
     }
 
     private static OCSPResponse getOcspResponse(InputStream ocspReqInput, ResponseGenerator responseGenerator, AlgorithmID signatureAlgorithm, Map<String, String> messages, Tuple<PrivateKey, X509Certificate[]> keys) {
-        messages.put("beforecrea", "before create response internal");// changed public key setting
+        Logger.trace("before create response internal");// changed public key setting
         OCSPResponse response = responseGenerator.createOCSPResponse(ocspReqInput,
                 keys.getSecond()[0].getPublicKey(), signatureAlgorithm, null);
-        messages.put("aftercrea", "after create internal");
-        messages.put("info-5", "Message is: output ok");
+        Logger.trace("after create internal");
+        Logger.trace("Message is: output ok");
         return response;
     }
 
@@ -202,12 +206,12 @@ public class UnicHornResponderUtil {
                     }
                 }
             }
-            messages.put("info-4", "Message is: generator created");
+            Logger.trace("Message is: generator created");
             System.out.println("Generator created:");
             System.out.println(responseGenerator);
             return null;
         } catch (Exception ex) {
-            messages.put("err-gen", "Message is: generator is NOT created due to: " + ex.getMessage());
+            Logger.trace( "Message is: generator is NOT created due to: " + ex.getMessage());
             return null;
         }
     }
@@ -278,7 +282,7 @@ public class UnicHornResponderUtil {
             }
         }
         try {
-            messages.put("info-1", "Message is:" + signatureAlgorithm.getImplementationName());
+            Logger.trace("Message is:" + signatureAlgorithm.getImplementationName());
         } catch (Exception ex) {
 
         }
@@ -295,14 +299,14 @@ public class UnicHornResponderUtil {
 
     private static void checkRequestSigning(OCSPRequest ocspRequest) throws NoSuchAlgorithmException, InvalidKeyException, SignatureException, OCSPException {
         if (ocspRequest.containsSignature()) {
-            System.out.println("Request is signed.");
+            Logger.trace("Request is signed.");
 
             boolean signatureOk = false;
             if (!signatureOk && ocspRequest.containsCertificates()) {
-                System.out.println("Verifying signature with included signer cert...");
+                Logger.trace("Verifying signature with included signer cert...");
 
                 X509Certificate signerCert = ocspRequest.verify();
-                System.out.println("Signature ok from request signer " + signerCert.getSubjectDN());
+                Logger.trace("Signature ok from request signer " + signerCert.getSubjectDN());
                 signatureOk = true;
             }
         }
@@ -407,15 +411,19 @@ public class UnicHornResponderUtil {
         chainList = new ArrayList<>();
         loadActualPrivTrust();
         try {
-            File keyFile = new File(UnicHornResponderUtil.APP_DIR_TRUST, "privKeystore" + ".jks");
-            KeyStore storeApp = KeyStoreTool.loadStore(new FileInputStream(keyFile), null, "PKCS12");
+            String password = decryptPassword("pwdFile");
+            File keyFile = new File(UnicHornResponderUtil.APP_DIR_TRUST, "privKeystore" + ".p12");
+            KeyStore storeApp = KeyStoreTool.loadStore(new FileInputStream(keyFile),
+                    password.toCharArray(), "PKCS12");
             Enumeration<String> aliasEnum = storeApp.aliases();
             while (aliasEnum.hasMoreElements()) {
                 String alias = aliasEnum.nextElement();
+                Logger.trace("Try to read alias: " + alias);
                 X509Certificate[] chain = KeyStoreTool.getCertChainEntry(storeApp, alias);
                 chainList.add(chain);
             }
         } catch (Exception ex) {
+            Logger.trace("not loaded cause is: " + ex.getMessage());
             throw new IllegalStateException("not loaded keys", ex);
         }
     }
@@ -431,6 +439,7 @@ public class UnicHornResponderUtil {
                 chainList.add(array);
             }
         } catch (Exception ex) {
+            Logger.trace("not loaded cause is: " + ex.getMessage());
             throw new IllegalStateException("not loaded keys", ex);
         }
     }
@@ -513,6 +522,54 @@ public class UnicHornResponderUtil {
         } catch (Exception ex) {
             Logger.trace("thread failed with:" + ex.getMessage());
             throw new IllegalStateException("thread failed with:", ex);
+        }
+
+    }
+
+    public static void encryptPassword(String fName, String password) {
+        File pwdFile = new File(APP_DIR, fName);
+        File pwdFileOut = new File(APP_DIR, fName + ".encr");
+        try {
+            byte[] out = password.getBytes();
+            FileOutputStream outFile = new FileOutputStream(pwdFile);
+            outFile.write(out);
+            outFile.close();
+            SigningUtil util = new SigningUtil();
+            SigningBean bean = new SigningBean().setDataIN(new FileInputStream(pwdFile))
+                    .setOutputPath(pwdFileOut.getAbsolutePath())
+                    .setCryptoAlgorithm(CryptoAlg.PBE_SHAA3_KEY_TRIPLE_DES_CBC)
+                    .setDecryptPWD("secretthing");
+            DataSource dsEncrypt = util.encryptCMS(bean);
+            util.writeToFile(dsEncrypt, bean);
+            pwdFile.delete();
+        } catch (Exception ex) {
+            Logger.trace("error writing pwd" + ex.getMessage());
+            throw new IllegalStateException("error writing encrypted pwd", ex);
+        }
+
+    }
+
+    public static String decryptPassword(String fName) {
+        File pwdFile = new File(APP_DIR, fName);
+        File pwdFileOut = new File(APP_DIR, fName + ".encr");
+        try {
+            SigningUtil util = new SigningUtil();
+            SigningBean bean = new SigningBean().setDataIN(new FileInputStream(pwdFileOut))
+                    .setOutputPath(pwdFile.getAbsolutePath())
+                    .setCryptoAlgorithm(CryptoAlg.PBE_SHAA3_KEY_TRIPLE_DES_CBC)
+                    .setDecryptPWD("secretthing");
+            DataSource dsEncrypt = util.decryptCMS(bean);
+            util.writeToFile(dsEncrypt, bean);
+            FileInputStream input = new FileInputStream(pwdFile);
+            byte [] buffer = new byte[100];
+            int read = input.read(buffer);
+            String pwd = new String(buffer, 0, read);
+            input.close();
+            pwdFile.delete();
+            return pwd;
+        } catch (Exception ex) {
+            Logger.trace("error writing pwd" + ex.getMessage());
+            throw new IllegalStateException("error reading encrypted pwd", ex);
         }
 
     }

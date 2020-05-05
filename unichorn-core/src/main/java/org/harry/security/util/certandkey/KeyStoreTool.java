@@ -4,6 +4,7 @@ import iaik.asn1.structures.AlgorithmID;
 import iaik.x509.X509Certificate;
 import org.harry.security.CMSSigner;
 import org.harry.security.util.Tuple;
+import org.pmw.tinylog.Logger;
 
 
 import javax.crypto.Cipher;
@@ -24,7 +25,7 @@ public class KeyStoreTool {
 
     public static final String KEYSTORE_FNAME = "application.p12";
 
-    public static final String ALIAS = "Common T-Systems ImageMasterUserRSA";
+    public static final String ALIAS = "b998b1f7-04fe-42c6-8284-9fb21e604b60UserRSA";
 
     private static KeyStore.PasswordProtection protParam = null;
 
@@ -44,7 +45,7 @@ public class KeyStoreTool {
     }
     public static KeyStore initStore(String type, String password) {
         try {
-            removeProviders();
+
             protParam = new KeyStore.PasswordProtection(password.toCharArray(),
                     AlgorithmID.aes256_CBC.getJcaStandardName(), null);
 
@@ -53,7 +54,7 @@ public class KeyStoreTool {
             store.load(null, null);
 
 
-            CMSSigner.setProviders();
+
             return store;
         } catch (Exception ex) {
             throw new IllegalStateException("cannot load keystore", ex);
@@ -62,14 +63,14 @@ public class KeyStoreTool {
 
     public static KeyStore loadAppStore() {
         try {
-            removeProviders();
+
             protParam = new KeyStore.PasswordProtection("geheim".toCharArray(),
                     AlgorithmID.aes256_CBC.getJcaStandardName(), null);
             KeyStore store = KeyStore.getInstance("PKCS12");
             FileInputStream resource = new FileInputStream(new File(APP_DIR, KEYSTORE_FNAME));
             store.load(resource, "geheim".toCharArray());
             resource.close();
-            CMSSigner.setProviders();
+
             return store;
         } catch (Exception ex) {
             throw new IllegalStateException("cannot load keystore", ex);
@@ -78,7 +79,7 @@ public class KeyStoreTool {
 
     public static KeyStore loadStore(InputStream resource, char[] passwd, String type) {
         try {
-            removeProviders();
+
             protParam = new KeyStore.PasswordProtection(passwd,
                     AlgorithmID.aes256_CBC.getJcaStandardName(), null);
             KeyStore store = KeyStore.getInstance(type);
@@ -86,19 +87,20 @@ public class KeyStoreTool {
             if (resource != null) {
                 resource.close();
             }
-            CMSSigner.setProviders();
+
             return store;
         } catch (Exception ex) {
+            Logger.trace("exception thrown: type:" + ex.getClass().getCanonicalName() + " :: " + ex.getMessage());
             throw new IllegalStateException("cannot load keystore", ex);
         }
     }
 
     public static void storeKeyStore(KeyStore store, OutputStream target, char[] passwd) {
        try {
-           removeProviders();
+
            store.store(target, passwd);
            target.close();
-           CMSSigner.setProviders();
+
        } catch (Exception ex) {
            throw new IllegalStateException("store keystore failed", ex);
        }
@@ -106,6 +108,7 @@ public class KeyStoreTool {
 
     public static Tuple<PrivateKey, X509Certificate[]> getKeyEntry(KeyStore store, String alias, char[] passwd) {
        try {
+
            Tuple<PrivateKey, X509Certificate[]> result;
            if (store.containsAlias(alias)) {
                Certificate[] certChain = store.getCertificateChain(alias);
@@ -122,6 +125,7 @@ public class KeyStoreTool {
            } else {
                throw new IllegalStateException("get entry failed");
            }
+
            return result;
        } catch (Exception ex) {
            String message = "get entry failed: cause: ";
@@ -137,6 +141,7 @@ public class KeyStoreTool {
 
     public static Tuple<PrivateKey, X509Certificate[]> getAppKeyEntry(KeyStore store) {
         try {
+
             Tuple<PrivateKey, X509Certificate[]> result;
             if (store.containsAlias(ALIAS)) {
                 Certificate[] certChain = store.getCertificateChain(ALIAS);
@@ -152,6 +157,7 @@ public class KeyStoreTool {
             } else {
                 throw new IllegalStateException("get entry failed");
             }
+
             return result;
         } catch (Exception ex) {
             String message = "get entry failed: cause: ";
@@ -167,14 +173,13 @@ public class KeyStoreTool {
 
     public static X509Certificate getCertificateEntry(KeyStore store, String alias) {
         try {
+
             X509Certificate result;
-            if (store.containsAlias(alias)) {
-                Certificate cert = store.getCertificate(alias);
-                result = new iaik.x509.X509Certificate(cert.getEncoded());
-                return result;
-            } else {
-                throw new IllegalStateException("get entry failed");
-            }
+
+            Certificate cert = store.getCertificate(alias);
+            result = new iaik.x509.X509Certificate(cert.getEncoded());
+
+            return result;
         } catch (Exception ex) {
             throw new IllegalStateException("get entry failed", ex);
         }
@@ -182,22 +187,22 @@ public class KeyStoreTool {
 
     public static X509Certificate[] getCertChainEntry(KeyStore store, String alias) {
         try {
-            X509Certificate result;
-            if (store.containsAlias(alias)) {
-                Certificate[] certChain = store.getCertificateChain(alias);
-                X509Certificate [] iaiks = new X509Certificate[certChain.length];
-                int index = 0;
-                for (Certificate thisCert: certChain) {
-                    X509Certificate iaik = new X509Certificate(thisCert.getEncoded());
-                    iaiks[index] = iaik;
-                    index++;
-                }
-                return iaiks;
-            } else {
-                throw new IllegalStateException("get entry failed");
+
+            Certificate[] certChain = store.getCertificateChain(alias);
+            X509Certificate [] iaiks = new X509Certificate[certChain.length];
+            int index = 0;
+            for (Certificate thisCert: certChain) {
+                X509Certificate iaik = new X509Certificate(thisCert.getEncoded());
+                iaiks[index] = iaik;
+                index++;
             }
+
+            return iaiks;
+
         } catch (Exception ex) {
-            throw new IllegalStateException("get entry failed", ex);
+            Logger.trace("Exception type is : " + ex.getClass().getCanonicalName());
+            Logger.trace("Exception message is: " + ex.getMessage());
+            throw new IllegalStateException("get entry failed " +ex.getMessage(), ex);
         }
     }
 

@@ -11,6 +11,7 @@ import iaik.x509.ocsp.OCSPResponse;
 import iaik.x509.ocsp.ReqCert;
 import iaik.x509.ocsp.net.HttpOCSPRequest;
 import iaik.x509.ocsp.utils.ResponseGenerator;
+import org.apache.commons.io.IOUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
@@ -30,6 +31,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.pmw.tinylog.Configurator;
 import org.pmw.tinylog.Level;
+import org.pmw.tinylog.Logger;
 import org.pmw.tinylog.writers.ConsoleWriter;
 import org.pmw.tinylog.writers.FileWriter;
 
@@ -44,7 +46,7 @@ import java.security.PrivateKey;
 import java.security.Security;
 import java.util.*;
 
-import static harry.security.responder.resources.UnicHornResponderUtil.applyKeyStore;
+import static harry.security.responder.resources.UnicHornResponderUtil.*;
 import static org.harry.security.util.HttpsChecker.loadKey;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -144,7 +146,7 @@ public class ResponderTest  {
     public void nativeCallerSigned2() throws Exception {
         checkHttpsCertValidity("https://www.digicert.com", true, true);
         List<X509Certificate[]> certList= new ArrayList<>();
-        InputStream keystoreUser = ResponderTest.class.getResourceAsStream("/appKeyStore.jks");
+        InputStream keystoreUser = ResponderTest.class.getResourceAsStream("/appKeyStore.p12");
         KeyStore tsystems = KeyStoreTool.loadStore(keystoreUser, "geheim".toCharArray(), "PKCS12");
         Enumeration<String> aliases = tsystems.aliases();
         while (aliases.hasMoreElements())  {
@@ -155,9 +157,9 @@ public class ResponderTest  {
         Tuple<PrivateKey, X509Certificate[]> keys = null;
 
         InputStream
-                keyStore = ResponderTest.class.getResourceAsStream("/application.jks");
+                keyStore = ResponderTest.class.getResourceAsStream("/application.p12");
         KeyStore store = KeyStoreTool.loadStore(keyStore, "geheim".toCharArray(), "PKCS12");
-        keys = KeyStoreTool.getKeyEntry(store, ALIAS, "geheim".toCharArray());
+        keys = KeyStoreTool.getAppKeyEntry(store);
         X509Certificate[] certs = new X509Certificate[2];
         certs = keys.getSecond();
         for (X509Certificate[] certArray : certList) {
@@ -185,7 +187,7 @@ public class ResponderTest  {
     public void ocspViaGet() throws Exception {
         checkHttpsCertValidity("https://www.digicert.com", true, true);
         List<X509Certificate[]> certList= new ArrayList<>();
-        InputStream keystoreUser = ResponderTest.class.getResourceAsStream("/appKeyStore.jks");
+        InputStream keystoreUser = ResponderTest.class.getResourceAsStream("/appKeyStore.p12");
         KeyStore tsystems = KeyStoreTool.loadStore(keystoreUser, "geheim".toCharArray(), "PKCS12");
         Enumeration<String> aliases = tsystems.aliases();
         while (aliases.hasMoreElements())  {
@@ -283,7 +285,7 @@ public class ResponderTest  {
     @Test
     public void testOCSPOKSigned2() throws Exception {
         List<X509Certificate[]> certList= new ArrayList<>();
-        InputStream keystoreUser = ResponderTest.class.getResourceAsStream("/appKeyStore.jks");
+        InputStream keystoreUser = ResponderTest.class.getResourceAsStream("/appKeyStore.p12");
         KeyStore tsystems = KeyStoreTool.loadStore(keystoreUser, "geheim".toCharArray(), "PKCS12");
         Enumeration<String> aliases = tsystems.aliases();
         while (aliases.hasMoreElements())  {
@@ -321,7 +323,7 @@ public class ResponderTest  {
 
     @Test
     public void testPutPKCS12Store() throws Exception {
-        InputStream keyStore = ResponderTest.class.getResourceAsStream("/appKeyStore.jks");
+        InputStream keyStore = ResponderTest.class.getResourceAsStream("/appKeyStore.p12");
         URL ocspUrl= new URL("http://localhost:8080/unichorn-responder-1.0-SNAPSHOT/rest/ocsp");
         // create closable http client and assign the certificate interceptor
         CloseableHttpClient httpClient = HttpClients.createDefault();
@@ -430,12 +432,25 @@ public class ResponderTest  {
 
     @Test
     public void keyStoreApply() throws Exception {
-        InputStream p12Stream = ResponderTest.class.getResourceAsStream("/appKeyStore.jks");
-        File keyFile = new File(UnicHornResponderUtil.APP_DIR_TRUST, "privKeystore" + ".jks");
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        InputStream input = ResponderTest.class.getResourceAsStream("/test.p12");
+        IOUtils.copy(input, out);
+        ByteArrayInputStream p12Stream = new ByteArrayInputStream(out.toByteArray());
+        Logger.trace("Before loading keystore");
         String passwd = "geheim";
         KeyStore storeToApply = KeyStoreTool.loadStore(p12Stream,
                 passwd.toCharArray(), "PKCS12");
+        Logger.trace("Before calling merge");
+        File keyFile = new File(UnicHornResponderUtil.APP_DIR_TRUST, "privKeystore" + ".p12");
+
         applyKeyStore(keyFile, storeToApply, passwd, "PKCS12");
         assertThat("file does not exist", keyFile.exists(), is(true));
+    }
+
+    @Test
+    public void keyStorePWDFun() throws Exception {
+        encryptPassword("pwdFile", "geheim");
+        String password = decryptPassword("pwdFile");
+        assertThat("password does not fit", password, is("geheim"));
     }
 }

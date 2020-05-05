@@ -266,12 +266,12 @@ public class SigningUtil {
 
     /**
      * This method decrypts a encrypted CMS message
-     * @param encodedStream the encrypted stream
+     * @param bean the encrypted data
      * @return the datasource with the decrypt data
      */
-    public DataSource decryptCMS(InputStream encodedStream)  {
+    public DataSource decryptCMS(SigningBean bean)  {
         try{
-            ContentInfoStream cis = new ContentInfoStream(encodedStream);
+            ContentInfoStream cis = new ContentInfoStream(bean.getDataIN());
 
             EncryptedDataStream encrypted_data = (EncryptedDataStream)cis.getContent();
 
@@ -282,7 +282,7 @@ public class SigningUtil {
 
             // decrypt the message
 
-                encrypted_data.setupCipher(properties.getDecryptPWD().toCharArray());
+                encrypted_data.setupCipher(bean.getDecryptPWD().toCharArray());
                 InputStream decrypted = encrypted_data.getInputStream();
 
                 InputStreamDataSource ds = new InputStreamDataSource(decrypted);

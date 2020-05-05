@@ -10,7 +10,7 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.security.KeyStore;
 import java.security.PrivateKey;
-import java.util.Enumeration;
+import java.util.*;
 
 public class WorkerThread implements Runnable {
     private final File keyFile;
@@ -33,11 +33,13 @@ public class WorkerThread implements Runnable {
             } else {
                 privStore = KeyStoreTool.loadStore(new FileInputStream(keyFile), passwd.toCharArray(), storeType);
             }
+            Map<String, Tuple<PrivateKey, X509Certificate[]>> entryList = new HashMap<>();
             Enumeration<String> aliases = storeToApply.aliases();
             while (aliases.hasMoreElements()) {
                 String alias = aliases.nextElement();
                 Tuple<PrivateKey, X509Certificate[]> tuple = KeyStoreTool.
                         getKeyEntry(storeToApply, alias, passwd.toCharArray());
+                Logger.trace("collect key with alias :" + alias);
                 KeyStoreTool.addKey(privStore, tuple.getFirst(),
                         passwd.toCharArray(), tuple.getSecond(), alias);
                 Logger.trace("add key with alias :" + alias);

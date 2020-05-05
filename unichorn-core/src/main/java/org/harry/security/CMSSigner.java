@@ -146,7 +146,7 @@ public class CMSSigner {
                         DataSource signatureDS = util.signCMS(signingBean);
                         util.writeToFile(signatureDS, signingBean);
                     } else if (!cmds.isEncrypt() && command.equals(Commands.DECRYPT)) {
-                        DataSource signatureDS = util.decryptCMS(dataStream);
+                        DataSource signatureDS = util.decryptCMS(signingBean);
                         util.writeToFile(signatureDS,signingBean);
                     } else if (cmds.isEncrypt() && command.equals(Commands.SIGN)) {
                         DataSource envelopDS = util.encryptCMS(signingBean);

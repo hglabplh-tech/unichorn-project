@@ -26,39 +26,72 @@
       </dependency>
       <dependency>
         <groupId>iaik</groupId>
-        <artifactId>iaik-cms-eval</artifactId>
-        <version>5.1</version>
-        <scope>provided</scope>
-      </dependency>
-      <dependency>
-        <groupId>iaik</groupId>
-        <artifactId>iaik-cpades-eval</artifactId>
-        <version>2.4</version>
-        <scope>provided</scope>
-      </dependency>
-      <dependency>
-        <groupId>iaik</groupId>
-        <artifactId>iaik-ecc-eval</artifactId>
-        <version>6.0</version>
-        <scope>provided</scope>
-      </dependency>
-      <dependency>
-        <groupId>iaik</groupId>
-        <artifactId>iaik-ecc-cms-eval</artifactId>
-        <version>6.0</version>
+        <artifactId>iaik-jce-full-ima-license-trustedlib-unlimited</artifactId>
+        <version>5.60</version>
+        <type>jar</type>
         <scope>provided</scope>
       </dependency>
 
       <dependency>
         <groupId>iaik</groupId>
-        <artifactId>iaik-jce-full</artifactId>
-        <version>5.60</version>
+        <artifactId>iaik-cms-ima-license</artifactId>
+        <version>5.1</version>
         <scope>provided</scope>
       </dependency>
+
       <dependency>
         <groupId>iaik</groupId>
-        <artifactId>iaik-tsp-eval</artifactId>
-        <version>2.23</version>
+        <artifactId>iaik-tsp-ima-license</artifactId>
+        <version>2.32-fix</version>
+        <scope>provided</scope>
+      </dependency>
+
+      <dependency>
+        <groupId>iaik</groupId>
+        <artifactId>iaik-pades-ima-license</artifactId>
+        <version>2.3-fix</version>
+        <scope>provided</scope>
+      </dependency>
+
+      <dependency>
+        <groupId>iaik</groupId>
+        <artifactId>iaik-eccelerate-ima-license</artifactId>
+        <version>5.0</version>
+        <scope>provided</scope>
+      </dependency>
+
+      <dependency>
+        <groupId>iaik</groupId>
+        <artifactId>iaik-eccelerate-addon-ima-license</artifactId>
+        <version>5.0</version>
+        <scope>provided</scope>
+      </dependency>
+
+      <dependency>
+        <groupId>iaik</groupId>
+        <artifactId>iaik-eccelerate-cms-ima-license</artifactId>
+        <version>5.0</version>
+        <scope>provided</scope>
+      </dependency>
+
+      <dependency>
+        <groupId>iaik</groupId>
+        <artifactId>iaik-eccelerate-ssl-ima-license</artifactId>
+        <version>5.0</version>
+        <scope>provided</scope>
+      </dependency>
+
+      <dependency>
+        <groupId>iaik</groupId>
+        <artifactId>iaik-xsect-ima-license</artifactId>
+        <version>2.13-fix</version>
+        <scope>provided</scope>
+      </dependency>
+
+      <dependency>
+        <groupId>iaik</groupId>
+        <artifactId>iaik-xades-ima-license</artifactId>
+        <version>2.13-fix</version>
         <scope>provided</scope>
       </dependency>
 
