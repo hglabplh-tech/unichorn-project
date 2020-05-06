@@ -1,8 +1,7 @@
 <web-app>
 
-    <display-name>Unichorn OCSP REST Service</display-name>
+    <display-name>Unichorn OCSP and Signing  REST Service</display-name>
     <servlet>
-
         <servlet-name>OCSP REST Service</servlet-name>
         <servlet-class>
             harry.security.responder.resources.UnichornResponder
@@ -10,8 +9,31 @@
         <load-on-startup>1</load-on-startup>
     </servlet>
 
+    <servlet>
+        <servlet-name>Signing REST Service</servlet-name>
+        <servlet-class>
+            harry.security.responder.resources.SigningResponder
+        </servlet-class>
+        <load-on-startup>1</load-on-startup>
+    </servlet>
+
+
     <servlet-mapping>
         <servlet-name>OCSP REST Service</servlet-name>
-        <url-pattern>/rest/*</url-pattern>
+        <url-pattern>/rest/ocsp</url-pattern>
     </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>Signing REST Service</servlet-name>
+        <url-pattern>/rest/signing</url-pattern>
+    </servlet-mapping>
+    <listener>
+        <listener-class>
+            harry.security.responder.resources.SecurityProviderInitializer
+        </listener-class>
+    </listener>
+    <listener>
+        <listener-class>
+            harry.security.responder.resources.RequestListener
+        </listener-class>
+    </listener>
 </web-app>

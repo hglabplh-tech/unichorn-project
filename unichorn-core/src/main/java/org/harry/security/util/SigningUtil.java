@@ -22,6 +22,7 @@ import org.harry.security.util.bean.SigningBean;
 import org.harry.security.util.certandkey.CertWriterReader;
 import org.harry.security.util.ocsp.HttpOCSPClient;
 import org.harry.security.util.trustlist.TrustListManager;
+import org.pmw.tinylog.Logger;
 
 import javax.activation.DataSource;
 import java.io.*;
@@ -70,6 +71,7 @@ public class SigningUtil {
             InputStreamDataSource ds = getInputStreamSigDataSource(signingBean);
             return ds;
         } catch (Exception e) {
+            Logger.trace("Signing error -> " + e.getMessage());
             throw new IllegalStateException("error occured", e);
         }
 
@@ -176,10 +178,13 @@ public class SigningUtil {
         PrivateKey selectedKey = signingBean.getKeyStoreBean().getSelectedKey();
         InputStream dataStream;
         if (signingBean.getDataSource() != null) {
+            Logger.trace("Data selected from data source");
             dataStream = signingBean.getDataSource().getInputStream();
         } else {
+            Logger.trace("Data selected from dataIN");
             dataStream = signingBean.getDataIN();
         }
+        Logger.trace("create signing stream");
         int mode = signingBean.getSigningMode().getMode();
         SignedDataStream stream = new SignedDataStream(dataStream, mode);
         X509Certificate [] certChain = new X509Certificate[1];
@@ -195,6 +200,7 @@ public class SigningUtil {
             SignatureAlg alg = signingBean.getSignatureAlgorithm();
             signatureAlgorithm = alg.getAlgId();
         }
+        Logger.trace("Create signer info");
         SignerInfo signerInfo = new SignerInfo(selectedCert,
                 digestAlgorithm,
                 signatureAlgorithm,
@@ -203,6 +209,7 @@ public class SigningUtil {
         if (selectedKey.getAlgorithm().contains("EC")) {
             sigAlg.encodeAbsentParametersAsNull(true);
         }
+        Logger.trace("Set content attributes");
         SigningTime signingTime = new SigningTime();
         Attribute [] attributes = new Attribute[3];
         SigningCertificate signingCertificate = new SigningCertificate(certChain);
@@ -211,6 +218,7 @@ public class SigningUtil {
         attributes[1] = new Attribute(signingTime);
         attributes[2] = new Attribute(signingCertificate);
         signerInfo.setSignedAttributes(attributes);
+        Logger.trace("Add signer info to signature");
         stream.addSignerInfo(signerInfo);
         stream.setBlockSize(2048);
         if (mode == SignedDataStream.EXPLICIT) {
@@ -222,8 +230,9 @@ public class SigningUtil {
         // return the SignedData as encoded byte array with block size 2048
         ByteArrayOutputStream os = new ByteArrayOutputStream();
 
+        Logger.trace("Really sign the thing");
         cis.writeTo(os);
-
+        Logger.trace("Really signed the thing");
         InputStream result = new ByteArrayInputStream(os.toByteArray());
         return new InputStreamDataSource(result);
     }

@@ -64,7 +64,7 @@ public class UnichornResponder extends HttpServlet {
     public void init () {
         IAIKMD.addAsProvider();
         ECCelerate.insertProviderAt(3);
-        //SecurityProvider.setSecurityProvider(new ECCelerateProvider());
+        SecurityProvider.setSecurityProvider(new ECCelerateProvider());
         //
 
         Configurator.defaultConfig()
@@ -77,6 +77,7 @@ public class UnichornResponder extends HttpServlet {
 
    @Override
     public void doPost(HttpServletRequest servletRequest, HttpServletResponse servletResponse) throws ServletException, IOException {
+       init ();
         String output = "Jersey say : ";
         Logger.trace("Hallo here I am");
         Logger.trace("enter ocsp method");
@@ -116,6 +117,7 @@ public class UnichornResponder extends HttpServlet {
     @Override
     public void doPut(HttpServletRequest request, HttpServletResponse response) throws IOException {
        try {
+           init ();
            File trustFile = new File(UnicHornResponderUtil.APP_DIR_TRUST, "trustListPrivate" + ".xml");
            Logger.trace("Trust file is: " + trustFile.getAbsolutePath());
            File crlFile = new File(UnicHornResponderUtil.APP_DIR_TRUST, "privRevokation" + ".crl");
@@ -168,6 +170,7 @@ public class UnichornResponder extends HttpServlet {
     }
     @Override
     public void doGet(HttpServletRequest servletRequest, HttpServletResponse servletResponse) {
+        init ();
         Logger.trace("Enter get");
         String type = servletRequest.getHeader("fileType");
         Map<String,String> messages = new HashMap<>();

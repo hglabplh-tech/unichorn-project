@@ -39,10 +39,6 @@ public class KeyStoreTool {
         APP_DIR= userDir;
     }
 
-    public static void removeProviders() {
-        Security.removeProvider("IAIK");
-        Security.removeProvider("IAIKMD");
-    }
     public static KeyStore initStore(String type, String password) {
         try {
             KeyStore store = KeyStore.getInstance(type, IAIK.getInstance());
