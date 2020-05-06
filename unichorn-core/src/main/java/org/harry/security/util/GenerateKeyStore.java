@@ -437,7 +437,7 @@ public class GenerateKeyStore implements CertGeneratorConstants {
    *
    * @exception KeyStoreException if an error occurs when trying to add the key
    */
-  public void addToKeyStore(KeyPair keyPair, Certificate[] chain, String alias) throws KeyStoreException {
+  public void addToKeyStore(KeyPair keyPair, X509Certificate[] chain, String alias) throws KeyStoreException {
     KeyStoreTool.addKey(key_store,keyPair.getPrivate(), properties.getKeystorePass().toCharArray(), chain, alias);
   }
 

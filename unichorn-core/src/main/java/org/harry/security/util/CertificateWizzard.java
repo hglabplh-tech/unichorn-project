@@ -187,13 +187,14 @@ public class CertificateWizzard {
             issuer.addRDN(ObjectID.commonName ,properties.getCommonName() + "_EC");
             subject.removeRDN(ObjectID.commonName);
             subject.addRDN(ObjectID.commonName ,properties.getCommonName() + "_EC_Inter");
+            SubjectKeyIdentifier subjectKeyIDEC = (SubjectKeyIdentifier) caEC.getExtension(SubjectKeyIdentifier.oid);
             inter_ec = generateKeyPairECC( 571);
             intermediateEC = createCertificate(subject,
                     inter_ec.getPublic(),
                     issuer,
                     ca_ec.getPrivate(),
                     (AlgorithmID) AlgorithmID.ecdsa.clone(),
-                    subjectKeyID.get(),
+                    subjectKeyIDEC.get(),
                     usage);
             certChain[0] = intermediateEC;
             certChain[1] = caEC;
@@ -249,13 +250,14 @@ public class CertificateWizzard {
             issuer.addRDN(ObjectID.commonName ,properties.getCommonName() + "_EC_Inter");
             subject.removeRDN(ObjectID.commonName);
             subject.addRDN(ObjectID.commonName ,properties.getCommonName() + "_EC_User");
+            SubjectKeyIdentifier subjectKeyIDEC = (SubjectKeyIdentifier) intermediateEC.getExtension(SubjectKeyIdentifier.oid);
             KeyPair userKeysEC = generateKeyPairECC(571);
             X509Certificate userCertEC = createCertificate(subject,
                     userKeysEC.getPublic(),
                     issuer,
                     inter_ec.getPrivate(),
                     (AlgorithmID) AlgorithmID.ecdsa.clone(),
-                    subjectKeyID.get(), usage);
+                    subjectKeyIDEC.get(), usage);
             certChain[0] = userCertEC;
             certChain[1] = intermediateEC;
             certChain[2] = caEC;
@@ -437,7 +439,8 @@ public class CertificateWizzard {
         try {
             final SecureRandom random = SecureRandom.getInstance("SHA512PRNG-SP80090", IAIK.getInstance());;
             final AlgorithmParameterSpec params = ECStandardizedParameterFactory
-                    .getParametersByBitLength(bitlength);
+                    .getParametersByName("secp256r1");
+
 
             System.out.println();
             System.out.println("Using the following EC domain parameters: ");

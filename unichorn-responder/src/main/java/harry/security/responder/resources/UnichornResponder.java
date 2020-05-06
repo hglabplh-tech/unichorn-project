@@ -4,6 +4,7 @@ import iaik.asn1.structures.AlgorithmID;
 import iaik.cms.SecurityProvider;
 import iaik.cms.ecc.ECCelerateProvider;
 import iaik.security.ec.provider.ECCelerate;
+import iaik.security.ec.provider.ECCelerateAddon;
 import iaik.security.provider.IAIKMD;
 import iaik.x509.X509Certificate;
 import iaik.x509.ocsp.OCSPRequest;
@@ -62,9 +63,9 @@ public class UnichornResponder extends HttpServlet {
     @Override
     public void init () {
         IAIKMD.addAsProvider();
-        ECCelerate ecProvider = ECCelerate.getInstance();
-        Security.insertProviderAt(ecProvider, 3);
-        SecurityProvider.setSecurityProvider(new ECCelerateProvider());
+        ECCelerate.insertProviderAt(3);
+        //SecurityProvider.setSecurityProvider(new ECCelerateProvider());
+        //
 
         Configurator.defaultConfig()
                 .writer(new FileWriter("unichorn.log"))
@@ -272,8 +273,8 @@ public class UnichornResponder extends HttpServlet {
         tempFile.deleteOnExit();
         FileOutputStream out = new FileOutputStream(tempFile);
         IOUtils.copy(input, out);
-        input.close();
         out.flush();
+        input.close();
         out.close();
         return tempFile;
     }

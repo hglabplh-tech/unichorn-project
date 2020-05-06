@@ -1,6 +1,7 @@
 package org.harry.security.util.certandkey;
 
 import iaik.asn1.structures.AlgorithmID;
+import iaik.security.provider.IAIK;
 import iaik.x509.X509Certificate;
 import org.harry.security.CMSSigner;
 import org.harry.security.util.Tuple;
@@ -27,7 +28,6 @@ public class KeyStoreTool {
 
     public static final String ALIAS = "b998b1f7-04fe-42c6-8284-9fb21e604b60UserRSA";
 
-    private static KeyStore.PasswordProtection protParam = null;
 
     static {
         String userDir = System.getProperty("user.home");
@@ -45,16 +45,8 @@ public class KeyStoreTool {
     }
     public static KeyStore initStore(String type, String password) {
         try {
-
-            protParam = new KeyStore.PasswordProtection(password.toCharArray(),
-                    AlgorithmID.aes256_CBC.getJcaStandardName(), null);
-
-
-            KeyStore store = KeyStore.getInstance(type);
+            KeyStore store = KeyStore.getInstance(type, IAIK.getInstance());
             store.load(null, null);
-
-
-
             return store;
         } catch (Exception ex) {
             throw new IllegalStateException("cannot load keystore", ex);
@@ -63,10 +55,7 @@ public class KeyStoreTool {
 
     public static KeyStore loadAppStore() {
         try {
-
-            protParam = new KeyStore.PasswordProtection("geheim".toCharArray(),
-                    AlgorithmID.aes256_CBC.getJcaStandardName(), null);
-            KeyStore store = KeyStore.getInstance("PKCS12");
+            KeyStore store = KeyStore.getInstance("PKCS12", IAIK.getInstance());
             FileInputStream resource = new FileInputStream(new File(APP_DIR, KEYSTORE_FNAME));
             store.load(resource, "geheim".toCharArray());
             resource.close();
@@ -79,18 +68,14 @@ public class KeyStoreTool {
 
     public static KeyStore loadStore(InputStream resource, char[] passwd, String type) {
         try {
-
-            protParam = new KeyStore.PasswordProtection(passwd,
-                    AlgorithmID.aes256_CBC.getJcaStandardName(), null);
-            KeyStore store = KeyStore.getInstance(type);
+            KeyStore store = KeyStore.getInstance(type, IAIK.getInstance());
             store.load(resource, passwd);
-            if (resource != null) {
-                resource.close();
-            }
+
 
             return store;
         } catch (Exception ex) {
             Logger.trace("exception thrown: type:" + ex.getClass().getCanonicalName() + " :: " + ex.getMessage());
+            Logger.trace(ex);
             throw new IllegalStateException("cannot load keystore", ex);
         }
     }
@@ -119,8 +104,8 @@ public class KeyStoreTool {
                    iaiks[index] = iaik;
                    index++;
                }
-               KeyStore.PrivateKeyEntry keyEntry = (KeyStore.PrivateKeyEntry)store.getEntry(alias, protParam);
-               PrivateKey key = keyEntry.getPrivateKey();
+
+               PrivateKey key = (PrivateKey) store.getKey(alias, passwd);
                result = new Tuple<PrivateKey, X509Certificate[]>(key, iaiks);
            } else {
                throw new IllegalStateException("get entry failed");
@@ -234,7 +219,7 @@ public class KeyStoreTool {
     }
 
     public static void addKey(KeyStore store, PrivateKey key, char [] passwd,
-                              Certificate[] certChain, String alias) {
+                              X509Certificate[] certChain, String alias) {
         try {
 
            // KeyStore.Entry entry = new KeyStore.PrivateKeyEntry(key, certChain);
