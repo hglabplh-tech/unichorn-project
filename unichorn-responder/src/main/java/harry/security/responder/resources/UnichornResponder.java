@@ -92,7 +92,7 @@ public class UnichornResponder extends HttpServlet {
 
             Logger.trace( "request read");
             OCSPResponse response = UnicHornResponderUtil.generateResponse(ocspRequest,
-                    copyTo(ocspRequest), responseGenerator, signatureAlgorithm, messages);
+                    copyTo(ocspRequest), responseGenerator, signatureAlgorithm);
             Logger.trace("Write stream");
             response.writeTo(servletResponse.getOutputStream());
             Logger.trace("written stream");
@@ -187,7 +187,7 @@ public class UnichornResponder extends HttpServlet {
                 OCSPRequest ocspRequest = new OCSPRequest(encoded);
                 Logger.trace("After getting request" + ocspRequest.toString(true));
                 OCSPResponse response = UnicHornResponderUtil.generateResponse(ocspRequest,
-                        copyTo(ocspRequest), responseGenerator, signatureAlgorithm, messages);
+                        copyTo(ocspRequest), responseGenerator, signatureAlgorithm);
                 Logger.trace("Write stream");
                 response.writeTo(servletResponse.getOutputStream());
                 Logger.trace("written stream");

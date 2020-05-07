@@ -105,7 +105,7 @@ public class SigningUtil {
             signer = signingBean.getKeyStoreBean().getChain();
             int mode = signingBean.getSigningMode().getMode();
 
-            InputStream stream = signingBean.getDataINFile();
+            InputStream stream = signingBean.getDataIN();
             CadesSignatureStream signatureStream = new CadesSignatureStream(stream, mode);
             signatureStream.addSignerInfo(signingBean.getKeyStoreBean().getSelectedKey(),
                     signer, params);

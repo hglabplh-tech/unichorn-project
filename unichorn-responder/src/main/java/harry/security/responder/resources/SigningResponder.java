@@ -115,8 +115,6 @@ public class SigningResponder extends HttpServlet {
                 Logger.trace("Before signing with:" + sigType + " and " + smode.getMode());
                 SigningBean signingBean = new SigningBean()
                         .setDataIN(servletRequest.getInputStream())
-                        .setSignatureAlgorithm(SignatureAlg.SHA3_512_WITH_RSA)
-                        .setDigestAlgorithm(DigestAlg.SHA3_512)
                         .setSigningMode(smode)
                         .setKeyStoreBean(bean);
                 SigningUtil util = new SigningUtil();
@@ -128,9 +126,11 @@ public class SigningResponder extends HttpServlet {
                     servletResponse.setStatus(Response.Status.CREATED.getStatusCode());
                     Logger.trace("Signed CMS");
                 } else {
+                    Logger.trace("Sign CAdES");
                     ds =util.signCAdES(signingBean, false);
                     IOUtils.copy(ds.getInputStream(), servletResponse.getOutputStream());
                     servletResponse.setStatus(Response.Status.CREATED.getStatusCode());
+                    Logger.trace("Signed CAdES");
                 }
             }  else {
                 servletResponse.setStatus(Response.Status.BAD_REQUEST.getStatusCode());

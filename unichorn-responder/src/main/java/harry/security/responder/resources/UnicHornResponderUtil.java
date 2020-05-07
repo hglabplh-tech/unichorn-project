@@ -1,18 +1,58 @@
+// Copyright (C) 2020 Harald Glab-Plhak
+// Also (C) IAIK // T-Systems International GmbH for giving many examples in code and documentation
+// worked out here
+// http://jce.iaik.at
+//
+// Copyright (C) 2003 Stiftung Secure Information and
+//                    Communication Technologies SIC
+// Copyright (C) 2020 Harald Glab-Plhak
+//
+// http://www.sic.st
+//
+// All rights reserved.
+//
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions
+// are met:
+// 1. Redistributions of source code must retain the above copyright
+//    notice, this list of conditions and the following disclaimer.
+// 2. Redistributions in binary form must reproduce the above copyright
+//    notice, this list of conditions and the following disclaimer in the
+//    documentation and/or other materials provided with the distribution.
+//
+// THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS ``AS IS'' AND
+// ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+// IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+// ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE
+// FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+// DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+// OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+// HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+// LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+// OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+// SUCH DAMAGE.
+//
 package harry.security.responder.resources;
 
+import iaik.asn1.CodingException;
 import iaik.asn1.ObjectID;
 import iaik.asn1.structures.AccessDescription;
 import iaik.asn1.structures.AlgorithmID;
+import iaik.asn1.structures.Name;
 import iaik.utils.ASN1InputStream;
 import iaik.x509.RevokedCertificate;
 import iaik.x509.X509CRL;
 import iaik.x509.X509Certificate;
+import iaik.x509.X509ExtensionInitException;
 import iaik.x509.extensions.AuthorityInfoAccess;
+import iaik.x509.extensions.AuthorityKeyIdentifier;
 import iaik.x509.extensions.ReasonCode;
+import iaik.x509.extensions.SubjectKeyIdentifier;
 import iaik.x509.ocsp.*;
 import iaik.x509.ocsp.extensions.ServiceLocator;
 import iaik.x509.ocsp.net.HttpOCSPRequest;
 import iaik.x509.ocsp.utils.ResponseGenerator;
+import org.harry.security.util.CertificateWizzard;
 import org.harry.security.util.SigningUtil;
 import org.harry.security.util.Tuple;
 import org.harry.security.util.algoritms.CryptoAlg;
@@ -37,14 +77,33 @@ import java.util.concurrent.atomic.AtomicReference;
 import static org.harry.security.util.CertificateWizzard.isCertificateSelfSigned;
 import static org.harry.security.util.ocsp.HttpOCSPClient.getCRLOfCert;
 
+/**
+ * This class is designed for generating a OCSP response for a certain certificate given in
+ * a OCSPrequest. The cedrtificate and it's issuer is checked and it is also checked against theGIVEN crl's or is
+ * redirected for checking to another delegate responder
+ * @author Harald Glab-Plhak
+ */
 public class UnicHornResponderUtil {
+
+    /**
+     * The application directory
+     */
 
     public static String APP_DIR;
 
+    /**
+     * The trust file directory
+     */
     public static String APP_DIR_TRUST;
 
+    /**
+     * The positive list of certificate chains which are known
+     */
     private static List<X509Certificate[]> chainList = new ArrayList<>();
 
+    /**
+     * Initialize neccessary directories
+     */
     static {
         String userDir = System.getProperty("user.home");
         userDir = userDir + "\\AppData\\Local\\MySigningApp";
@@ -60,11 +119,19 @@ public class UnicHornResponderUtil {
         UnicHornResponderUtil.APP_DIR = userDir;
     }
 
+    /**
+     * generate the OCSP response by checking the certificate and its values for
+     * being ok
+     * @param ocspRequest the OCSP request
+     * @param ocspReqInput the request encoded in a input stream
+     * @param responseGenerator the response generator used to generate a valid response
+     * @param signatureAlgorithm the signature algorithm used to sign the response
+     * @return a valid ocsp-response
+     */
     public static OCSPResponse generateResponse(OCSPRequest ocspRequest,
                                                 InputStream ocspReqInput,
                                                 ResponseGenerator responseGenerator,
-                                                AlgorithmID signatureAlgorithm,
-                                                Map<String, String> messages) {
+                                                AlgorithmID signatureAlgorithm) {
         loadActualPrivStore();
        Logger.trace("before getting keys and certs");
         Tuple<PrivateKey, X509Certificate[]> keys = null;
@@ -87,7 +154,7 @@ public class UnicHornResponderUtil {
         //
         PrivateKey responderKey = responseGenerator.getResponderKey();
 
-        signatureAlgorithm = getAlgorithmID(signatureAlgorithm, messages, responderKey);
+        signatureAlgorithm = getAlgorithmID(signatureAlgorithm, responderKey);
         // read crl
 
         X509CRL crl = readCrl(loadActualCRL());
@@ -103,14 +170,14 @@ public class UnicHornResponderUtil {
         System.out.println("Create response entries for crl...");
 
         Logger.trace( "Message is: before add resp entries");
-        OCSPResponse response = checkCertificateRevocation(ocspRequest, responseGenerator, messages, crl);
+        OCSPResponse response = checkCertificateRevocation(ocspRequest, responseGenerator, crl);
 
 
         try {
             if (response != null) {
                 return response;
             } else {
-                return getOcspResponse(ocspReqInput, responseGenerator, signatureAlgorithm, messages, keys);
+                return getOcspResponse(ocspReqInput, responseGenerator, signatureAlgorithm, keys);
             }
         } catch (Exception ex) {
             Logger.trace("Message is: try to output failed with: " + ex.getMessage());
@@ -118,7 +185,15 @@ public class UnicHornResponderUtil {
         }
     }
 
-    private static OCSPResponse getOcspResponse(InputStream ocspReqInput, ResponseGenerator responseGenerator, AlgorithmID signatureAlgorithm, Map<String, String> messages, Tuple<PrivateKey, X509Certificate[]> keys) {
+    /**
+     * really create the OCSP response using the output of the generator
+     * @param ocspReqInput the request input
+     * @param responseGenerator the initialized generator
+     * @param signatureAlgorithm the signature algorithm
+     * @param keys the private and public keys used for signing
+     * @return the signed response
+     */
+    private static OCSPResponse getOcspResponse(InputStream ocspReqInput, ResponseGenerator responseGenerator, AlgorithmID signatureAlgorithm, Tuple<PrivateKey, X509Certificate[]> keys) {
         Logger.trace("before create response internal");// changed public key setting
         OCSPResponse response = responseGenerator.createOCSPResponse(ocspReqInput,
                 keys.getSecond()[0].getPublicKey(), signatureAlgorithm, null);
@@ -127,7 +202,17 @@ public class UnicHornResponderUtil {
         return response;
     }
 
-    private static OCSPResponse checkCertificateRevocation(OCSPRequest ocspRequest, ResponseGenerator responseGenerator, Map<String, String> messages, X509CRL crl) {
+    /**
+     * This method checks the revocation and validity state of a given certificate.
+     * A certificate can either be good if the issuer is found and the date check is valid and the certificate is in the list
+     * ..... or unknown if the certificate is not in the list or revoked if the certificate is in revoked state
+     * in the cRL
+     * @param ocspRequest the ocsp request
+     * @param responseGenerator the response generator for the ocsp response
+     * @param crl the certificate revokation list
+     * @return a valid ocsp response
+     */
+    private static OCSPResponse checkCertificateRevocation(OCSPRequest ocspRequest, ResponseGenerator responseGenerator, X509CRL crl) {
         try {
             Request[] requests = ocspRequest.getRequestList();
             for (Request req : requests) {
@@ -159,6 +244,8 @@ public class UnicHornResponderUtil {
                 Date startDate = getDate("2020-01-01");
                 Calendar cal = Calendar.getInstance();
                 Date actualDate = new Date(cal.getTimeInMillis());
+                cal.add(Calendar.WEEK_OF_YEAR, 1);
+                Date nextWeek = new Date(cal.getTimeInMillis());
                 ReqCert reqCert = req.getReqCert();
                 if (reqCert.getType() == ReqCert.certID) {
                     CertID certID = (CertID) reqCert.getReqCert();
@@ -171,14 +258,14 @@ public class UnicHornResponderUtil {
                     if (rDate == null && actualCert != null) {
                         setResponseEntry(responseGenerator, reqCert, null, actualCert);
                     } else if (actualCert == null && rDate == null) {
-                        responseGenerator.addResponseEntry(reqCert, new CertStatus(new UnknownInfo()), endDate, null);
+                        responseGenerator.addResponseEntry(reqCert, new CertStatus(new UnknownInfo()), actualDate, nextWeek);
                     } else {
                         if (crl.containsCertificate(serial) != null) {
                             X509CRLEntry entry = crl.getRevokedCertificate(serial);
                             CRLReason reason = entry.getRevocationReason();
                         }
                         RevokedInfo info = new RevokedInfo(rDate);
-                        responseGenerator.addResponseEntry(reqCert, new CertStatus(info), rDate, null);
+                        responseGenerator.addResponseEntry(reqCert, new CertStatus(info), actualDate, nextWeek);
                     }
 
 
@@ -195,14 +282,13 @@ public class UnicHornResponderUtil {
                     if (rDate == null && actualCert != null) {
                         setResponseEntry(responseGenerator, reqCert, certificate, actualCert);
                     } else if (actualCert == null && rDate == null) {
-                        responseGenerator.addResponseEntry(reqCert, new CertStatus(new UnknownInfo()), endDate, null);
-                    } else {
+                        responseGenerator.addResponseEntry(reqCert, new CertStatus(new UnknownInfo()), actualDate, nextWeek);
                         if (crl.containsCertificate(certificate.getSerialNumber()) != null) {
                             X509CRLEntry entry = crl.getRevokedCertificate(certificate.getSerialNumber());
                             CRLReason reason = entry.getRevocationReason();
                         }
                         RevokedInfo info = new RevokedInfo(rDate);
-                        responseGenerator.addResponseEntry(reqCert, new CertStatus(info), rDate, null);
+                        responseGenerator.addResponseEntry(reqCert, new CertStatus(info), actualDate, nextWeek);
                     }
                 }
             }
@@ -216,13 +302,26 @@ public class UnicHornResponderUtil {
         }
     }
 
+    /**
+     * set the response entry by checking the certificate if it seems to be good.
+     * @param responseGenerator the response generator
+     * @param reqCert the certificate request
+     * @param certificate the certificate itself
+     * @param actualCert the certificate which is actually checked
+     * @throws OCSPException error case
+     */
     private static void setResponseEntry(ResponseGenerator responseGenerator, ReqCert reqCert, X509Certificate certificate, X509Certificate actualCert) throws OCSPException {
+        Calendar instance = Calendar.getInstance();
+        Date actualDate = new Date(instance.getTimeInMillis());
+        instance.add(Calendar.WEEK_OF_YEAR, 1);
+        Date nextWeek = new Date(instance.getTimeInMillis());
         Optional<X509Certificate> issuer = findIssuer(actualCert);
         boolean matches = false;
         boolean error = false;
         try {
             if (isCertificateSelfSigned(actualCert)) {
-                responseGenerator.addResponseEntry(reqCert, new CertStatus(new UnknownInfo()), actualCert.getNotAfter(), null);
+                responseGenerator.addResponseEntry(reqCert, new CertStatus(new UnknownInfo()),
+                        actualDate, nextWeek);
             }
             actualCert.checkValidity();
         } catch (CertificateExpiredException e) {
@@ -231,34 +330,53 @@ public class UnicHornResponderUtil {
             error = true;
         }
         if (issuer.isPresent()) {
-            matches = reqCert.isReqCertFor(actualCert, issuer.get(), null);
+            CertID id = (CertID)reqCert.getReqCert();
+            matches = moreChecksIfPossible(reqCert, issuer.get(),actualCert);
         } else {
+
             matches = false;
         }
-        if (matches && !error) {
-            if (certificate != null) {
-                responseGenerator.addResponseEntry(reqCert, new CertStatus(), certificate.getNotAfter(), null);
+        if (!error) {
+            if (matches) {
+                Logger.trace("Found correct certificate : "
+                        + actualCert.getSubjectDN().getName());
+                if (certificate != null) {
+                    responseGenerator.addResponseEntry(reqCert, new CertStatus(), actualDate, nextWeek);
+                } else {
+                    responseGenerator.addResponseEntry(reqCert, new CertStatus(), actualDate, nextWeek);
+                }
             } else {
-                responseGenerator.addResponseEntry(reqCert, new CertStatus(), actualCert.getNotAfter(), null);
-            }
-        } else if (!error) {
-            if (certificate != null) {
-                responseGenerator.addResponseEntry(reqCert, new CertStatus(new UnknownInfo()), certificate.getNotAfter(), null);
-            } else {
-                responseGenerator.addResponseEntry(reqCert, new CertStatus(new UnknownInfo()), actualCert.getNotAfter(), null);
+                Logger.trace("Incorrect certificate found: "
+                        + actualCert.getSubjectDN().getName());
+                if (certificate != null) {
+                    responseGenerator.addResponseEntry(reqCert, new CertStatus(new UnknownInfo()),
+                            actualDate, nextWeek);
+                } else {
+                    responseGenerator.addResponseEntry(reqCert, new CertStatus(new UnknownInfo()),
+                            actualDate, nextWeek);
+                }
             }
         } else {
+            Logger.trace("Certificate is revoked: "
+                    + actualCert.getSubjectDN().getName());
             Calendar cal = Calendar.getInstance();
             RevokedInfo info = new RevokedInfo(new Date(cal.getTimeInMillis()));
             info.setRevocationReason(new ReasonCode(ReasonCode.privilegeWithdrawn));
             if (certificate != null) {
-                responseGenerator.addResponseEntry(reqCert, new CertStatus(info), certificate.getNotAfter(), null);
+                responseGenerator.addResponseEntry(reqCert, new CertStatus(info),
+                        actualDate, nextWeek);
             } else {
-                responseGenerator.addResponseEntry(reqCert, new CertStatus(info), actualCert.getNotAfter(), null);
+                responseGenerator.addResponseEntry(reqCert, new CertStatus(info),
+                        actualDate, nextWeek);
             }
         }
     }
 
+    /**
+     * find the certificate to be checked by its serial
+     * @param serial the serial number
+     * @return the found certificate
+     */
     private static X509Certificate getX509Certificate(BigInteger serial) {
         Optional<X509Certificate[]> found = findSerialINPositiveList(serial);
         X509Certificate actualCert = null;
@@ -273,7 +391,59 @@ public class UnicHornResponderUtil {
         return actualCert;
     }
 
-    private static AlgorithmID getAlgorithmID(AlgorithmID signatureAlgorithm, Map<String, String> messages, PrivateKey responderKey) {
+    /**
+     * Check if the certificate and the issuer fit together and if possible ReqCert.certID
+     * check also the hashes for issuers key and name.
+     * @param reqCert the certificate request
+     * @param issuer the issuer of the certificate to be checked
+     * @param cert the certificate to be checked
+     * @return return true if all things are matching the needs
+     */
+    private static boolean moreChecksIfPossible(ReqCert reqCert,
+                                                X509Certificate issuer,
+                                                X509Certificate cert) {
+        if (reqCert.getType() == (ReqCert.certID)) {
+            CertID id = (CertID) reqCert.getReqCert();
+            if (cert.getSerialNumber().equals(id.getSerialNumber())) {
+                AlgorithmID hashAlg = id.getHashAlgorithm();
+                try {
+                    byte [] keyHash = CertID.calculateIssuerKeyHash(issuer.getPublicKey(), hashAlg);
+                    byte [] issuerHash = CertID.calculateIssuerNameHash(
+                            (Name)cert.getIssuerDN(), hashAlg);
+                    boolean ok = Arrays.equals(id.getIssuerNameHash(), issuerHash);
+                    ok = ok && id.isCertIDFor((Name)cert.getIssuerDN(), issuer.getPublicKey(), cert.getSerialNumber());
+                    ok = ok && Arrays.equals(id.getIssuerKeyHash(), keyHash);
+                    return ok;
+                } catch (NoSuchAlgorithmException e) {
+                    return false;
+                } catch (CodingException e) {
+                    return false;
+                }
+
+            }
+        } else if(reqCert.getType() == (ReqCert.pKCert)) {
+            X509Certificate certificate = (X509Certificate) reqCert.getReqCert();
+            if (cert.getSerialNumber().equals(certificate.getSerialNumber())) {
+                try {
+                    return reqCert.isReqCertFor(certificate, issuer, null);
+                } catch (OCSPException e) {
+                    return false;
+                }
+            }
+            return false;
+        } else {
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * get the AlgorithmID used for signing the response
+     * @param signatureAlgorithm thee initial algorithm
+     * @param responderKey the responderKey to be checked
+     * @return the algorithm for signimg
+     */
+    private static AlgorithmID getAlgorithmID(AlgorithmID signatureAlgorithm, PrivateKey responderKey) {
         if (!(responderKey instanceof java.security.interfaces.RSAPrivateKey)) {
             if (responderKey instanceof java.security.interfaces.DSAPrivateKey) {
                 signatureAlgorithm = AlgorithmID.dsaWithSHA1;
@@ -289,14 +459,25 @@ public class UnicHornResponderUtil {
         return signatureAlgorithm;
     }
 
+    /**
+     * get the request signers information from application keystore
+     * @return return the private key chain tuple
+     */
     private static Tuple<PrivateKey, X509Certificate[]> getPrivateKeyX509CertificateTuple() {
         Tuple<PrivateKey, X509Certificate[]> keys = null;
-        InputStream keyStore = UnicHornResponderUtil.class.getResourceAsStream("/application.p12");
-        KeyStore store = KeyStoreTool.loadStore(keyStore, "geheim".toCharArray(), "PKCS12");
-        keys = KeyStoreTool.getKeyEntry(store, UnichornResponder.ALIAS, "geheim".toCharArray());
+        KeyStore store = KeyStoreTool.loadAppStore();
+        keys = KeyStoreTool.getAppKeyEntry(store);
         return keys;
     }
 
+    /**
+     * lookup if the request itself is signed and verify the signature
+     * @param ocspRequest the ocsp-request to be checked
+     * @throws NoSuchAlgorithmException error case
+     * @throws InvalidKeyException error case
+     * @throws SignatureException error case
+     * @throws OCSPException error case
+     */
     private static void checkRequestSigning(OCSPRequest ocspRequest) throws NoSuchAlgorithmException, InvalidKeyException, SignatureException, OCSPException {
         if (ocspRequest.containsSignature()) {
             Logger.trace("Request is signed.");
@@ -338,6 +519,10 @@ public class UnicHornResponderUtil {
         return crl;
     }
 
+    /**
+     * lookup if there are more CRLs in the path and load them
+     * @return the list of CRL objects
+     */
     private static List<X509CRL> getMoreCRLs() {
         List<X509CRL> result = new ArrayList<>();
         File trustDir = new File(APP_DIR_TRUST);
@@ -357,6 +542,11 @@ public class UnicHornResponderUtil {
         return result;
     }
 
+    /**
+     * get a valid date object for a given string
+     * @param newDate the fresh date
+     * @return the date object
+     */
     private static java.util.Date getDate(String newDate) {
         SimpleDateFormat textFormat = new SimpleDateFormat("yyyy-MM-dd");
         String paramDateAsString = newDate;
@@ -370,6 +560,11 @@ public class UnicHornResponderUtil {
         }
     }
 
+    /**
+     * Convert the revocation reason between the formats of crl and revokation info
+     * @param reason the revocation reason
+     * @return the translated reason
+     */
     private static ReasonCode translateRevocationReason(CRLReason reason) {
         ReasonCode result;
         switch (reason) {
@@ -407,6 +602,9 @@ public class UnicHornResponderUtil {
         return result;
     }
 
+    /**
+     * Here the keystore holdiung the known certificates is loaded
+     */
     public static void loadActualPrivStore() {
         chainList = new ArrayList<>();
         loadActualPrivTrust();
@@ -428,6 +626,9 @@ public class UnicHornResponderUtil {
         }
     }
 
+    /**
+        * Load the trusted
+     */
     public static void loadActualPrivTrust() {
         try {
             File trustFile = new File(UnicHornResponderUtil.APP_DIR_TRUST, "trustListPrivate" + ".xml");
@@ -445,6 +646,10 @@ public class UnicHornResponderUtil {
     }
 
 
+    /**
+     * Find the input for the actual CRL
+     * @return the input stream of the CRL
+     */
     public static InputStream loadActualCRL() {
         File crlFile = new File(UnicHornResponderUtil.APP_DIR_TRUST, "privRevokation" + ".crl");
         Logger.trace("CRL list file is: " + crlFile.getAbsolutePath());
@@ -465,6 +670,13 @@ public class UnicHornResponderUtil {
 
     }
 
+    /**
+     * Check if the given certificate is in the revokation list and has to be revoked.
+     * The method looks up the certificate and checks it's revocation state.
+     * @param crl the revocation list
+     * @param certSerial the certificates serial     *
+     * @return a possible revocation Date
+     */
     private static Date checkRevocation(X509CRL crl, BigInteger certSerial) {
         Set<RevokedCertificate> revoked = crl.getRevokedCertificates();
         for (RevokedCertificate cert : revoked) {
@@ -487,6 +699,11 @@ public class UnicHornResponderUtil {
         return null;
     }
 
+    /**
+     * Lookup a certificate chain in the list of certificates by it's serial number
+     * @param serial the certificates serial
+     * @return the certificate chain in a optional or empty if there is none.
+     */
     private static Optional<X509Certificate[]> findSerialINPositiveList(BigInteger serial) {
         Optional<X509Certificate[]> opt = chainList.stream().filter(e -> {
             for (X509Certificate cert : e) {
@@ -499,13 +716,52 @@ public class UnicHornResponderUtil {
         return opt;
     }
 
+    /**
+     * Search the issuer of a certificate in the complete certificates list.
+     * This is done by comparing the issuer dn and the subject and authority keys of the cedrtificates
+     * @param actualCert the certificate for which we like to lookup the issuer
+     * @return the optional holding the issuer
+     */
     private static Optional<X509Certificate> findIssuer(X509Certificate actualCert) {
         AtomicReference<Optional<X509Certificate>> optIssuer = new AtomicReference<>(Optional.empty());
         Optional<X509Certificate[]> opt = chainList.stream().filter(e -> {
             for (X509Certificate cert : e) {
                 if (actualCert.getIssuerDN().getName().equals(cert.getSubjectDN().getName())) {
-                    optIssuer.set(Optional.of(cert));
-                    return true;
+                    AuthorityKeyIdentifier authID = null;
+                    try {
+                        authID = (AuthorityKeyIdentifier)
+                                actualCert.getExtension(AuthorityKeyIdentifier.oid);
+                    } catch (X509ExtensionInitException x509ExtensionInitException) {
+                        return false;
+                    }
+                    if ( authID != null) {
+                        SubjectKeyIdentifier skeyid = null;
+                        try {
+                            skeyid = (SubjectKeyIdentifier)cert.getExtension(SubjectKeyIdentifier.oid);
+                        } catch (X509ExtensionInitException x509ExtensionInitException) {
+                           return false;
+                        }
+                        Logger.trace("Compare Subject Key : "
+                                + Arrays.toString(skeyid.get()));
+                        Logger.trace("to Authentication Key: "
+                                + Arrays.toString(authID.getKeyIdentifier()));
+                        if (Arrays.equals(authID.getKeyIdentifier(), skeyid.get())) {
+                            if (!optIssuer.get().isPresent()) {
+                                Logger.trace("Issuer found: " + cert.getSubjectDN().getName()
+                                + " Serial: " + cert.getSerialNumber());
+                                optIssuer.set(Optional.of(cert));
+                                return true;
+                            }
+                        }
+                    } else {
+                        if (CertificateWizzard.isCertificateSelfSigned(actualCert)) {
+                            if (!optIssuer.get().isPresent()) {
+                                optIssuer.set(Optional.of(cert));
+                                return true;
+                            }
+                        }
+                    }
+                    return false;
                 }
             }
             return false;
@@ -513,6 +769,13 @@ public class UnicHornResponderUtil {
         return optIssuer.get();
     }
 
+    /**
+     * This method adds the entries of a given keystore to an existing keystore
+     * @param keyFile the store file
+     * @param storeToApply the store with the keys to be added
+     * @param passwd the store password
+     * @param storeType the store type
+     */
     public static void applyKeyStore(File keyFile, KeyStore storeToApply, String passwd, String storeType) {
         try {
             ExecutorService executor = Executors.newFixedThreadPool(5);
@@ -526,6 +789,11 @@ public class UnicHornResponderUtil {
 
     }
 
+    /**
+     * Encrypt the key store pass and write it to a file
+     * @param fName thefile-name
+     * @param password the password to be encrypted
+     */
     public static void encryptPassword(String fName, String password) {
         File pwdFile = new File(APP_DIR, fName);
         File pwdFileOut = new File(APP_DIR, fName + ".encr");
@@ -549,6 +817,11 @@ public class UnicHornResponderUtil {
 
     }
 
+    /**
+     * Decrypt the password stored in a password file
+     * @param fName the file name
+     * @return the decrypted password
+     */
     public static String decryptPassword(String fName) {
         File pwdFile = new File(APP_DIR, fName);
         File pwdFileOut = new File(APP_DIR, fName + ".encr");

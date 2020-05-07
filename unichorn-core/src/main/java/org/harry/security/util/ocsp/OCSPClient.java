@@ -178,6 +178,7 @@ public class OCSPClient {
             if (type == ReqCert.certID) {
                 CertID certID = new CertID(hashAlgorithm, issuerName, issuerKey,
                         serialNum);
+                System.err.println("Issuer Serial: " + targetCerts[1].getSerialNumber());
                 return new ReqCert(ReqCert.certID, certID);
             } else if (type == ReqCert.pKCert) {
                 return new ReqCert(ReqCert.pKCert, targetCerts[0]);

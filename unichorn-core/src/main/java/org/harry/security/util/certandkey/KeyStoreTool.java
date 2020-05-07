@@ -168,17 +168,20 @@ public class KeyStoreTool {
 
     public static X509Certificate[] getCertChainEntry(KeyStore store, String alias) {
         try {
-
-            Certificate[] certChain = store.getCertificateChain(alias);
-            X509Certificate [] iaiks = new X509Certificate[certChain.length];
-            int index = 0;
-            for (Certificate thisCert: certChain) {
-                X509Certificate iaik = new X509Certificate(thisCert.getEncoded());
-                iaiks[index] = iaik;
-                index++;
+            Certificate[] certChain = null;
+            certChain = store.getCertificateChain(alias);
+            if (certChain != null) {
+                X509Certificate[] iaiks = new X509Certificate[certChain.length];
+                int index = 0;
+                for (Certificate thisCert : certChain) {
+                    X509Certificate iaik = new X509Certificate(thisCert.getEncoded());
+                    iaiks[index] = iaik;
+                    index++;
+                }
+                return iaiks;
+            } else {
+                return new X509Certificate[0];
             }
-
-            return iaiks;
 
         } catch (Exception ex) {
             Logger.trace("Exception type is : " + ex.getClass().getCanonicalName());

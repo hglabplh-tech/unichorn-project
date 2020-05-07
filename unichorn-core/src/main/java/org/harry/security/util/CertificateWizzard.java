@@ -407,6 +407,14 @@ public class CertificateWizzard {
     public static void generateThis() {
 
         ConfigReader.MainProperties properties = ConfigReader.loadStore();
+        generateThis(properties);
+    }
+
+    public static void generateThis(ConfigReader.MainProperties properties) {
+
+        if (properties == null) {
+            properties = ConfigReader.loadStore();
+        }
         File keystore = new File(properties.getKeystorePath());
         File keystoreEC = new File(properties.getKeystorePath() + "_EC");
         properties.setKeystorePass("geheim");
