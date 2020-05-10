@@ -14,8 +14,8 @@
             <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0" />
           <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0" />
           <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0" />
-            <ColumnConstraints hgrow="SOMETIMES" maxWidth="89.0" minWidth="10.0" prefWidth="50.0" />
-            <ColumnConstraints hgrow="SOMETIMES" maxWidth="180.0" minWidth="10.0" prefWidth="180.0" />
+            <ColumnConstraints hgrow="SOMETIMES" maxWidth="105.0" minWidth="10.0" prefWidth="105.0" />
+            <ColumnConstraints hgrow="SOMETIMES" maxWidth="180.0" minWidth="10.0" prefWidth="121.0" />
             <ColumnConstraints hgrow="SOMETIMES" maxWidth="142.0" minWidth="10.0" prefWidth="24.0" />
         </columnConstraints>
         <rowConstraints>
@@ -56,6 +56,7 @@
             <CheckBox fx:id="ocspCheck" mnemonicParsing="false" text="Do OCSP Check" GridPane.columnIndex="5" GridPane.rowIndex="2" />
             <Button fx:id="storeCert" mnemonicParsing="false" onAction="#storeCertDialog" text="Store Cert Dialog" GridPane.columnIndex="5" />
             <CheckBox fx:id="altResp" mnemonicParsing="false" text="Alternative Responder" GridPane.columnIndex="5" GridPane.rowIndex="1" />
+            <Button fx:id="sendCSR" mnemonicParsing="false" onAction="#sendCSR" prefHeight="25.0" prefWidth="95.0" text="Create Cert" GridPane.columnIndex="4" />
          </children>
       </GridPane>
    </children>

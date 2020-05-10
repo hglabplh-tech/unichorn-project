@@ -1,4 +1,4 @@
-package harry.security.responder.resources;
+package org.harry.security.util.certandkey;
 
 public class GSON {
     public static class Params {

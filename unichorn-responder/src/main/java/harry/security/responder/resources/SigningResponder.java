@@ -3,37 +3,25 @@ package harry.security.responder.resources;
 import com.google.gson.Gson;
 import iaik.asn1.structures.AlgorithmID;
 import iaik.asn1.structures.Name;
-import iaik.cms.SecurityProvider;
 import iaik.cms.SignedData;
-import iaik.cms.ecc.ECCelerateProvider;
 import iaik.pkcs.pkcs10.CertificateRequest;
 import iaik.pkcs.pkcs8.EncryptedPrivateKeyInfo;
 import iaik.pkcs.pkcs9.ChallengePassword;
 import iaik.pkcs.pkcs9.ExtensionRequest;
-import iaik.security.ec.provider.ECCelerate;
-import iaik.security.provider.IAIKMD;
 import iaik.x509.X509Certificate;
 import iaik.x509.extensions.KeyUsage;
 import iaik.x509.extensions.SubjectKeyIdentifier;
-import iaik.x509.ocsp.OCSPRequest;
-import iaik.x509.ocsp.OCSPResponse;
 import iaik.x509.ocsp.utils.ResponseGenerator;
 import org.apache.commons.io.IOUtils;
 import org.harry.security.util.CertificateWizzard;
 import org.harry.security.util.SigningUtil;
 import org.harry.security.util.Tuple;
-import org.harry.security.util.algoritms.DigestAlg;
-import org.harry.security.util.algoritms.SignatureAlg;
 import org.harry.security.util.bean.SigningBean;
 import org.harry.security.util.certandkey.CertWriterReader;
+import org.harry.security.util.certandkey.GSON;
 import org.harry.security.util.certandkey.KeyStoreTool;
-import org.json.HTTP;
 import org.json.JSONException;
-import org.json.JSONObject;
-import org.pmw.tinylog.Configurator;
-import org.pmw.tinylog.Level;
 import org.pmw.tinylog.Logger;
-import org.pmw.tinylog.writers.FileWriter;
 
 import javax.activation.DataSource;
 import javax.servlet.ServletException;
@@ -200,8 +188,6 @@ public class SigningResponder extends HttpServlet {
                            keys.getFirst(), AlgorithmID.sha256WithRSAEncryption,
                            subjectKeyID.get(),
                            keyUsage);
-                   userCert.writeTo(servletResponse.getOutputStream());
-                   servletResponse.setStatus(Response.Status.CREATED.getStatusCode());
                    Logger.trace("Create certificate success");
                }
                if (userKey != null && userCert != null) {
@@ -211,10 +197,18 @@ public class SigningResponder extends HttpServlet {
                    chain[1] = keys.getSecond()[0];
                    chain[0] = userCert;
                    File keyFile = new File(UnicHornResponderUtil.APP_DIR_TRUST, "privKeystore" + ".p12");
+                   File tempKeyFile = File.createTempFile("keystore", ".p12");
+                   tempKeyFile.delete();
                    String passwd = decryptPassword("pwdFile");
                    applyKeyStore(keyFile, userKey,
                            chain,
                            passwd, "PKCS12");
+                   applyKeyStore(tempKeyFile, userKey,
+                           chain,
+                           "changeit", "PKCS12");
+                   FileInputStream keyStore = new FileInputStream(tempKeyFile);
+                   IOUtils.copy(keyStore, servletResponse.getOutputStream());
+                   servletResponse.setStatus(Response.Status.CREATED.getStatusCode());
                    Logger.trace("Add key to trusted success");
                }
            }

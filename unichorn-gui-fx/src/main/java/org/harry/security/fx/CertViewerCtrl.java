@@ -185,6 +185,10 @@ public class CertViewerCtrl implements ControllerInit {
         }
     }
 
+    public void sendCSR(ActionEvent event) throws IOException {
+        SecHarry.setRoot("sendcsr", SecHarry.CSS.UNICHORN);
+    }
+
     @FXML
     protected void goBack(ActionEvent event) throws IOException {
         SecHarry.setRoot("main", SecHarry.CSS.ABBY);

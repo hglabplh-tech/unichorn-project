@@ -829,7 +829,9 @@ public class UnicHornResponderUtil {
                         chainToApply,
                         chainToApply[0].getSubjectDN().getName());
                 Logger.trace("Before storing.... :" + keyFile.getAbsolutePath());
-                KeyStoreTool.storeKeyStore(privStore, new FileOutputStream(keyFile), passwd.toCharArray());
+                OutputStream out = new FileOutputStream(keyFile);
+                KeyStoreTool.storeKeyStore(privStore, out, passwd.toCharArray());
+                out.close();
                 Logger.trace("Success storing.... :" + keyFile.getAbsolutePath());
             } catch (Exception ex) {
                 Logger.trace("thread failed with:" + ex.getMessage());
