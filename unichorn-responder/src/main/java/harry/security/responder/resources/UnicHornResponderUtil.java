@@ -40,10 +40,9 @@ import iaik.asn1.structures.AccessDescription;
 import iaik.asn1.structures.AlgorithmID;
 import iaik.asn1.structures.Name;
 import iaik.utils.ASN1InputStream;
-import iaik.x509.RevokedCertificate;
+import iaik.x509.*;
 import iaik.x509.X509CRL;
 import iaik.x509.X509Certificate;
-import iaik.x509.X509ExtensionInitException;
 import iaik.x509.extensions.AuthorityInfoAccess;
 import iaik.x509.extensions.AuthorityKeyIdentifier;
 import iaik.x509.extensions.ReasonCode;
@@ -97,9 +96,16 @@ public class UnicHornResponderUtil {
     public static String APP_DIR_TRUST;
 
     /**
+     * The trust file directory
+     */
+    public static String APP_DIR_WORKING;
+
+    /**
      * The positive list of certificate chains which are known
      */
     private static List<X509Certificate[]> chainList = new ArrayList<>();
+
+    private static final SimpleChainVerifier verifier = new SimpleChainVerifier();
 
     /**
      * Initialize neccessary directories
@@ -115,7 +121,12 @@ public class UnicHornResponderUtil {
         if (!dirTrust.exists()) {
             dirTrust.mkdirs();
         }
+        File dirWorking = new File(userDir, "working");
+        if (!dirWorking.exists()) {
+            dirWorking.mkdirs();
+        }
         UnicHornResponderUtil.APP_DIR_TRUST = dirTrust.getAbsolutePath();
+        UnicHornResponderUtil.APP_DIR_WORKING = dirWorking.getAbsolutePath();
         UnicHornResponderUtil.APP_DIR = userDir;
     }
 
@@ -788,6 +799,48 @@ public class UnicHornResponderUtil {
         }
 
     }
+
+    /**
+     * This method adds the entries of a given keystore to an existing keystore
+     * @param keyFile the store file
+     * @param keyToApply the private key to apply
+     * @param chainToApply the certificate chain to apply
+     * @param passwd the store password
+     * @param storeType the store type
+     */
+    public static void applyKeyStore(File keyFile, PrivateKey keyToApply,
+                                     X509Certificate[] chainToApply,
+                                     String passwd, String storeType) {
+        try {
+            KeyStore privStore;
+
+            ExecutorService executor = Executors.newFixedThreadPool(5);
+            try {
+                if (!keyFile.exists()) {
+                    privStore = KeyStoreTool.initStore(storeType, passwd);
+                } else {
+                    privStore = KeyStoreTool.loadStore(new FileInputStream(keyFile), passwd.toCharArray(), storeType);
+                }
+                verifier.verifyChain(chainToApply);
+                Logger.trace("Add key and chain");
+                KeyStoreTool.addKey(privStore,
+                        keyToApply,
+                        passwd.toCharArray(),
+                        chainToApply,
+                        chainToApply[0].getSubjectDN().getName());
+                Logger.trace("Before storing.... :" + keyFile.getAbsolutePath());
+                KeyStoreTool.storeKeyStore(privStore, new FileOutputStream(keyFile), passwd.toCharArray());
+                Logger.trace("Success storing.... :" + keyFile.getAbsolutePath());
+            } catch (Exception ex) {
+                Logger.trace("thread failed with:" + ex.getMessage());
+                throw new IllegalStateException("thread failed with:", ex);
+            }
+
+        } catch (Exception ex) {
+            throw new IllegalStateException("apply to store failed", ex);
+        }
+    }
+
 
     /**
      * Encrypt the key store pass and write it to a file

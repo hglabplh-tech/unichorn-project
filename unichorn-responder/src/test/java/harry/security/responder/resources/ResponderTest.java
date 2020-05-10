@@ -333,6 +333,29 @@ public class ResponderTest  {
         SingleResponse[] resps = basicOCSPResponse.getSingleResponses();
         System.out.println(resps[0].getCertStatus().toString());
         int responseStatus = HttpOCSPClient.getClient().parseOCSPResponse(response, false);
+        assertThat(OCSPClient.CertStatusEnum.fromStatus(resps[0].getCertStatus().getCertStatus()),
+                is(OCSPClient.CertStatusEnum.UNKNOWN));
+        System.out.println("Status: " + responseStatus);
+
+    }
+
+    @Test
+    public void checkCertRevoked() throws Exception {
+
+        InputStream store  = ResponderTest.class.getResourceAsStream("/t-systems.p12");
+        KeyStore keys = KeyStoreTool.loadStore(store, "geheim".toCharArray(), "PKCS12");
+        X509Certificate[] chain = KeyStoreTool.getCertChainEntry(keys, keys.aliases().nextElement());
+        String ocspUrl =  HttpOCSPClient.getOCSPUrl(chain[0]);
+        ocspUrl = "http://localhost:8080/unichorn-responder-1.0-SNAPSHOT/rest/ocsp";
+        OCSPResponse response = HttpOCSPClient.sendOCSPRequest(ocspUrl, null,
+                null, chain,
+                false, ReqCert.certID);
+        BasicOCSPResponse basicOCSPResponse = (BasicOCSPResponse)response.getResponse();
+        SingleResponse[] resps = basicOCSPResponse.getSingleResponses();
+        int responseStatus = HttpOCSPClient.getClient().parseOCSPResponse(response, false);
+        System.out.println(resps[0].getCertStatus().toString());
+        assertThat(OCSPClient.CertStatusEnum.fromStatus(resps[0].getCertStatus().getCertStatus()),
+                is(OCSPClient.CertStatusEnum.REVOKED));
         System.out.println("Status: " + responseStatus);
 
     }
@@ -352,9 +375,12 @@ public class ResponderTest  {
         SingleResponse[] resps = basicOCSPResponse.getSingleResponses();
         int responseStatus = HttpOCSPClient.getClient().parseOCSPResponse(response, false);
         System.out.println(resps[0].getCertStatus().toString());
+        assertThat(OCSPClient.CertStatusEnum.fromStatus(resps[0].getCertStatus().getCertStatus()),
+                is(OCSPClient.CertStatusEnum.GOOD));
         System.out.println("Status: " + responseStatus);
 
     }
+
 
 
 

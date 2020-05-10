@@ -370,5 +370,47 @@ public class OCSPClient {
         }
     }
 
+    public static enum CertStatusEnum {
+        GOOD(0, "good"),
+        REVOKED(1,"revoked"),
+        UNKNOWN(2, "unknown");
+
+        private final int status;
+
+        private final String statusText;
+
+        CertStatusEnum(int status, String statusText) {
+            this.status = status;
+            this.statusText = statusText;
+        }
+
+        public int getStatus() {
+            return status;
+        }
+
+        public String getStatusText() {
+            return statusText;
+        }
+
+        public static CertStatusEnum fromStatus(int status) {
+            for(CertStatusEnum element: CertStatusEnum.values()) {
+                if (status == element.getStatus()) {
+                    return element;
+                }
+            }
+            return null;
+        }
+
+        public static CertStatusEnum fromStatusText(String statusText) {
+            for(CertStatusEnum element: CertStatusEnum.values()) {
+                if (statusText.equals(element.getStatusText())) {
+                    return element;
+                }
+            }
+            return null;
+        }
+    }
+
+
 
 }
