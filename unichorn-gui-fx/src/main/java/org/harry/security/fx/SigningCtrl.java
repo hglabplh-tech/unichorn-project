@@ -11,6 +11,8 @@ import org.harry.security.util.algoritms.CryptoAlg;
 import org.harry.security.util.algoritms.DigestAlg;
 import org.harry.security.util.algoritms.SignatureAlg;
 import org.harry.security.util.bean.SigningBean;
+import org.harry.security.util.certandkey.GSON;
+import org.harry.security.util.httpclient.HttpClientConnection;
 
 import javax.activation.DataSource;
 import java.io.File;
@@ -84,20 +86,33 @@ public class SigningCtrl implements ControllerInit {
 
     }
 
-    private void sign() throws IOException {
+    private void sign() throws Exception {
 
         SigningBean bean = SecHarry.contexts.get();
         bean = filloutBean(bean);
         SigningUtil util = new SigningUtil();
         if(bean.getAction().equals(CMSSigner.Commands.SIGN)) {
-            if (bean.getSignatureType().equals(SigningBean.SigningType.CMS)) {
-                DataSource outSrc = util.signCMS(bean);
-                util.writeToFile(outSrc, bean);
-            } else if (bean.getSignatureType().equals(SigningBean.SigningType.CAdES)) {
-                DataSource outSrc = util.signCAdES(
-                        bean, true);
-                util.writeToFile(outSrc, bean);
+            GSON.Params params = new GSON.Params();
+            GSON.Signing signing = new GSON.Signing();
+            params.signing = signing;
+            params.parmType = "docSign";
+            params.signing.signatureType = bean.getSignatureType().name();
+            params.signing.mode = bean.getSigningMode().getMode();
+            if ( bean.getSignatureAlgorithm() != null) {
+                params.signing.signatureAlgorithm = bean.getSignatureAlgorithm().getName();
             }
+            if (bean.getDigestAlgorithm() != null) {
+                params.signing.digestAlgorithm = bean.getDigestAlgorithm().getName();
+            }
+            if (bean.getSignatureType().equals(SigningBean.SigningType.CAdES)) {
+                GSON.SigningCAdES cades = new GSON.SigningCAdES();
+                params.signing.cadesParams = cades;
+                params.signing.cadesParams.TSAURL = bean.getTspURL();
+                params.signing.cadesParams.addArchiveinfo = false;
+            }
+            HttpClientConnection
+                    .sendDocSigningRequest(bean.getDataIN(),
+                            params, new File(bean.getOutputPath()));
         } else if (bean.getAction().equals(CMSSigner.Commands.ENCRYPT_SIGN)) {
             DataSource outSrc = util.encryptAndSign(bean);
             util.writeToFile(outSrc, bean);

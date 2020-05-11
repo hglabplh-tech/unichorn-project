@@ -37,4 +37,15 @@ public enum DigestAlg {
     public ObjectID getAoid() {
         return aoid;
     }
+
+    public static DigestAlg getFromName(String name) {
+        if (name != null) {
+            for (DigestAlg alg : DigestAlg.values()) {
+                if (alg.getName().equals(name)) {
+                    return alg;
+                }
+            }
+        }
+        return null;
+    }
 }

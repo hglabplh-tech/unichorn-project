@@ -17,6 +17,8 @@ import org.apache.commons.io.IOUtils;
 import org.harry.security.util.CertificateWizzard;
 import org.harry.security.util.SigningUtil;
 import org.harry.security.util.Tuple;
+import org.harry.security.util.algoritms.DigestAlg;
+import org.harry.security.util.algoritms.SignatureAlg;
 import org.harry.security.util.bean.SigningBean;
 import org.harry.security.util.certandkey.CertWriterReader;
 import org.harry.security.util.certandkey.GSON;
@@ -243,77 +245,93 @@ public class SigningResponder extends HttpServlet {
 
 
     private void docSigning(HttpServletRequest servletRequest, HttpServletResponse servletResponse, GSON.Params jInput) throws KeyStoreException, IOException, ServletException {
-        Logger.trace("read params....");
-        String sigType = jInput.signing.signatureType;
-        Logger.trace("type is: " + sigType);
-        int mode = jInput.signing.mode;
-        Logger.trace("mode is: " + mode);
-        SigningBean.Mode smode;
-        if (mode == SignedData.EXPLICIT) {
-            smode = SigningBean.Mode.EXPLICIT;
-        } else {
-            smode = SigningBean.Mode.IMPLICIT;
-        }
-        File signStore = new File(APP_DIR, PROP_SIGNSTORE);
-        boolean found = false;
-        String foundID = null;
-        KeyStore store = null;
-        String password = decryptPassword("pwdFile");
-        if (signStore.exists()) {
-            password = "changeit";
-            store = KeyStoreTool
-                    .loadStore(new FileInputStream(signStore), "changeit".toCharArray(), "PKCS12");
-            Enumeration<String> aliases = store.aliases();
-            if (aliases.hasMoreElements()) {
-                foundID = aliases.nextElement();
-                found = true;
-            }
-        } else {
-            File keyFile = new File(UnicHornResponderUtil.APP_DIR_TRUST, "privKeystore" + ".p12");
-            Logger.trace("CRL list file is: " + keyFile.getAbsolutePath());
+       try {
+           Logger.trace("read params....");
+           String sigType = jInput.signing.signatureType;
+           Logger.trace("type is: " + sigType);
+           int mode = jInput.signing.mode;
+           String sigAlg = jInput.signing.signatureAlgorithm;
+           String digestAlg = jInput.signing.digestAlgorithm;
+           Logger.trace("mode is: " + mode);
+           SigningBean.Mode smode;
+           if (mode == SignedData.EXPLICIT) {
+               smode = SigningBean.Mode.EXPLICIT;
+           } else {
+               smode = SigningBean.Mode.IMPLICIT;
+           }
+           File signStore = new File(APP_DIR, PROP_SIGNSTORE);
+           boolean found = false;
+           String foundID = null;
+           KeyStore store = null;
+           String password = decryptPassword("pwdFile");
+           if (signStore.exists()) {
+               password = "changeit";
+               store = KeyStoreTool
+                       .loadStore(new FileInputStream(signStore), "changeit".toCharArray(), "PKCS12");
+               Enumeration<String> aliases = store.aliases();
+               if (aliases.hasMoreElements()) {
+                   foundID = aliases.nextElement();
+                   found = true;
+               }
+           } else {
+               File keyFile = new File(UnicHornResponderUtil.APP_DIR_TRUST, "privKeystore" + ".p12");
+               Logger.trace("CRL list file is: " + keyFile.getAbsolutePath());
 
-            store = KeyStoreTool
-                    .loadStore(new FileInputStream(keyFile), password.toCharArray(), "PKCS12");
-            Enumeration<String> aliases = store.aliases();
-            while (aliases.hasMoreElements() && !found) {
-                String alias = aliases.nextElement();
-                if (alias.contains("User")) {
-                    Logger.trace("Alias found is:" + alias);
-                    found = true;
-                    foundID = alias;
-                }
-            }
-        }
-        if (found) {
-            Logger.trace("Read keys");
-            Tuple<PrivateKey, X509Certificate[]> keys =
-                    KeyStoreTool.getKeyEntry(store, foundID, password.toCharArray());
-            CertWriterReader.KeyStoreBean bean =
-                    new CertWriterReader.KeyStoreBean(keys.getSecond(), keys.getFirst());
-            Logger.trace("Before signing with:" + sigType + " and " + smode.getMode());
-            Part part = servletRequest.getPart("data_to_sign");
-            SigningBean signingBean = new SigningBean()
-                    .setDataIN(part.getInputStream())
-                    .setSigningMode(smode)
-                    .setKeyStoreBean(bean);
-            SigningUtil util = new SigningUtil();
-            DataSource ds = null;
-            if (sigType.equals("CMS")) {
-                Logger.trace("Sign CMS");
-                ds = util.signCMS(signingBean);
-                IOUtils.copy(ds.getInputStream(), servletResponse.getOutputStream());
-                servletResponse.setStatus(Response.Status.CREATED.getStatusCode());
-                Logger.trace("Signed CMS");
-            } else {
-                Logger.trace("Sign CAdES");
-                ds = util.signCAdES(signingBean, false);
-                IOUtils.copy(ds.getInputStream(), servletResponse.getOutputStream());
-                servletResponse.setStatus(Response.Status.CREATED.getStatusCode());
-                Logger.trace("Signed CAdES");
-            }
-        } else {
-            servletResponse.setStatus(Response.Status.BAD_REQUEST.getStatusCode());
-        }
+               store = KeyStoreTool
+                       .loadStore(new FileInputStream(keyFile), password.toCharArray(), "PKCS12");
+               Enumeration<String> aliases = store.aliases();
+               while (aliases.hasMoreElements() && !found) {
+                   String alias = aliases.nextElement();
+                   if (alias.contains("User")) {
+                       Logger.trace("Alias found is:" + alias);
+                       found = true;
+                       foundID = alias;
+                   }
+               }
+           }
+           if (found) {
+               Logger.trace("Read keys");
+               Tuple<PrivateKey, X509Certificate[]> keys =
+                       KeyStoreTool.getKeyEntry(store, foundID, password.toCharArray());
+               CertWriterReader.KeyStoreBean bean =
+                       new CertWriterReader.KeyStoreBean(keys.getSecond(), keys.getFirst());
+               Logger.trace("Before signing with:" + sigType + " and " + smode.getMode());
+               Part part = servletRequest.getPart("data_to_sign");
+               SigningBean signingBean = new SigningBean()
+                       .setDataIN(part.getInputStream())
+                       .setDigestAlgorithm(DigestAlg.getFromName(digestAlg))
+                       .setSignatureAlgorithm(SignatureAlg.getFromName(sigAlg))
+                       .setSigningMode(smode)
+                       .setKeyStoreBean(bean);
+               SigningUtil util = new SigningUtil();
+               DataSource ds = null;
+               if (sigType.equals("CMS")) {
+                   Logger.trace("Sign CMS");
+                   ds = util.signCMS(signingBean);
+                   IOUtils.copy(ds.getInputStream(), servletResponse.getOutputStream());
+                   servletResponse.setStatus(Response.Status.CREATED.getStatusCode());
+                   Logger.trace("Signed CMS");
+               } else {
+                   Logger.trace("Sign CAdES");
+                   String url = null;
+                   boolean setArchiveInfo = false;
+                   if (jInput.signing.cadesParams != null) {
+                       url = jInput.signing.cadesParams.TSAURL;
+                       setArchiveInfo = jInput.signing.cadesParams.addArchiveinfo;
+                   }
+                   signingBean = signingBean.setTspURL(url);
+                   ds = util.signCAdES(signingBean, setArchiveInfo);
+                   IOUtils.copy(ds.getInputStream(), servletResponse.getOutputStream());
+                   servletResponse.setStatus(Response.Status.CREATED.getStatusCode());
+                   Logger.trace("Signed CAdES");
+               }
+           } else {
+               servletResponse.setStatus(Response.Status.BAD_REQUEST.getStatusCode());
+           }
+       } catch (Exception ex) {
+           Logger.trace("error during document signing " + ex.getMessage());
+           Logger.trace(ex);
+       }
     }
 
     public static void saveAppProperties(HttpServletRequest servletRequest,

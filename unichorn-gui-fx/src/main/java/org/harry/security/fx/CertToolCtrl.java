@@ -65,9 +65,9 @@ public class CertToolCtrl implements ControllerInit {
             Tuple<PrivateKey, X509Certificate[]> keys = KeyStoreTool
                     .getKeyEntry(store, alias, passwd.getText().toCharArray());
             bean = new CertWriterReader.KeyStoreBean(keys.getSecond(), keys.getFirst());
-            dataInputStream = new FileInputStream(dataInput);
-            outPathString = outFile.getAbsolutePath();
         }
+        dataInputStream = new FileInputStream(dataInput);
+        outPathString = outFile.getAbsolutePath();
         signingBean.setKeyStoreBean(bean)
                 .setAction(action)
                 .setDataINFile(dataInput)

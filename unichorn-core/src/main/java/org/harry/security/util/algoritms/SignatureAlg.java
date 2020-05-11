@@ -78,4 +78,15 @@ public enum SignatureAlg {
     public ObjectID getAoid() {
         return aoid;
     }
+
+    public static SignatureAlg getFromName(String name) {
+        if (name != null) {
+            for (SignatureAlg alg : SignatureAlg.values()) {
+                if (alg.getName().equals(name)) {
+                    return alg;
+                }
+            }
+        }
+        return null;
+    }
 }

@@ -26,11 +26,13 @@
         <dependency>
             <groupId>iaik</groupId>
             <artifactId>iaik-jce-full-ima-license-trustedlib-unlimited</artifactId>
+            <scope>compile</scope>
         </dependency>
 
         <dependency>
             <groupId>iaik</groupId>
             <artifactId>iaik-cms-ima-license</artifactId>
+            <scope>compile</scope>
         </dependency>
 
         <dependency>
@@ -42,36 +44,43 @@
         <dependency>
             <groupId>iaik</groupId>
             <artifactId>iaik-pades-ima-license</artifactId>
+            <scope>compile</scope>
         </dependency>
 
         <dependency>
             <groupId>iaik</groupId>
             <artifactId>iaik-eccelerate-ima-license</artifactId>
+            <scope>compile</scope>
         </dependency>
 
         <dependency>
             <groupId>iaik</groupId>
             <artifactId>iaik-eccelerate-addon-ima-license</artifactId>
+            <scope>compile</scope>
         </dependency>
 
         <dependency>
             <groupId>iaik</groupId>
             <artifactId>iaik-eccelerate-cms-ima-license</artifactId>
+            <scope>compile</scope>
         </dependency>
 
         <dependency>
             <groupId>iaik</groupId>
             <artifactId>iaik-eccelerate-ssl-ima-license</artifactId>
+            <scope>compile</scope>
         </dependency>
 
         <dependency>
             <groupId>iaik</groupId>
             <artifactId>iaik-xsect-ima-license</artifactId>
+            <scope>compile</scope>
         </dependency>
 
         <dependency>
             <groupId>iaik</groupId>
             <artifactId>iaik-xades-ima-license</artifactId>
+            <scope>compile</scope>
         </dependency>
 
         <!-- https://mvnrepository.com/artifact/com.google.code.gson/gson -->

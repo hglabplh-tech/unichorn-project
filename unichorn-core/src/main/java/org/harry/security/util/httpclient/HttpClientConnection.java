@@ -1,19 +1,23 @@
 package org.harry.security.util.httpclient;
 
+import com.google.gson.Gson;
 import org.apache.commons.io.IOUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpPut;
+import org.apache.http.entity.ContentType;
 import org.apache.http.entity.InputStreamEntity;
+import org.apache.http.entity.mime.MultipartEntityBuilder;
+import org.apache.http.entity.mime.content.InputStreamBody;
+import org.apache.http.entity.mime.content.StringBody;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
+import org.harry.security.util.certandkey.GSON;
 
 import javax.xml.ws.Response;
-import java.io.ByteArrayInputStream;
-import java.io.FileOutputStream;
-import java.io.InputStream;
-import java.io.OutputStream;
+import java.io.*;
 import java.net.URL;
 import java.util.Base64;
 import java.util.Vector;
@@ -77,5 +81,31 @@ public class HttpClientConnection {
         HttpEntity entity = new InputStreamEntity(data);
         put.setEntity(entity);
         CloseableHttpResponse response = httpClient.execute(put);
+    }
+
+    public static void sendDocSigningRequest(InputStream data, GSON.Params params, File output) throws Exception {
+        URL ocspUrl= new URL("http://localhost:8080/unichorn-responder-1.0-SNAPSHOT/rest/signing");
+        CloseableHttpClient httpClient = HttpClients.createDefault();
+        System.out.println("Responder URL: " + ocspUrl.toString());
+        HttpPost post = new HttpPost(ocspUrl.toURI());
+        Gson gson = new Gson();
+        String jsonString = gson.toJson(params);
+        StringBody json = new StringBody(jsonString, ContentType.APPLICATION_JSON);
+        InputStreamBody input = new InputStreamBody(data, ContentType.APPLICATION_OCTET_STREAM);
+        System.err.println(params.toString());
+        MultipartEntityBuilder builder =MultipartEntityBuilder.create()
+                .addPart("params",
+                        json)
+                .addPart("data_to_sign", input);
+
+        post.setEntity(builder.build());
+        CloseableHttpResponse response = httpClient.execute(post);
+        if (response.getStatusLine().getStatusCode() == 200
+        || response.getStatusLine().getStatusCode() == 201) {
+            InputStream result = response.getEntity().getContent();
+            IOUtils.copy(result, new FileOutputStream(output));
+
+        }
+
     }
 }

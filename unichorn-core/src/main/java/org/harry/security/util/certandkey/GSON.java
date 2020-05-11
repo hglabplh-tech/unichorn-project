@@ -9,5 +9,14 @@ public class GSON {
     public static class Signing {
         public String signatureType = null;
         public int    mode = 0;
+        public String signatureAlgorithm = null;
+        public String digestAlgorithm = null;
+        public SigningCAdES cadesParams = null;
+
+    }
+
+    public static class SigningCAdES {
+        public String TSAURL;
+        public boolean addArchiveinfo = false;
     }
 }

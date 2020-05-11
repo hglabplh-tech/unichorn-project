@@ -88,28 +88,38 @@ public class SigningUtil {
         try {
 
             CadesBESParameters params;
+            Logger.trace("set tsa parameters " + signingBean.getTspURL());
             if (signingBean.getTspURL() != null) {
+                Logger.trace("really set the parameters");
                 params = new CadesTParameters(signingBean.getTspURL(), null, null);
+                Logger.trace("set second parameter");
                 params.addContentTimestampProps(signingBean.getTspURL(), null, null);
+                Logger.trace("really set the params success");
             } else {
+                Logger.trace("set nothing ");
                 params = new CadesBESParameters();
 
             }
+            Logger.trace("set digest algorithm parameters");
             if (signingBean.getDigestAlgorithm() != null) {
                 params.setDigestAlgorithm(signingBean.getDigestAlgorithm().getAlgId().getImplementationName());
             }
+            Logger.trace("set signature algorithm parameters");
             if (signingBean.getSignatureAlgorithm() != null) {
                 params.setSignatureAlgorithm(signingBean.getSignatureAlgorithm().getAlgId().getImplementationName());
             }
+            Logger.trace("get store bean");
             X509Certificate [] signer = new X509Certificate[1];
             signer = signingBean.getKeyStoreBean().getChain();
             int mode = signingBean.getSigningMode().getMode();
 
             InputStream stream = signingBean.getDataIN();
+            Logger.trace("Create signature Stream");
             CadesSignatureStream signatureStream = new CadesSignatureStream(stream, mode);
             signatureStream.addSignerInfo(signingBean.getKeyStoreBean().getSelectedKey(),
                     signer, params);
             ByteArrayOutputStream out = new ByteArrayOutputStream();
+            Logger.trace("Encode signature Stream");
             signatureStream.encodeSignature(out);
             ByteArrayInputStream  in = new ByteArrayInputStream(out.toByteArray());
             DataSource ds = new InputStreamDataSource(in);
@@ -119,8 +129,9 @@ public class SigningUtil {
                ds = upgradeSignature(signingBean, ds);
             }
             return ds;
-        } catch (Exception e) {
-            throw new IllegalStateException("error occured", e);
+        } catch (Exception ex) {
+            Logger.trace("Error happened " + ex.getMessage() +" type " +ex.getClass().getCanonicalName());
+            throw new IllegalStateException("error occured", ex);
         }
     }
 
