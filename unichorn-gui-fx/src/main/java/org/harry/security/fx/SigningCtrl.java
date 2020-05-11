@@ -3,6 +3,7 @@ package org.harry.security.fx;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.Scene;
+import javafx.scene.control.CheckBox;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.TextField;
 import org.harry.security.CMSSigner;
@@ -20,8 +21,7 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 
-import static org.harry.security.fx.util.Miscellaneous.getComboBoxByFXID;
-import static org.harry.security.fx.util.Miscellaneous.getTextFieldByFXID;
+import static org.harry.security.fx.util.Miscellaneous.*;
 
 public class SigningCtrl implements ControllerInit {
 
@@ -87,7 +87,8 @@ public class SigningCtrl implements ControllerInit {
     }
 
     private void sign() throws Exception {
-
+        CheckBox archiveInfo = getCheckBoxByFXID("archiveInfo");
+        boolean addArchiveInfo = archiveInfo.isSelected();
         SigningBean bean = SecHarry.contexts.get();
         bean = filloutBean(bean);
         SigningUtil util = new SigningUtil();
@@ -108,7 +109,7 @@ public class SigningCtrl implements ControllerInit {
                 GSON.SigningCAdES cades = new GSON.SigningCAdES();
                 params.signing.cadesParams = cades;
                 params.signing.cadesParams.TSAURL = bean.getTspURL();
-                params.signing.cadesParams.addArchiveinfo = false;
+                params.signing.cadesParams.addArchiveinfo = addArchiveInfo;
             }
             HttpClientConnection
                     .sendDocSigningRequest(bean.getDataIN(),

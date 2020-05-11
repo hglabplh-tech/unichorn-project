@@ -196,8 +196,8 @@ public class VerifyUtil {
                                     new Tuple<>(signCert.getSubjectDN().getName(), Outcome.SUCCESS));
                         }
                         j++;
+                        cadesExtractTimestampAndData(results, cadesSig);
                     }
-                    cadesExtractTimestampAndData(results, cadesSig);
                 } catch (Exception ex) {
                     throw new IllegalStateException("failure", ex);
                 }
@@ -498,7 +498,7 @@ public class VerifyUtil {
             ArchiveTimeStampv3[] archiveTsps = cadesSig.getArchiveTimeStamps(signerCert);
             for (ArchiveTimeStampv3 tsp : archiveTsps) {
                 tsp.verifyTimeStampToken(null);
-                results.addSignatureResult("archive timestamp vedrified", new Tuple<String, Outcome>(tsp.getName(),
+                results.addSignatureResult("archive timestamp verified", new Tuple<String, Outcome>(tsp.getName(),
                         Outcome.SUCCESS));
                 System.out.println("Archive time-stamp signature verified successfully.");
                 AbstractAtsHashIndex dataReferences = tsp.getAtsHashIndex();

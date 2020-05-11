@@ -48,6 +48,7 @@
             <Label text="Timestamp Authority" GridPane.rowIndex="7" />
             <Label text="The following Values are CAdES only" GridPane.columnSpan="2" GridPane.rowIndex="6" />
             <ComboBox fx:id="tspField" prefHeight="25.0" prefWidth="150.0" GridPane.columnIndex="1" GridPane.rowIndex="7" />
+            <CheckBox fx:id="archiveInfo" mnemonicParsing="false" text="Add Archive Info" GridPane.columnIndex="2" GridPane.rowIndex="7" />
          </children>
       </GridPane>
    </children>

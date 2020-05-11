@@ -297,8 +297,13 @@ public class SigningResponder extends HttpServlet {
                        new CertWriterReader.KeyStoreBean(keys.getSecond(), keys.getFirst());
                Logger.trace("Before signing with:" + sigType + " and " + smode.getMode());
                Part part = servletRequest.getPart("data_to_sign");
+               File tempData =File.createTempFile("data", ".dat");
+               FileOutputStream tempOut = new FileOutputStream(tempData);
+               IOUtils.copy(part.getInputStream(), tempOut);
+               tempOut.close();
                SigningBean signingBean = new SigningBean()
                        .setDataIN(part.getInputStream())
+                       .setDataINFile(tempData)
                        .setDigestAlgorithm(DigestAlg.getFromName(digestAlg))
                        .setSignatureAlgorithm(SignatureAlg.getFromName(sigAlg))
                        .setSigningMode(smode)
