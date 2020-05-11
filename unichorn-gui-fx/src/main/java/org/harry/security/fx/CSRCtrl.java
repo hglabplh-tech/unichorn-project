@@ -19,11 +19,12 @@ import java.security.KeyStore;
 import java.security.PrivateKey;
 import java.util.Enumeration;
 
-import static org.harry.security.fx.util.Miscellaneous.getTextAreaByFXID;
-import static org.harry.security.fx.util.Miscellaneous.getTextFieldByFXID;
+import static org.harry.security.fx.util.Miscellaneous.*;
 
 
 public class CSRCtrl implements ControllerInit{
+
+    File p12Store;
     @Override
     public Scene init() {
         return null;
@@ -32,9 +33,9 @@ public class CSRCtrl implements ControllerInit{
     @FXML
     public void sendCSR(ActionEvent event) throws Exception {
         Name subject = createSubject();
-        File p12Temp = File.createTempFile("newCert", ".p12");
-        CSRHandler.signCert(subject, p12Temp.getAbsolutePath());
-        KeyStore store = KeyStoreTool.loadStore(new FileInputStream(p12Temp),
+        p12Store = showSaveDialogFromButton(event,null);
+        CSRHandler.signCert(subject, p12Store.getAbsolutePath());
+        KeyStore store = KeyStoreTool.loadStore(new FileInputStream(p12Store),
                 "changeit".toCharArray(), "PKCS12");
         Enumeration<String> aliases = store.aliases();
         String alias = aliases.nextElement();
@@ -43,6 +44,14 @@ public class CSRCtrl implements ControllerInit{
         TextArea area = getTextAreaByFXID("cert_descr");
         area.setText(tuple.getSecond()[0].toString(true));
     }
+
+    @FXML
+    public void setSigning(ActionEvent event) throws Exception  {
+        if (p12Store != null) {
+            CSRHandler.setSigningCert(p12Store);
+        }
+    }
+
 
     @FXML
     public void back(ActionEvent event) throws IOException  {

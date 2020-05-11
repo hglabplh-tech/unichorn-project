@@ -106,12 +106,13 @@ public class Miscellaneous {
         Window parent = ((Node)event.getTarget()).getScene().getWindow();
         File file = fDialog.showSaveDialog(parent);
         if (file != null) {
-            TextField inputField = getTextFieldByFXID(fxId);
-            if (inputField != null) {
-                inputField.setText(file.getAbsolutePath());
-                return file;
-
+            if (fxId != null) {
+                TextField inputField = getTextFieldByFXID(fxId);
+                if (inputField != null) {
+                    inputField.setText(file.getAbsolutePath());
+                }
             }
+            return file;
         }
         return null;
     }

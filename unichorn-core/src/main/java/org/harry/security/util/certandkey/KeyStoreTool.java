@@ -2,6 +2,7 @@ package org.harry.security.util.certandkey;
 
 import iaik.asn1.structures.AlgorithmID;
 import iaik.security.provider.IAIK;
+import iaik.utils.Util;
 import iaik.x509.X509Certificate;
 import org.harry.security.CMSSigner;
 import org.harry.security.util.Tuple;
@@ -19,14 +20,13 @@ import java.security.KeyStore;
 import java.security.PrivateKey;
 import java.security.Security;
 import java.security.cert.Certificate;
+import java.util.Enumeration;
 
 public class KeyStoreTool {
 
     public static String APP_DIR;
 
     public static final String KEYSTORE_FNAME = "application.p12";
-
-    public static final String ALIAS = "b998b1f7-04fe-42c6-8284-9fb21e604b60UserRSA";
 
 
     static {
@@ -123,17 +123,22 @@ public class KeyStoreTool {
     public static Tuple<PrivateKey, X509Certificate[]> getAppKeyEntry(KeyStore store) {
         try {
 
+            String foundID = null;
+            boolean found = false;
             Tuple<PrivateKey, X509Certificate[]> result;
-            if (store.containsAlias(ALIAS)) {
-                Certificate[] certChain = store.getCertificateChain(ALIAS);
-                X509Certificate [] iaiks = new X509Certificate[certChain.length];
-                int index = 0;
-                for (Certificate thisCert: certChain) {
-                    X509Certificate iaik = new X509Certificate(thisCert.getEncoded());
-                    iaiks[index] = iaik;
-                    index++;
+            Enumeration<String> aliases = store.aliases();
+            while (aliases.hasMoreElements() && !found) {
+                String alias = aliases.nextElement();
+                if (alias.contains("User")) {
+                    Logger.trace("Alias found is:" + alias);
+                    found = true;
+                    foundID = alias;
                 }
-                PrivateKey key = (PrivateKey)store.getKey(ALIAS, "geheim".toCharArray());
+            }
+            if (found && store.containsAlias(foundID)) {
+                Certificate[] certChain = store.getCertificateChain(foundID);
+                X509Certificate [] iaiks = Util.convertCertificateChain(certChain);
+                PrivateKey key = (PrivateKey)store.getKey(foundID, "geheim".toCharArray());
                 result = new Tuple<PrivateKey, X509Certificate[]>(key, iaiks);
             } else {
                 throw new IllegalStateException("get entry failed");

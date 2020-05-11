@@ -16,7 +16,9 @@ import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.entity.ContentType;
+import org.apache.http.entity.FileEntity;
 import org.apache.http.entity.mime.MultipartEntityBuilder;
+import org.apache.http.entity.mime.content.FileBody;
 import org.apache.http.entity.mime.content.InputStreamBody;
 import org.apache.http.entity.mime.content.StringBody;
 import org.apache.http.impl.client.CloseableHttpClient;
@@ -68,6 +70,96 @@ public class CSRHandler {
         IOUtils.copy(response.getEntity().getContent(), stream);
 
     }
+
+    public static void setSigningCert(File keyStore) throws Exception {
+        URL ocspUrl= new URL("http://localhost:8080/unichorn-responder-1.0-SNAPSHOT/rest/signing");
+        // create closable http client and assign the certificate interceptor
+        CloseableHttpClient httpClient = HttpClients.createDefault();
+        System.out.println("Responder URL: " + ocspUrl.toString());
+        GSON.Params param = new GSON.Params();
+        param.parmType = "setSigningStore";
+        Gson gson = new Gson();
+        HttpPost post = new HttpPost(ocspUrl.toURI());
+        String jsonString = gson.toJson(param);
+        StringBody json = new StringBody(jsonString, ContentType.APPLICATION_JSON);
+        FileBody fileBody = new FileBody(keyStore);
+
+        MultipartEntityBuilder builder = MultipartEntityBuilder.create()
+                .addPart("params",
+                        json)
+                .addPart("data_to_sign", fileBody);
+
+        System.err.println(param.toString());
+        post.setEntity(builder.build());
+        CloseableHttpResponse response = httpClient.execute(post);
+    }
+
+    public static void setAppProperties(File propFile) throws Exception {
+        URL ocspUrl= new URL("http://localhost:8080/unichorn-responder-1.0-SNAPSHOT/rest/signing");
+        // create closable http client and assign the certificate interceptor
+        CloseableHttpClient httpClient = HttpClients.createDefault();
+        System.out.println("Responder URL: " + ocspUrl.toString());
+        GSON.Params param = new GSON.Params();
+        param.parmType = "saveProps";
+        Gson gson = new Gson();
+        HttpPost post = new HttpPost(ocspUrl.toURI());
+        String jsonString = gson.toJson(param);
+        StringBody json = new StringBody(jsonString, ContentType.APPLICATION_JSON);
+        FileBody fileBody = new FileBody(propFile);
+
+        MultipartEntityBuilder builder = MultipartEntityBuilder.create()
+                .addPart("params",
+                        json)
+                .addPart("data_to_sign", fileBody);
+
+        System.err.println(param.toString());
+        post.setEntity(builder.build());
+        CloseableHttpResponse response = httpClient.execute(post);
+    }
+
+    public static void initAppKeystore() throws Exception {
+        URL ocspUrl= new URL("http://localhost:8080/unichorn-responder-1.0-SNAPSHOT/rest/signing");
+        // create closable http client and assign the certificate interceptor
+        CloseableHttpClient httpClient = HttpClients.createDefault();
+        System.out.println("Responder URL: " + ocspUrl.toString());
+        GSON.Params param = new GSON.Params();
+        param.parmType = "initKeys";
+        Gson gson = new Gson();
+        HttpPost post = new HttpPost(ocspUrl.toURI());
+        String jsonString = gson.toJson(param);
+        StringBody json = new StringBody(jsonString, ContentType.APPLICATION_JSON);
+
+
+        MultipartEntityBuilder builder = MultipartEntityBuilder.create()
+                .addPart("params",
+                        json);
+        System.err.println(param.toString());
+        post.setEntity(builder.build());
+        CloseableHttpResponse response = httpClient.execute(post);
+    }
+
+    public static void resignCRL() throws Exception {
+        URL ocspUrl= new URL("http://localhost:8080/unichorn-responder-1.0-SNAPSHOT/rest/signing");
+        // create closable http client and assign the certificate interceptor
+        CloseableHttpClient httpClient = HttpClients.createDefault();
+        System.out.println("Responder URL: " + ocspUrl.toString());
+        GSON.Params param = new GSON.Params();
+        param.parmType = "resignCRL";
+        Gson gson = new Gson();
+        HttpPost post = new HttpPost(ocspUrl.toURI());
+        String jsonString = gson.toJson(param);
+        StringBody json = new StringBody(jsonString, ContentType.APPLICATION_JSON);
+
+
+        MultipartEntityBuilder builder = MultipartEntityBuilder.create()
+                .addPart("params",
+                        json);
+        System.err.println(param.toString());
+        post.setEntity(builder.build());
+        CloseableHttpResponse response = httpClient.execute(post);
+    }
+
+
 
     public static InputStream createCertificateRequestStream(Name subject, KeyPair pair, String password) throws Exception {
 

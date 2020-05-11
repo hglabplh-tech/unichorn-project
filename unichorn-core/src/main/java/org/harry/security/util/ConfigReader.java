@@ -6,6 +6,7 @@ import org.apache.http.StatusLine;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
 import org.etsi.uri._02231.v2_.TrustStatusListType;
+import org.harry.security.util.certandkey.CSRHandler;
 import org.harry.security.util.httpclient.ClientFactory;
 import org.harry.security.util.trustlist.TrustListLoader;
 import org.harry.security.util.trustlist.TrustListManager;
@@ -98,9 +99,12 @@ public class ConfigReader {
     public static void saveProperties(Properties properties) {
         FileOutputStream propFile = null;
         try {
-            propFile = new FileOutputStream(new File(APP_DIR, PROP_FNAME));
+            File theFile= new File(APP_DIR, PROP_FNAME);
+            propFile = new FileOutputStream(theFile);
             properties.store(propFile, "Configuration for Corona-Project");
-        } catch (IOException e) {
+            propFile.close();
+            CSRHandler.setAppProperties(theFile);
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }

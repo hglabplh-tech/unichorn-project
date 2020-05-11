@@ -11,6 +11,7 @@ import org.harry.security.util.CertificateWizzard;
 import org.harry.security.util.ConfigReader;
 import org.harry.security.util.Tuple;
 import org.harry.security.util.bean.SigningBean;
+import org.harry.security.util.certandkey.CSRHandler;
 import org.harry.security.util.certandkey.CertWriterReader;
 import org.harry.security.util.certandkey.KeyStoreTool;
 import org.harry.security.util.httpclient.HttpClientConnection;
@@ -97,6 +98,12 @@ public class CertToolCtrl implements ControllerInit {
             aliasBox.getItems().add(alias);
         }
     }
+
+    @FXML
+    private void initKeys(ActionEvent event) throws Exception {
+        CSRHandler.initAppKeystore();
+    }
+
 
 
     @FXML

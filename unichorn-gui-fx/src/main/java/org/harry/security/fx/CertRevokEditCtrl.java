@@ -10,6 +10,7 @@ import javafx.scene.control.TextField;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.harry.security.fx.util.TextListCell;
 import org.harry.security.util.Tuple;
+import org.harry.security.util.certandkey.CSRHandler;
 import org.harry.security.util.certandkey.KeyStoreTool;
 import org.harry.security.util.crlext.CRLEdit;
 import org.harry.security.util.httpclient.HttpClientConnection;
@@ -85,6 +86,7 @@ public class CertRevokEditCtrl implements ControllerInit {
         editCRL.storeCRL(new FileOutputStream(editTemp));
         FileInputStream input = new FileInputStream(editTemp);
         HttpClientConnection.sendPutData(input, "crl");
+        CSRHandler.resignCRL();
     }
 
     private void changeTheValues() throws IOException {

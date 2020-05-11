@@ -8,6 +8,7 @@ import iaik.pkcs.pkcs10.CertificateRequest;
 import iaik.pkcs.pkcs8.EncryptedPrivateKeyInfo;
 import iaik.pkcs.pkcs9.ChallengePassword;
 import iaik.pkcs.pkcs9.ExtensionRequest;
+import iaik.x509.X509CRL;
 import iaik.x509.X509Certificate;
 import iaik.x509.extensions.KeyUsage;
 import iaik.x509.extensions.SubjectKeyIdentifier;
@@ -37,6 +38,8 @@ import java.security.PublicKey;
 import java.util.*;
 
 import static harry.security.responder.resources.UnicHornResponderUtil.*;
+import static org.harry.security.util.CertificateWizzard.PROP_STORE_NAME;
+import static org.harry.security.util.CertificateWizzard.PROP_TRUST_NAME;
 
 @WebServlet
 @MultipartConfig(
@@ -50,6 +53,10 @@ public class SigningResponder extends HttpServlet {
 
 
     public static final String ALIAS = "b998b1f7-04fe-42c6-8284-9fb21e604b60UserRSA";
+
+    public static final String PROP_FNAME = "application.properties";
+
+    public static final String PROP_SIGNSTORE = "signStore.p12";
 
 
 
@@ -92,12 +99,25 @@ public class SigningResponder extends HttpServlet {
 
    try {
        GSON.Params jInput = readJSon(servletRequest);
-       if(jInput.parmType.equals("docSign")) {
+       if (jInput.parmType.equals("docSign")) {
            docSigning(servletRequest, servletResponse, jInput);
        } else if (jInput.parmType.equals("certSign")) {
-            certSigning(servletRequest, servletResponse, jInput);
+           certSigning(servletRequest, servletResponse, jInput);
+       } else if (jInput.parmType.equals("saveProps")) {
+           saveAppProperties(servletRequest, servletResponse, jInput);
+       } else if(jInput.parmType.equals("initKeys")) {
+           File keystore = new File(APP_DIR, PROP_STORE_NAME);
+           File keystoreEC = new File(APP_DIR, PROP_STORE_NAME + "_EC");
+           File trustFile = new File(APP_DIR_TRUST, PROP_TRUST_NAME);
+           keystore.delete();
+           keystoreEC.delete();
+           trustFile.delete();
+           CertificateWizzard.initThis();
+       } else if(jInput.parmType.equals("setSigningStore")) {
+           saveSignKeyStore(servletRequest, servletResponse, jInput);
+        } else if(jInput.parmType.equals("resignCRL")) {
+           resignCRL(servletResponse);
        }
-
         } catch (Exception ex) {
             servletResponse.setStatus(Response.Status.INTERNAL_SERVER_ERROR.getStatusCode());
             Logger.trace("Error Message is:" + ex.getMessage());
@@ -234,20 +254,34 @@ public class SigningResponder extends HttpServlet {
         } else {
             smode = SigningBean.Mode.IMPLICIT;
         }
-        File keyFile = new File(UnicHornResponderUtil.APP_DIR_TRUST, "privKeystore" + ".p12");
-        Logger.trace("CRL list file is: " + keyFile.getAbsolutePath());
-        String password = decryptPassword("pwdFile");
-        KeyStore store = KeyStoreTool
-                .loadStore(new FileInputStream(keyFile), password.toCharArray(), "PKCS12");
-        Enumeration<String> aliases = store.aliases();
+        File signStore = new File(APP_DIR, PROP_SIGNSTORE);
         boolean found = false;
         String foundID = null;
-        while (aliases.hasMoreElements() && !found) {
-            String alias = aliases.nextElement();
-            if (alias.contains("user")) {
-                Logger.trace("Alias found is:" + alias);
+        KeyStore store = null;
+        String password = decryptPassword("pwdFile");
+        if (signStore.exists()) {
+            password = "changeit";
+            store = KeyStoreTool
+                    .loadStore(new FileInputStream(signStore), "changeit".toCharArray(), "PKCS12");
+            Enumeration<String> aliases = store.aliases();
+            if (aliases.hasMoreElements()) {
+                foundID = aliases.nextElement();
                 found = true;
-                foundID = alias;
+            }
+        } else {
+            File keyFile = new File(UnicHornResponderUtil.APP_DIR_TRUST, "privKeystore" + ".p12");
+            Logger.trace("CRL list file is: " + keyFile.getAbsolutePath());
+
+            store = KeyStoreTool
+                    .loadStore(new FileInputStream(keyFile), password.toCharArray(), "PKCS12");
+            Enumeration<String> aliases = store.aliases();
+            while (aliases.hasMoreElements() && !found) {
+                String alias = aliases.nextElement();
+                if (alias.contains("User")) {
+                    Logger.trace("Alias found is:" + alias);
+                    found = true;
+                    foundID = alias;
+                }
             }
         }
         if (found) {
@@ -279,6 +313,49 @@ public class SigningResponder extends HttpServlet {
             }
         } else {
             servletResponse.setStatus(Response.Status.BAD_REQUEST.getStatusCode());
+        }
+    }
+
+    public static void saveAppProperties(HttpServletRequest servletRequest,
+                                         HttpServletResponse servletResponse, GSON.Params jInput) {
+       try {
+           Part part = servletRequest.getPart("data_to_sign");
+           FileOutputStream propFile = new FileOutputStream(new File(APP_DIR, PROP_FNAME));
+           IOUtils.copy(part.getInputStream(), propFile);
+           propFile.close();
+           servletResponse.setStatus(Response.Status.CREATED.getStatusCode());
+       } catch (Exception ex) {
+           Logger.trace("Application properties saving failed with" +ex.getMessage());
+           throw new IllegalStateException("properties file storing failed", ex);
+       }
+    }
+
+    public static void saveSignKeyStore(HttpServletRequest servletRequest,
+                                         HttpServletResponse servletResponse, GSON.Params jInput) {
+        try {
+            Part part = servletRequest.getPart("data_to_sign");
+            FileOutputStream keyFile = new FileOutputStream(new File(APP_DIR, PROP_SIGNSTORE));
+            IOUtils.copy(part.getInputStream(), keyFile);
+            keyFile.close();
+            servletResponse.setStatus(Response.Status.CREATED.getStatusCode());
+        } catch (Exception ex) {
+            Logger.trace("Application properties saving failed with" +ex.getMessage());
+            throw new IllegalStateException("properties file storing failed", ex);
+        }
+    }
+    public static void resignCRL(HttpServletResponse servletResponse) {
+        try {
+            InputStream crlIN = loadActualCRL();
+            X509CRL crl = readCrl(crlIN);
+            KeyStore store =
+                     KeyStoreTool.loadAppStore();
+            Tuple<PrivateKey, X509Certificate[]> keys = KeyStoreTool.getAppKeyEntry(store);
+            crl.setIssuerDN(keys.getSecond()[1].getSubjectDN());
+            crl.sign(keys.getFirst());
+            servletResponse.setStatus(Response.Status.OK.getStatusCode());
+        } catch (Exception ex) {
+            Logger.trace("Application properties saving failed with" +ex.getMessage());
+            throw new IllegalStateException("properties file storing failed", ex);
         }
     }
 

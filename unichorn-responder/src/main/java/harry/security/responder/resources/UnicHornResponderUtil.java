@@ -474,7 +474,7 @@ public class UnicHornResponderUtil {
      * get the request signers information from application keystore
      * @return return the private key chain tuple
      */
-    private static Tuple<PrivateKey, X509Certificate[]> getPrivateKeyX509CertificateTuple() {
+    public static Tuple<PrivateKey, X509Certificate[]> getPrivateKeyX509CertificateTuple() {
         Tuple<PrivateKey, X509Certificate[]> keys = null;
         KeyStore store = KeyStoreTool.loadAppStore();
         keys = KeyStoreTool.getAppKeyEntry(store);
@@ -510,7 +510,7 @@ public class UnicHornResponderUtil {
      * @param is the name of the crl file
      * @return the crl
      */
-    private static X509CRL readCrl(InputStream is) {
+    public static X509CRL readCrl(InputStream is) {
 
         X509CRL crl = null;
         try {

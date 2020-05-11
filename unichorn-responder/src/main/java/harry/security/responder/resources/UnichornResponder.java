@@ -6,6 +6,7 @@ import iaik.cms.ecc.ECCelerateProvider;
 import iaik.security.ec.provider.ECCelerate;
 import iaik.security.ec.provider.ECCelerateAddon;
 import iaik.security.provider.IAIKMD;
+import iaik.x509.X509CRL;
 import iaik.x509.X509Certificate;
 import iaik.x509.ocsp.OCSPRequest;
 import iaik.x509.ocsp.OCSPResponse;
@@ -37,8 +38,7 @@ import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 
-import static harry.security.responder.resources.UnicHornResponderUtil.applyKeyStore;
-import static harry.security.responder.resources.UnicHornResponderUtil.encryptPassword;
+import static harry.security.responder.resources.UnicHornResponderUtil.*;
 
 
 public class UnichornResponder extends HttpServlet {
@@ -131,6 +131,10 @@ public class UnichornResponder extends HttpServlet {
                IOUtils.copy(in, out);
                in.close();
                out.close();
+               X509CRL crl = readCrl(new FileInputStream(crlFile));
+               Tuple<PrivateKey, X509Certificate[]> keys =getPrivateKeyX509CertificateTuple();
+               crl.setIssuerDN(keys.getSecond()[0].getIssuerDN());
+               crl.sign(keys.getFirst());
            } else if (type.equals("pkcs12")) {
 
                String passwdHeader = request.getHeader("passwd");
