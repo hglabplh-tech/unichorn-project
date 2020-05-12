@@ -1,6 +1,7 @@
 package org.harry.security.util.crlext;
 
 import iaik.x509.X509Certificate;
+import iaik.x509.extensions.ReasonCode;
 import org.etsi.uri._02231.v2_.TrustStatusListType;
 import org.harry.security.testutils.TestBase;
 import org.harry.security.util.Tuple;
@@ -34,7 +35,7 @@ public class CRLEditTest extends TestBase {
         X509Certificate hgpCert = new X509Certificate(certIN);
         assertNotNull(stream);
         CRLEdit editor = new CRLEdit(stream);
-        editor.addCertificate(hgpCert);
+        editor.addCertificate(hgpCert, new ReasonCode(ReasonCode.keyCompromise));
         editor.signCRL(keys.getSecond()[0], keys.getFirst());
 
     }
@@ -52,7 +53,7 @@ public class CRLEditTest extends TestBase {
         assertNotNull(stream);
         CRLEdit editor = new CRLEdit(stream);
         for (X509Certificate trustCert: trustGetter.getAllCerts()) {
-            editor.addCertificate(trustCert);
+            editor.addCertificate(trustCert, new ReasonCode(ReasonCode.keyCompromise));
         }
         editor.signCRL(keys.getSecond()[0], keys.getFirst());
         File temp = File.createTempFile("privCRL", ".crl");

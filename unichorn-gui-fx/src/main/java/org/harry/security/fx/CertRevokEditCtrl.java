@@ -1,6 +1,9 @@
 package org.harry.security.fx;
 
 import iaik.x509.X509Certificate;
+import iaik.x509.X509ExtensionException;
+import iaik.x509.extensions.ReasonCode;
+import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.Scene;
@@ -20,7 +23,9 @@ import java.net.URL;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.PrivateKey;
+import java.util.ArrayList;
 import java.util.Enumeration;
+import java.util.List;
 
 import static org.harry.security.fx.util.Miscellaneous.*;
 
@@ -29,6 +34,8 @@ public class CertRevokEditCtrl implements ControllerInit {
     private File keystore;
     private File editTemp;
     private CRLEdit editCRL;
+    private List<ReasonCode> addedCodes = new ArrayList<>();
+    private List<ReasonCode> revokedCodes = new ArrayList<>();
     @Override
     public Scene init() {
         ListView source = getListViewByFXID("source");
@@ -72,6 +79,22 @@ public class CertRevokEditCtrl implements ControllerInit {
         return;
     }
 
+    public void reasonCode(ActionEvent event) {
+        ListView added = getListViewByFXID("added");
+        added.getItems().size();
+        ObservableList<Integer> indices = added.getSelectionModel().getSelectedIndices();
+        addedCodes.add(indices.get(0), new ReasonCode(ReasonCode.keyCompromise));
+    }
+
+    public void revokedCode(ActionEvent event) {
+        ListView revoked = getListViewByFXID("revoked");
+        revoked.getItems().size();
+        ObservableList<Integer> indices = revoked.getSelectionModel().getSelectedIndices();
+        /* TODO have to look for real selection
+        */
+        revokedCodes.add(indices.get(0), new ReasonCode(ReasonCode.removeFromCRL));
+    }
+
     @FXML
     public void back(ActionEvent event) throws Exception {
         SecHarry.setRoot("main", SecHarry.CSS.UNICHORN);
@@ -89,24 +112,30 @@ public class CertRevokEditCtrl implements ControllerInit {
         CSRHandler.resignCRL();
     }
 
-    private void changeTheValues() throws IOException {
+    private void changeTheValues() throws IOException, X509ExtensionException {
         ListView added = getListViewByFXID("added");
         ListView revoked = getListViewByFXID("revoked");
         TextField passwd = getTextFieldByFXID("password");
         KeyStore store = KeyStoreTool.loadStore(new FileInputStream(keystore),passwd.getText().toCharArray(), "PKCS12");
 
+        int index = 0;
         for (Object alias: added.getItems()) {
             if (!((String)alias).isEmpty()) {
+                ReasonCode code = addedCodes.get(index);
                 X509Certificate cert = KeyStoreTool.getCertificateEntry(store, (String) alias);
-                editCRL.addCertificate(cert);
+                editCRL.addCertificate(cert, code);
+                index++;
             }
         }
 
 
+        index = 0;
         for (Object alias: revoked.getItems()) {
             if (!((String)alias).isEmpty()) {
+                ReasonCode code = revokedCodes.get(index);
                 X509Certificate cert = KeyStoreTool.getCertificateEntry(store, (String) alias);
-                editCRL.addRevokedCertificate(cert);
+                editCRL.addRevokedCertificate(cert, code);
+                index++;
             }
         }
     }

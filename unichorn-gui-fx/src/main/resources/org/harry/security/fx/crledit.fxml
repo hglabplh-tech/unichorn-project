@@ -35,8 +35,22 @@
             <Label text="Key Store Location" GridPane.rowIndex="1" />
             <Label text="KeyStore  Pass" GridPane.rowIndex="2" />
             <ListView fx:id="source" prefHeight="113.0" prefWidth="200.0" GridPane.rowIndex="4" />
-            <ListView fx:id="added" prefHeight="180.0" prefWidth="208.0" GridPane.columnIndex="1" GridPane.rowIndex="4" />
-            <ListView fx:id="revoked" prefHeight="200.0" prefWidth="200.0" GridPane.columnIndex="2" GridPane.rowIndex="4" />
+            <ListView fx:id="added" prefHeight="180.0" prefWidth="208.0" GridPane.columnIndex="1" GridPane.rowIndex="4">
+               <contextMenu>
+                  <ContextMenu>
+                    <items>
+                        <MenuItem fx:id="reasonCode" mnemonicParsing="false" onAction="#reasonCode" text="Set ReasonCode" />
+                    </items>
+                  </ContextMenu>
+               </contextMenu></ListView>
+            <ListView fx:id="revoked" prefHeight="200.0" prefWidth="200.0" GridPane.columnIndex="2" GridPane.rowIndex="4">
+               <contextMenu>
+                  <ContextMenu>
+                    <items>
+                      <MenuItem fx:id="revokedcode" mnemonicParsing="false" onAction="#revokedCode" text="Set ReasonCode" />
+                    </items>
+                  </ContextMenu>
+               </contextMenu></ListView>
             <Label text="Source" GridPane.rowIndex="3" />
             <Label text="Added" GridPane.columnIndex="1" GridPane.rowIndex="3" />
             <Label text="Revoked" GridPane.columnIndex="2" GridPane.rowIndex="3" />

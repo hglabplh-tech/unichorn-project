@@ -5,6 +5,8 @@ import iaik.utils.ASN1InputStream;
 import iaik.x509.RevokedCertificate;
 import iaik.x509.X509CRL;
 import iaik.x509.X509Certificate;
+import iaik.x509.X509ExtensionException;
+import iaik.x509.extensions.ReasonCode;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -35,16 +37,18 @@ public class CRLEdit {
         crList = crlList;
     }
 
-    public void addCertificate(X509Certificate certificate) {
+    public void addCertificate(X509Certificate certificate, ReasonCode code) throws X509ExtensionException {
         Date date = certificate.getNotAfter();
+        certificate.addExtension(code);
         crList.addCertificate(certificate, date);
     }
 
-    public void addRevokedCertificate(X509Certificate certificate) {
+    public void addRevokedCertificate(X509Certificate certificate, ReasonCode code) throws X509ExtensionException {
         Calendar cal = Calendar.getInstance();
         cal.set(Calendar.WEEK_OF_MONTH,(cal.get(Calendar.WEEK_OF_MONTH) -1));
         Date actualDate = new Date(cal.getTimeInMillis());
         RevokedCertificate revoked = new RevokedCertificate(certificate, actualDate);
+        revoked.addExtension(code);
         crList.addCertificate(revoked);
     }
 

@@ -271,11 +271,13 @@ public class UnicHornResponderUtil {
                     } else if (actualCert == null && rDate == null) {
                         responseGenerator.addResponseEntry(reqCert, new CertStatus(new UnknownInfo()), actualDate, nextWeek);
                     } else {
+                        CRLReason reason = CRLReason.KEY_COMPROMISE;
                         if (crl.containsCertificate(serial) != null) {
                             X509CRLEntry entry = crl.getRevokedCertificate(serial);
-                            CRLReason reason = entry.getRevocationReason();
+                            reason = entry.getRevocationReason();
                         }
                         RevokedInfo info = new RevokedInfo(rDate);
+                        info.setRevocationReason(translateRevocationReason(reason));
                         responseGenerator.addResponseEntry(reqCert, new CertStatus(info), actualDate, nextWeek);
                     }
 
@@ -294,11 +296,13 @@ public class UnicHornResponderUtil {
                         setResponseEntry(responseGenerator, reqCert, certificate, actualCert);
                     } else if (actualCert == null && rDate == null) {
                         responseGenerator.addResponseEntry(reqCert, new CertStatus(new UnknownInfo()), actualDate, nextWeek);
+                        CRLReason reason = CRLReason.KEY_COMPROMISE;
                         if (crl.containsCertificate(certificate.getSerialNumber()) != null) {
                             X509CRLEntry entry = crl.getRevokedCertificate(certificate.getSerialNumber());
-                            CRLReason reason = entry.getRevocationReason();
+                            reason = entry.getRevocationReason();
                         }
                         RevokedInfo info = new RevokedInfo(rDate);
+                        info.setRevocationReason(translateRevocationReason(reason));
                         responseGenerator.addResponseEntry(reqCert, new CertStatus(info), actualDate, nextWeek);
                     }
                 }
