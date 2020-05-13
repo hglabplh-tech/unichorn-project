@@ -75,7 +75,8 @@ public class SigningBean {
 
     public enum SigningType {
         CMS,
-        CAdES;
+        CAdES,
+        PAdES
     }
 
     public String getKeyStoreType() {

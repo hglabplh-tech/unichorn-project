@@ -4,10 +4,12 @@ import com.google.gson.Gson;
 import iaik.asn1.structures.AlgorithmID;
 import iaik.asn1.structures.Name;
 import iaik.cms.SignedData;
+import iaik.pdf.parameters.PadesBESParameters;
 import iaik.pkcs.pkcs10.CertificateRequest;
 import iaik.pkcs.pkcs8.EncryptedPrivateKeyInfo;
 import iaik.pkcs.pkcs9.ChallengePassword;
 import iaik.pkcs.pkcs9.ExtensionRequest;
+import iaik.utils.Util;
 import iaik.x509.X509CRL;
 import iaik.x509.X509Certificate;
 import iaik.x509.extensions.KeyUsage;
@@ -15,6 +17,7 @@ import iaik.x509.extensions.SubjectKeyIdentifier;
 import iaik.x509.ocsp.utils.ResponseGenerator;
 import org.apache.commons.io.IOUtils;
 import org.harry.security.util.CertificateWizzard;
+import org.harry.security.util.SignPDFUtil;
 import org.harry.security.util.SigningUtil;
 import org.harry.security.util.Tuple;
 import org.harry.security.util.algoritms.DigestAlg;
@@ -310,13 +313,13 @@ public class SigningResponder extends HttpServlet {
                        .setKeyStoreBean(bean);
                SigningUtil util = new SigningUtil();
                DataSource ds = null;
-               if (sigType.equals("CMS")) {
+               if (sigType.equals(SigningBean.SigningType.CMS.name())) {
                    Logger.trace("Sign CMS");
                    ds = util.signCMS(signingBean);
                    IOUtils.copy(ds.getInputStream(), servletResponse.getOutputStream());
                    servletResponse.setStatus(Response.Status.CREATED.getStatusCode());
                    Logger.trace("Signed CMS");
-               } else {
+               } else if(sigType.equals(SigningBean.SigningType.CAdES.name())) {
                    Logger.trace("Sign CAdES");
                    String url = null;
                    boolean setArchiveInfo = false;
@@ -329,6 +332,20 @@ public class SigningResponder extends HttpServlet {
                    IOUtils.copy(ds.getInputStream(), servletResponse.getOutputStream());
                    servletResponse.setStatus(Response.Status.CREATED.getStatusCode());
                    Logger.trace("Signed CAdES");
+               } else if(sigType.equals(SigningBean.SigningType.PAdES.name())) {
+                   Logger.trace("Sign PAdES");
+                   tempData.delete();
+                   signingBean = signingBean.setOutputPath(tempData.getAbsolutePath());
+                   SignPDFUtil pdfutil = new SignPDFUtil(bean.getSelectedKey(), bean.getChain());
+                   Logger.trace("Build signing parameters");
+                   PadesBESParameters params = pdfutil.createParameters(signingBean);
+                   Logger.trace("Prepare signing");
+                   pdfutil.prepareSigning(signingBean, params);
+                   Logger.trace("Really sign");
+                   pdfutil.signPdf();
+                   IOUtils.copy(new FileInputStream(tempData), servletResponse.getOutputStream());
+                   Logger.trace("Signed PAdES");
+                   servletResponse.setStatus(Response.Status.CREATED.getStatusCode());
                }
            } else {
                servletResponse.setStatus(Response.Status.BAD_REQUEST.getStatusCode());
