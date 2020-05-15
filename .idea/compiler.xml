@@ -9,6 +9,7 @@
         <module name="unichorn-core" />
         <module name="unichorn-responder" />
         <module name="unichorn-gui-fx" />
+        <module name="unichorn-pkcs11" />
       </profile>
     </annotationProcessing>
     <bytecodeTargetLevel target="8" />

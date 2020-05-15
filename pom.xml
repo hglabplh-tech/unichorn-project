@@ -9,6 +9,7 @@
     <module>unichorn-core</module>
     <module>unichorn-gui-fx</module>
       <module>unichorn-responder</module>
+      <module>unichorn-pkcs11</module>
   </modules>
   <name>unichorn-project</name>
 

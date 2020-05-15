@@ -5,11 +5,15 @@ import iaik.pdf.cmscades.CmsCadesException;
 import iaik.pdf.cmscades.OcspResponseUtil;
 import iaik.pdf.parameters.PadesBESParameters;
 import iaik.pdf.parameters.PadesLTVParameters;
+import iaik.pdf.pdfbox.PdfSignatureInstancePdfbox;
 import iaik.pdf.signature.PdfSignatureEngine;
 import iaik.pdf.signature.PdfSignatureException;
 import iaik.pdf.signature.PdfSignatureInstance;
 import iaik.x509.X509Certificate;
+import org.apache.pdfbox.pdmodel.interactive.digitalsignature.visible.PDVisibleSigProperties;
+import org.apache.pdfbox.pdmodel.interactive.digitalsignature.visible.PDVisibleSignDesigner;
 import org.harry.security.util.bean.SigningBean;
+import org.pmw.tinylog.Logger;
 
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -71,6 +75,20 @@ public class SignPDFUtil {
         FileOutputStream stream = new FileOutputStream(bean.getOutputPath());
         pdfSignatureInstance.initSign(bean.getDataIN(), null, stream, privKey,
                 certChain, params);
+        PdfSignatureInstancePdfbox instancePdfbox =
+                (PdfSignatureInstancePdfbox)pdfSignatureInstance;
+        InputStream image = SignPDFUtil.class.getResourceAsStream("/graphic/cert.png");
+        PDVisibleSignDesigner visibleSig = new PDVisibleSignDesigner(image);
+        visibleSig.coordinates(0,-100).zoom(-50)
+                .adjustForRotation()
+                .signatureFieldName("ApplicantSignature");
+        PDVisibleSigProperties signatureProperties = new PDVisibleSigProperties();
+        signatureProperties.signerName(params.getSignatureContactInfo())
+                .signerLocation(params.getSignatureLocation())
+                .signatureReason(params.getSignatureReason()).preferredSize(40).page(1)
+                .visualSignEnabled(true).setPdVisibleSignature(visibleSig)
+                .buildSignature();
+        instancePdfbox.setPDVisibleSigProperties(signatureProperties);
     }
 
     public PadesBESParameters createParameters(SigningBean bean) throws Exception {
@@ -118,7 +136,7 @@ public class SignPDFUtil {
              * 	at com.intellij.rt.junit.JUnitStarter.main(JUnitStarter.java:58)
              * 	This exception is documented as a internal LIB error so we have to research later on.
              */
-            //params.setSignatureTimestampProperties(bean.getTspURL(), null, null);
+           // params.setSignatureTimestampProperties(bean.getTspURL(), null, null);
             //params.setContentTimestampProperties(bean.getTspURL(), null, null);
         }
         return params;

@@ -1,0 +1,223 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <parent>
+        <artifactId>unichorn-project</artifactId>
+        <groupId>org.harry.security</groupId>
+        <version>1.0-SNAPSHOT</version>
+    </parent>
+    <modelVersion>4.0.0</modelVersion>
+
+    <artifactId>unichorn-pkcs11</artifactId>
+
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <maven.compiler.source>8</maven.compiler.source>
+        <maven.compiler.target>8</maven.compiler.target>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.harry.security</groupId>
+            <artifactId>unichorn-core</artifactId>
+            <version>1.0-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>com.beust</groupId>
+            <artifactId>jcommander</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>iaik</groupId>
+            <artifactId>iaik-jce-full-ima-license-trustedlib-unlimited</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>iaik</groupId>
+            <artifactId>iaik-cms-ima-license</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>iaik</groupId>
+            <artifactId>iaik-tsp-ima-license</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>iaik</groupId>
+            <artifactId>iaik-pades-ima-license</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>iaik</groupId>
+            <artifactId>iaik-eccelerate-ima-license</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>iaik</groupId>
+            <artifactId>iaik-eccelerate-addon-ima-license</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>iaik</groupId>
+            <artifactId>iaik-eccelerate-cms-ima-license</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>iaik</groupId>
+            <artifactId>iaik-eccelerate-ssl-ima-license</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>iaik</groupId>
+            <artifactId>iaik-xsect-ima-license</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>iaik</groupId>
+            <artifactId>iaik-xades-ima-license</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.pdfbox</groupId>
+            <artifactId>pdfbox</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>iaik</groupId>
+            <artifactId>iaik-pkcs11-wrapper</artifactId>
+            <version>1.5</version>
+        </dependency>
+        <dependency>
+            <groupId>iaik-eval</groupId>
+            <artifactId>iaik-pkcs11provider-eval</artifactId>
+            <version>1.7</version>
+        </dependency>
+
+
+        <!-- https://mvnrepository.com/artifact/org.apache.pdfbox/fontbox -->
+        <dependency>
+            <groupId>org.apache.pdfbox</groupId>
+            <artifactId>fontbox</artifactId>
+        </dependency>
+
+        <!-- https://mvnrepository.com/artifact/com.google.code.gson/gson -->
+        <dependency>
+            <groupId>com.google.code.gson</groupId>
+            <artifactId>gson</artifactId>
+
+        </dependency>
+
+        <!-- https://mvnrepository.com/artifact/org.apache.httpcomponents/httpmime -->
+        <dependency>
+            <groupId>org.apache.httpcomponents</groupId>
+            <artifactId>httpmime</artifactId>
+
+        </dependency>
+
+        <dependency>
+            <groupId>javax.activation</groupId>
+            <artifactId>javax.activation-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.tinylog</groupId>
+            <artifactId>tinylog</artifactId>
+
+        </dependency>
+        <!-- https://mvnrepository.com/artifact/org.tinylog/tinylog-api -->
+        <dependency>
+            <groupId>org.tinylog</groupId>
+            <artifactId>tinylog-api</artifactId>
+
+        </dependency>
+        <!-- https://mvnrepository.com/artifact/org.tinylog/tinylog-impl -->
+        <dependency>
+            <groupId>org.tinylog</groupId>
+            <artifactId>tinylog-impl</artifactId>
+
+        </dependency>
+
+        <!-- https://mvnrepository.com/artifact/org.apache.httpcomponents/httpclient -->
+        <dependency>
+            <groupId>org.apache.httpcomponents</groupId>
+            <artifactId>httpclient</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>commons-io</groupId>
+            <artifactId>commons-io</artifactId>
+        </dependency>
+        <!-- https://mvnrepository.com/artifact/org.codehaus.mojo/jaxb2-maven-plugin -->
+        <dependency>
+            <groupId>org.codehaus.mojo</groupId>
+            <artifactId>jaxb2-maven-plugin</artifactId>
+        </dependency>
+
+        <!-- Test dependencies-->
+        <!-- https://mvnrepository.com/artifact/junit/junit -->
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <!-- https://mvnrepository.com/artifact/org.hamcrest/hamcrest -->
+        <dependency>
+            <groupId>org.hamcrest</groupId>
+            <artifactId>hamcrest</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <!-- https://mvnrepository.com/artifact/org.mockito/mockito-all -->
+
+
+        <!-- https://mvnrepository.com/artifact/org.powermock/powermock-api-mockito2 -->
+        <!-- https://mvnrepository.com/artifact/org.powermock/powermock-mockito-release-full -->
+        <dependency>
+            <groupId>org.powermock</groupId>
+            <artifactId>powermock-mockito-release-full</artifactId>
+            <version>1.6.4</version>
+            <type>pom</type>
+            <scope>test</scope>
+        </dependency>
+
+    </dependencies>
+    <build>
+
+
+
+        <plugins>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.8.0</version>
+
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <version>3.2.0</version>
+                <executions>
+                    <execution>
+                        <id>attach-javadocs</id>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-source-plugin</artifactId>
+                <version>3.2.0</version>
+                <executions>
+                    <execution>
+                        <id>attach-sources</id>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+        </plugins>
+    </build>
+
+
+</project>
