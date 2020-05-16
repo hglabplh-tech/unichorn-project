@@ -1,8 +1,13 @@
 package org.harry.security.util;
 
 import com.google.gson.Gson;
+import iaik.cms.SecurityProvider;
+import iaik.cms.ecc.ECCelerateProvider;
 import iaik.pdf.parameters.PadesBESParameters;
+import iaik.security.ec.provider.ECCelerate;
+import iaik.security.provider.IAIKMD;
 import iaik.x509.X509Certificate;
+import org.apache.commons.io.IOUtils;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.ContentType;
@@ -14,13 +19,16 @@ import org.apache.http.impl.client.HttpClients;
 import org.harry.security.util.bean.SigningBean;
 import org.harry.security.util.certandkey.GSON;
 import org.harry.security.util.certandkey.KeyStoreTool;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.net.URL;
 import java.security.KeyStore;
 import java.security.PrivateKey;
+import java.security.Security;
 import java.util.Base64;
 
 import static org.hamcrest.CoreMatchers.is;
@@ -29,6 +37,14 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 public class SignPDFUtilTest {
 
+
+    @BeforeClass
+    public static void init() {
+        IAIKMD.addAsProvider();
+        ECCelerate ecc = new ECCelerate();
+        Security.insertProviderAt(ecc, 3);
+        SecurityProvider.setSecurityProvider(new ECCelerateProvider());
+    }
 
     @Test
     public void signPDFSSimple() throws Exception {
@@ -39,12 +55,28 @@ public class SignPDFUtilTest {
         File out = File.createTempFile("data", ".pdf");
         out.delete();
         SigningBean bean = new SigningBean().setOutputPath(out.getAbsolutePath())
-                .setTspURL("https://freetsa.org/tsr")
+                .setTspURL("http://zeitstempel.dfn.de")
                 .setDataIN(input);
         PadesBESParameters params = util.createParameters(bean);
-        util.prepareSigning(bean, params);
+        util.signPDF(bean,  params);
+    }
+
+    @Test
+    public void signPDFIAIK() throws Exception {
+        KeyStore store = KeyStoreTool.loadAppStore();
+        Tuple<PrivateKey, X509Certificate[]> keys = KeyStoreTool.getAppKeyEntry(store);
+        SignPDFUtil util = new SignPDFUtil(keys.getFirst(), keys.getSecond());
+        InputStream input = SignPDFUtilTest.class.getResourceAsStream("/data/ergo.pdf");
+        File out = File.createTempFile("data", ".pdf");
+        out.delete();
+        SigningBean bean = new SigningBean().setOutputPath(out.getAbsolutePath())
+                .setTspURL("http://zeitstempel.dfn.de")
+                .setDataIN(input);
+        PadesBESParameters params = util.createParameters(bean);
+        util.prepareSigning(bean,params);
         util.signPdf();
     }
+
 
     @Test
     public void testSignSimplePAdES() throws Exception {
@@ -61,6 +93,8 @@ public class SignPDFUtilTest {
         param.signing = new GSON.Signing();
         param.signing.mode = 2;
         param.signing.signatureType = "PAdES";
+        param.signing.cadesParams =  new GSON.SigningCAdES();
+        param.signing.cadesParams.TSAURL = "http://zeitstempel.dfn.de";
         Gson gson = new Gson();
         String jsonString = gson.toJson(param);
         StringBody json = new StringBody(jsonString, ContentType.APPLICATION_JSON);
@@ -74,6 +108,8 @@ public class SignPDFUtilTest {
         post.setEntity(builder.build());
         CloseableHttpResponse response = httpClient.execute(post);
         assertThat(response.getEntity().getContent(), notNullValue());
+        File temp = File.createTempFile("data", ".pdf");
+        IOUtils.copy(response.getEntity().getContent(), new FileOutputStream(temp));
         assertThat(response.getStatusLine().getStatusCode(),
                 is(201));
     }

@@ -76,10 +76,7 @@
             <groupId>iaik</groupId>
             <artifactId>iaik-xades-ima-license</artifactId>
         </dependency>
-        <dependency>
-            <groupId>org.apache.pdfbox</groupId>
-            <artifactId>pdfbox</artifactId>
-        </dependency>
+
 
         <dependency>
             <groupId>iaik</groupId>
@@ -93,11 +90,7 @@
         </dependency>
 
 
-        <!-- https://mvnrepository.com/artifact/org.apache.pdfbox/fontbox -->
-        <dependency>
-            <groupId>org.apache.pdfbox</groupId>
-            <artifactId>fontbox</artifactId>
-        </dependency>
+
 
         <!-- https://mvnrepository.com/artifact/com.google.code.gson/gson -->
         <dependency>

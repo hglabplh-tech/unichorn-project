@@ -336,13 +336,17 @@ public class SigningResponder extends HttpServlet {
                    Logger.trace("Sign PAdES");
                    tempData.delete();
                    signingBean = signingBean.setOutputPath(tempData.getAbsolutePath());
+                   String url = null;
+                   if (jInput.signing.cadesParams != null) {
+                       url = jInput.signing.cadesParams.TSAURL;
+                   }
+                   signingBean = signingBean.setTspURL(url);
                    SignPDFUtil pdfutil = new SignPDFUtil(bean.getSelectedKey(), bean.getChain());
                    Logger.trace("Build signing parameters");
                    PadesBESParameters params = pdfutil.createParameters(signingBean);
                    Logger.trace("Prepare signing");
-                   pdfutil.prepareSigning(signingBean, params);
                    Logger.trace("Really sign");
-                   pdfutil.signPdf();
+                   pdfutil.signPDF(signingBean,  params);
                    IOUtils.copy(new FileInputStream(tempData), servletResponse.getOutputStream());
                    Logger.trace("Signed PAdES");
                    servletResponse.setStatus(Response.Status.CREATED.getStatusCode());
