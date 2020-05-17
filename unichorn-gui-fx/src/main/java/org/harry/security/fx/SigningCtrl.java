@@ -8,6 +8,7 @@ import javafx.scene.control.ComboBox;
 import javafx.scene.control.TextField;
 import org.harry.security.CMSSigner;
 import org.harry.security.util.SigningUtil;
+import org.harry.security.util.Tuple;
 import org.harry.security.util.algoritms.CryptoAlg;
 import org.harry.security.util.algoritms.DigestAlg;
 import org.harry.security.util.algoritms.SignatureAlg;
@@ -115,8 +116,8 @@ public class SigningCtrl implements ControllerInit {
                     .sendDocSigningRequest(bean.getDataIN(),
                             params, new File(bean.getOutputPath()));
         } else if (bean.getAction().equals(CMSSigner.Commands.ENCRYPT_SIGN)) {
-            DataSource outSrc = util.encryptAndSign(bean);
-            util.writeToFile(outSrc, bean);
+            Tuple<DataSource, DataSource> outCome = util.encryptAndSign(bean);
+            util.writeToFile(outCome.getSecond(), bean);
         }
 
     }

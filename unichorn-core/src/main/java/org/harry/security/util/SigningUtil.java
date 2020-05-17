@@ -16,6 +16,7 @@ import iaik.smime.ess.SigningCertificate;
 import iaik.x509.X509Certificate;
 import iaik.x509.ocsp.OCSPResponse;
 import iaik.x509.ocsp.ReqCert;
+import org.apache.commons.io.IOUtils;
 import org.harry.security.util.algoritms.DigestAlg;
 import org.harry.security.util.algoritms.SignatureAlg;
 import org.harry.security.util.bean.SigningBean;
@@ -168,9 +169,18 @@ public class SigningUtil {
         }
     }
 
-    public DataSource encryptAndSign(SigningBean bean) {
-        this.encryptCMS(bean);
-        return this.signCMS(bean);
+    public Tuple<DataSource, DataSource> encryptAndSign(SigningBean bean) {
+        try {
+            CopyInputStreamDataSource copySource = new CopyInputStreamDataSource(bean.getDataIN());
+            bean = bean.setDataIN(copySource.getInputStream());
+
+            DataSource result = this.encryptCMS(bean);
+            CopyInputStreamDataSource copyResult = new CopyInputStreamDataSource(result.getInputStream());
+            bean = bean.setDataIN(result.getInputStream());
+            return new Tuple<>(copyResult,this.signCMS(bean));
+        } catch(IOException ex) {
+            throw new IllegalStateException("signing and encryption failed", ex);
+        }
     }
 
     /**
@@ -246,6 +256,48 @@ public class SigningUtil {
         Logger.trace("Really signed the thing");
         InputStream result = new ByteArrayInputStream(os.toByteArray());
         return new InputStreamDataSource(result);
+    }
+
+    public DataSource unpackSignature(InputStream signature, InputStream data) throws IOException, CMSParsingException {
+        boolean success = false;
+        ContentInfoStream cis = new ContentInfoStream(signature);
+        CopyInputStreamDataSource copySource = new CopyInputStreamDataSource(data);
+        try {
+            SignedData signedData;
+            if (data != null) {
+                signedData = new SignedData(cis.getContentInputStream());
+            } else {
+                signedData = new SignedData(cis.getContentInputStream());
+            }
+            if (signedData.getMode() == SignedDataStream.EXPLICIT) {
+                // explicitly signed; set the content received by other means
+                signedData.setInputStream(copySource.getInputStream());
+            }
+
+
+            SignerInfo[] signerInfos;
+            signerInfos = signedData.getSignerInfos();
+            X509Certificate [] possibleSigners = signedData.getX509Certificates();
+            X509Certificate signer = null;
+            //SigningUtil.eatStream(signedData.getInputStream());
+            for (SignerInfo info : signerInfos) {
+                info.setSecurityProvider(new IaikCCProvider());
+                for (X509Certificate actual:possibleSigners) {
+                    if(info.isSignerCertificate(actual)) {
+                        signer = actual;
+                        break;
+                    }
+                }
+                if (signer != null) {
+                    //info.verifySignature(signer.getPublicKey());
+                }
+            }
+            byte [] content = signedData.getContent();
+            InputStream input = new ByteArrayInputStream(content);
+            return new InputStreamDataSource(input);
+        } catch (Exception ex) {
+            throw new IllegalStateException("quick check failed", ex);
+        }
     }
 
     /**
@@ -551,6 +603,35 @@ public class SigningUtil {
 
         public OutputStream getOutputStream() throws IOException {
             return null;
+        }
+
+        public String getContentType() {
+            return "application/cms";
+        }
+
+        public String getName() {
+            return "CMSSig";
+        }
+    }
+
+    public static class CopyInputStreamDataSource implements DataSource {
+
+        private final byte [] content;
+
+
+        public CopyInputStreamDataSource(InputStream in) throws IOException {
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            IOUtils.copy(in, out);
+            content = out.toByteArray();
+        }
+
+        public InputStream getInputStream() throws IOException {
+            ByteArrayInputStream stream = new ByteArrayInputStream(content);
+            return stream;
+        }
+
+        public OutputStream getOutputStream() throws IOException {
+            throw new UnsupportedOperationException("getOutputStream is forbidden");
         }
 
         public String getContentType() {

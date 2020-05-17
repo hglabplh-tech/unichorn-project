@@ -85,10 +85,6 @@ public class VerifyUtil {
                     if (signer != null) {
                         info.verifySignature(signer.getPublicKey());
                         success = true;
-                        String[] emails = signer.getEmailAddresses();
-                        for (String email: emails){
-                            System.out.println("email:" + email);
-                        }
                         index++;
                     }
                 }

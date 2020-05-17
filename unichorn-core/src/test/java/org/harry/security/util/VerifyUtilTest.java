@@ -15,10 +15,7 @@ import org.junit.Test;
 
 import javax.activation.DataSource;
 import javax.activation.FileDataSource;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.InputStream;
+import java.io.*;
 import java.net.URL;
 import java.security.KeyStore;
 import java.security.PrivateKey;
@@ -46,7 +43,7 @@ public class VerifyUtilTest extends TestBase {
         chain[0] = cert;
         URL url = this.getClass().getResource("/certificates/example.pem");
         File urlFile = new File(url.toURI());
-        initVerify(chain, key, out, urlFile);
+        initVerify(chain, key, out, urlFile, SigningBean.Mode.EXPLICIT);
         InputStream input = new FileInputStream(out);
         assertNotNull(input);
         in = this.getClass().getResourceAsStream("/certificates/example.pem");
@@ -54,7 +51,7 @@ public class VerifyUtilTest extends TestBase {
     }
 
     @Test
-    public void checkCertOK() throws Exception{
+    public void checkCertOKExplicit() throws Exception{
         X509Certificate cert = Generator.createCertificate();
         PrivateKey key = Generator.pk;
         File out = File.createTempFile(
@@ -64,7 +61,27 @@ public class VerifyUtilTest extends TestBase {
         chain[0] = cert;
         URL url = this.getClass().getResource("/certificates/example.pem");
         File urlFile = new File(url.toURI());
-        SigningBean bean = initVerify(chain, key, out, urlFile);
+        SigningBean bean = initVerify(chain, key, out, urlFile, SigningBean.Mode.EXPLICIT);
+        InputStream input = new FileInputStream(out);
+        assertNotNull(input);
+        in = this.getClass().getResourceAsStream("/certificates/example.pem");
+        List<TrustListManager> walkers = ConfigReader.loadAllTrusts();
+        VerifyUtil util = new VerifyUtil(walkers, bean);
+        util.verifyCMSSignature(input, in);
+    }
+
+    @Test
+    public void checkCertOKImplicit() throws Exception{
+        X509Certificate cert = Generator.createCertificate();
+        PrivateKey key = Generator.pk;
+        File out = File.createTempFile(
+                "sig", "pkcs7");
+        InputStream in = this.getClass().getResourceAsStream("/certificates/example.pem");
+        X509Certificate[] chain = new X509Certificate[1];
+        chain[0] = cert;
+        URL url = this.getClass().getResource("/certificates/example.pem");
+        File urlFile = new File(url.toURI());
+        SigningBean bean = initVerify(chain, key, out, urlFile, SigningBean.Mode.IMPLICIT);
         InputStream input = new FileInputStream(out);
         assertNotNull(input);
         in = this.getClass().getResourceAsStream("/certificates/example.pem");
@@ -127,15 +144,18 @@ public class VerifyUtilTest extends TestBase {
     }
 
 
-    private SigningBean initVerify(X509Certificate[] cert, PrivateKey key, File out, File in) {
+    private SigningBean initVerify(X509Certificate[] cert, PrivateKey key,
+                                   File out, File in, SigningBean.Mode signingMode) throws IOException {
         SigningUtil util = new SigningUtil();
         CertWriterReader.KeyStoreBean keys = new CertWriterReader.KeyStoreBean(cert,key);
-        SigningBean bean = new SigningBean().setDataINFile(in).setOutputPath(out.getAbsolutePath())
+        SigningBean bean = new SigningBean().setDataINFile(in)
+                .setDataIN(new FileInputStream(in))
+                .setOutputPath(out.getAbsolutePath())
                 .setOutputDS(new FileDataSource(out))
                 .setKeyStoreBean(keys)
                 .setDigestAlgorithm(DigestAlg.SHA3_512)
                 .setSignatureAlgorithm(SignatureAlg.SHA3_512_WITH_RSA)
-                .setSigningMode(SigningBean.Mode.EXPLICIT);
+                .setSigningMode(signingMode);
         DataSource ds = util.signCMS(bean);
         util.writeToFile(ds, bean);
         return bean;

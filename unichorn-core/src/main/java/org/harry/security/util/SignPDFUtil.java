@@ -1,6 +1,10 @@
 package org.harry.security.util;
 
+import com.itextpdf.io.image.ImageData;
+import com.itextpdf.io.image.ImageDataFactory;
+import com.itextpdf.layout.element.Image;
 import com.itextpdf.text.DocumentException;
+import com.itextpdf.text.Jpeg;
 import com.itextpdf.text.Rectangle;
 import com.itextpdf.text.pdf.PdfReader;
 import com.itextpdf.text.pdf.PdfSignatureAppearance;
@@ -29,6 +33,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.URL;
 import java.security.GeneralSecurityException;
 import java.security.PrivateKey;
 import java.security.cert.CRL;
@@ -263,6 +268,9 @@ public class SignPDFUtil {
             PdfStamper stamper = PdfStamper.createSignature(reader, os, '\0');
             // Creating the appearance
             PdfSignatureAppearance appearance = stamper.getSignatureAppearance();
+            URL imageURL = SignPDFUtil.class.getResource("/graphic/cert.jpg");
+            Jpeg image = new Jpeg(imageURL);
+            appearance.setImage(image);
             appearance.setContact(contact);
             appearance.setReason(reason);
             appearance.setLocation(location);
