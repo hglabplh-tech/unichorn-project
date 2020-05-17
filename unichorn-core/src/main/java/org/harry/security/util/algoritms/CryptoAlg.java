@@ -11,8 +11,14 @@ public enum CryptoAlg {
     DES_EDE3_CBC(AlgorithmID.des_EDE3_CBC, "DES-EDE3-CBC", AlgorithmID.des_EDE3_CBC.getAlgorithm()),
     PBE_SHAA3_KEY_TRIPLE_DES_CBC(AlgorithmID.pbeWithSHAAnd3_KeyTripleDES_CBC,"PBE-SHAA3-KEY-TRIPLE-DES-CBC",
             AlgorithmID.pbeWithSHAAnd3_KeyTripleDES_CBC.getAlgorithm()),
-    PBE_SHAA_40BITSRC2(AlgorithmID.pbeWithSHAAnd40BitRC2_CBC,"PBE-SHAA-40BITSRC2",
-            AlgorithmID.pbeWithSHAAnd40BitRC2_CBC.getAlgorithm())
+    PBE_SHAA_40BITSRC2_CBC(AlgorithmID.pbeWithSHAAnd40BitRC2_CBC,"PBE-SHAA-40BITSRC2_CBC",
+            AlgorithmID.pbeWithSHAAnd40BitRC2_CBC.getAlgorithm()),
+    PBE_SHAA_40BITSRC4(AlgorithmID.pbeWithSHAAnd40BitRC4,"PBE-SHAA-40BITSRC4",
+                       AlgorithmID.pbeWithSHAAnd40BitRC4.getAlgorithm()),
+    PBE_SHAA_128BITSRC2_CBC(AlgorithmID.pbeWithSHAAnd128BitRC2_CBC,"PBE-SHAA-128BITSRC2_CBC",
+                       AlgorithmID.pbeWithSHAAnd128BitRC2_CBC.getAlgorithm()),
+    PBE_SHAA_128BITSRC4(AlgorithmID.pbeWithSHAAnd128BitRC4,"PBE-SHAA-128BITSRC2_CBC",
+            AlgorithmID.pbeWithSHAAnd128BitRC4.getAlgorithm())
 
     ;
 

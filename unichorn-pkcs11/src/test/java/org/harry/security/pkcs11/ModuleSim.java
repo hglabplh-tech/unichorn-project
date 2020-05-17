@@ -4,15 +4,19 @@ import iaik.asn1.structures.AlgorithmID;
 import iaik.pkcs.pkcs11.*;
 import iaik.pkcs.pkcs11.Mechanism;
 import iaik.pkcs.pkcs11.objects.*;
+import iaik.pkcs.pkcs11.objects.Key;
 import iaik.pkcs.pkcs11.objects.Object;
-import iaik.pkcs.pkcs11.provider.IAIKPkcs11;
-import iaik.pkcs.pkcs11.provider.TokenKeyStore;
-import iaik.pkcs.pkcs11.provider.TokenKeyStoreSpi;
-import iaik.pkcs.pkcs11.provider.TokenManager;
+import iaik.pkcs.pkcs11.objects.PublicKey;
+import iaik.pkcs.pkcs11.provider.*;
+import iaik.pkcs.pkcs11.provider.keys.IAIKPKCS11Key;
+import iaik.pkcs.pkcs11.provider.keys.IAIKPKCS11PrivateKey;
+import iaik.pkcs.pkcs11.provider.keys.IAIKPKCS11PublicKey;
+import iaik.pkcs.pkcs11.provider.keys.IAIKPKCS11SecretKey;
 import iaik.pkcs.pkcs11.wrapper.CK_ATTRIBUTE;
 import iaik.security.provider.IAIK;
 import iaik.security.provider.IAIKMD;
 import iaik.x509.X509Certificate;
+import org.harry.security.pkcs11.provider.IAIKPkcs11Private;
 import org.harry.security.util.Tuple;
 import org.harry.security.util.certandkey.KeyStoreTool;
 import org.junit.Test;
@@ -44,16 +48,22 @@ import static org.mockito.Matchers.*;
 import static org.powermock.api.mockito.PowerMockito.*;
 
 @RunWith(PowerMockRunner.class)
-@PrepareForTest(fullyQualifiedNames = {"iaik.pkcs.pkcs11.Module", "sun.security.jca.GetInstance" })
+@PrepareForTest(fullyQualifiedNames = {"iaik.pkcs.pkcs11.Module",
+
+        "sun.security.jca.GetInstance" })
 public class ModuleSim {
 
     IAIKMD instanceMD = null;
+    IAIKPkcs11Private provider = null;
     Certificate certificate;
+    iaik.security.rsa.RSAPrivateKey key;
+    TokenManager manager;
     @Test
     public void testSlotList() throws Exception {
-        IAIKPkcs11 provider = mockPKCS11Module();
+        provider = mockPKCS11Module();
         Security.insertProviderAt(instanceMD, 1);
         Security.insertProviderAt(IAIK.getInstance(), 2);
+        Security.insertProviderAt(provider, 3);
 
 
 
@@ -97,6 +107,7 @@ public class ModuleSim {
                 }
 
 
+
                 for (int i = 0; i < tokens.length; i++) {
                     TokenInfo tokenInfo = tokens[i].getTokenInfo();
                     if (!tokenInfo.isTokenInitialized()) {
@@ -126,6 +137,7 @@ public class ModuleSim {
                         session.findObjectsInit(null);
                         Object[] objects = session.findObjects(1);
 
+                        X509Certificate iaik = null;
                         CertificateFactory x509CertificateFactory = null;
                         for (int index =0;index < objects.length; index++) {
                             Object object = objects[index];
@@ -140,8 +152,7 @@ public class ModuleSim {
                                     certificate = x509CertificateFactory
                                             .generateCertificate(new ByteArrayInputStream(encodedCertificate));
                                     if (certificate != null) {
-                                        keyStore.setCertificateEntry("cert", certificate);
-                                        X509Certificate iaik = new X509Certificate(certificate.getEncoded());
+                                        iaik = new X509Certificate(certificate.getEncoded());
                                         System.out.println("Certificate: " + iaik.toString());
                                         System.out.println("Issuer : " + iaik.getIssuerDN().getName());
                                     }
@@ -175,6 +186,10 @@ public class ModuleSim {
                                         cert[0] = certificate;
                                         System.out.println("Modulus " + newPriv.getModulus());
                                         if (certificate != null && newPriv != null) {
+
+
+                                            newPriv.setPubKey(iaik.getPublicKey());
+                                            //newPriv.setAttributes();
                                             keyStore.setKeyEntry("keyentry",
                                                     newPriv,
                                                     "changeit".toCharArray(),
@@ -215,21 +230,17 @@ public class ModuleSim {
 
 
 
-    public IAIKPkcs11 mockPKCS11Module() throws Exception {
+    public IAIKPkcs11Private mockPKCS11Module() throws Exception {
 
         instanceMD = spy(IAIKMD.getInstance());
         PowerMockito.mockStatic(Module.class);
         PKCS11 mod = mock(PKCS11.class);
-        Module module = PowerMockito.mock(Module.class);
-        PowerMockito.when(Module.getInstance(any())).thenReturn(module);
 
 
 
-        TokenManager manager = Mockito.mock(TokenManager.class);
 
-        Properties props= new Properties();
-        props.setProperty("PKCS11_NATIVE_MODULE", "./dummy.dll");
-        IAIKPkcs11 provider = Mockito.mock(IAIKPkcs11.class);
+        manager = Mockito.mock(TokenManager.class);
+
 
         // mock neccessary objects
         Token token = PowerMockito.mock(Token.class);
@@ -240,7 +251,13 @@ public class ModuleSim {
         SlotInfo slotInfo = PowerMockito.mock(SlotInfo.class);
         Slot [] slots = new Slot[1];
         slots[0] = slot;
-
+        Module module = PowerMockito.mock(Module.class);
+        Info modInfo = mock
+                (Info.class);
+        when(modInfo.getLibraryDescription()).thenReturn("I am a private PKCS11 Lib");
+        when(module.getInfo()).thenReturn(modInfo);
+        when(module.getSlotList(anyBoolean())).thenReturn(slots);
+        PowerMockito.when(Module.getInstance(any())).thenReturn(module);
         // initialize slot-info mocking
         byte major = 0x22;
         byte minor = 0x55;
@@ -248,6 +265,7 @@ public class ModuleSim {
         when(version.getMajor()).thenReturn(major);
         when(version.getMinor()).thenReturn(minor);
         when(slotInfo.getFirmwareVersion()).thenReturn(version);
+        when(slotInfo.getSlotDescription()).thenReturn("Iam a special slot");
         when(slotInfo.isTokenPresent()).thenReturn(true);
         // initialize token-info mocking
         when(info.isTokenInitialized()).thenReturn(true);
@@ -260,24 +278,32 @@ public class ModuleSim {
         when(sessionInfo.isSerialSession()).thenReturn(true);
         // initialize token mocking
         Object privobj = getPrivateKey();
-        Object obj = getCertificateObjects();
-        Object [] objects = new Object[2];
-        objects[0] = obj;
-        objects[1] = privobj;
+        Object [] obj = getCertificateObjects();
+        Object [] objects = new Object[3];
+        int index = 0;
+
+        for (;index< obj.length; index++) {
+            objects[index] = obj[index];
+        }
+        objects[index] = privobj;
         doNothing().when(token).initToken("changeit".toCharArray(), "my token");
-
-
         when(token.openSession(anyBoolean(), anyBoolean(), any(), any()))
                 .thenReturn(session);
         when(token.getSlot()).thenReturn(slot);
         when(token.getTokenInfo()).thenReturn(info);
 
         when(token.getMechanismList()).thenReturn(new Mechanism[0]);
-        when(module.getSlotList(anyBoolean())).thenReturn(slots);
+
 
         // initialize manager mock
         when(manager.getProvider()).thenReturn(provider);
         when(manager.getModule()).thenReturn(module);
+        doAnswer(new Answer<String>() {
+            @Override
+            public String answer(InvocationOnMock invocation) throws Throwable {
+                return "C:\\modole\\mod.dll";
+            }
+        }).when(manager).getModulePath();
         when(manager.getSession(anyBoolean())).thenReturn(session);
         when(manager.getToken()).thenReturn(token);
         when(manager.login(anyBoolean(), anyString().toCharArray())).thenReturn(true);
@@ -287,13 +313,14 @@ public class ModuleSim {
         when(manager.makeAuthorizedSession(session, "changeit".toCharArray())).thenReturn(true);
         when(manager.makeAuthorizedSession(session, true, "changeit".toCharArray())).thenReturn(true);
         when(manager.makeAuthorizedSession(session, false, "changeit".toCharArray())).thenReturn(true);
+
         // initialize session mock
         when(session.getToken()).thenReturn(token);
         when(session.getSessionInfo()).thenReturn(sessionInfo);
         OngoingStubbing<Object[]> sessionStub = Mockito.when(session.findObjects(anyInt()));
-        sessionStub.thenReturn(objects);
+        sessionStub.thenReturn(objects,new Object[0]);
         Object o = new X509PublicKeyCertificate();
-        when(session.createObject(o)).thenReturn(obj);
+        when(session.createObject(o)).thenReturn(obj[0]);
         o = new RSAPrivateKey();
         when(session.createObject(o)).thenReturn(privobj);
         // here we have to mock encrypt / decrypt and something more
@@ -304,16 +331,16 @@ public class ModuleSim {
         when(slot.getSlotID()).thenReturn(7676787878L);
         when(slot.getSlotInfo()).thenReturn(slotInfo);
         when(slot.isSetUtf8Encoding()).thenReturn(true);
+        Mechanism[] mech = new Mechanism[10];
+        mech[0] = Mechanism.RSA_PKCS;
 
+        when(token.getMechanismList()).thenReturn(getMechList());
 
-        when(provider.getTokenManager()).thenReturn(manager);
-        when(provider.getName()).thenAnswer(new Answer<String>() {
-            @Override
-            public String answer(InvocationOnMock invocation) throws Throwable {
-                return IAIKPkcs11.PROVIDER_BASE_NAME;
-            }
-        });
-
+        Properties props= new Properties();
+        props.setProperty("PKCS11_NATIVE_MODULE", "./dummy.dll");
+        IAIKPkcs11Private.setUp(manager);
+        provider = new IAIKPkcs11Private(manager);
+        when(manager.getProvider()).thenReturn(provider);
 
         Constructor ctor = null;
 
@@ -347,6 +374,9 @@ public class ModuleSim {
         } catch (InvocationTargetException e) {
             e.printStackTrace();
         }
+        Set<Provider.Service> serviceSet = new HashSet<>();
+        serviceSet.add(service);
+
 
         doAnswer(new Answer<Provider.Service>() {
             @Override
@@ -371,7 +401,7 @@ public class ModuleSim {
     private Object getPrivateKey() throws Exception {
         KeyStore store = KeyStoreTool.loadAppStore();
         Tuple<PrivateKey, X509Certificate[]> keys = KeyStoreTool.getAppKeyEntry(store);
-        iaik.security.rsa.RSAPrivateKey key =
+        key =
                 (iaik.security.rsa.RSAPrivateKey)keys.getFirst();
         RSAPrivateKey privateKey = new RSAPrivateKey();
         privateKey.putAttribute(Attribute.EXPONENT_1,
@@ -398,38 +428,113 @@ public class ModuleSim {
     }
 
 
-    private Object getCertificateObjects() throws Exception {
+    private Object[] getCertificateObjects() throws Exception {
+        Object [] array = new Object[0];
+        Object [] temp;
         KeyStore store = KeyStoreTool.loadAppStore();
         Tuple<PrivateKey, X509Certificate[]> keys = KeyStoreTool.getAppKeyEntry(store);
+        for (int index = 0; index < keys.getSecond().length; index++) {
+            int next = (index + 1);
+            if (next < keys.getSecond().length) {
+                temp = new Object[array.length + 1];
+                Object certObj = getCertificateObject(keys.getSecond()[index], keys.getSecond()[next]);
+                for (int i = 0; i < array.length; i++) {
+                    temp[i] = array[i];
+                }
+                array = temp;
+                array[index] = certObj;
+
+            }
+        }
+        return array;
+    }
+    private Object getCertificateObject(X509Certificate certificate, X509Certificate issuerCert) throws Exception {
         X509PublicKeyCertificate cert = new X509PublicKeyCertificate();
         ByteArrayAttribute issuer = new ByteArrayAttribute(Attribute.ISSUER);
-        issuer.setValue(keys.getSecond()[0].getIssuerDN().toString().getBytes());
+        issuer.setValue(certificate.getIssuerDN().toString().getBytes());
         MessageDigest mdSubj = MessageDigest.getInstance(AlgorithmID.sha1.getJcaStandardName(),
                 IAIK.getInstance());
-        mdSubj.update(keys.getSecond()[0].getPublicKey().getEncoded());
+        mdSubj.update(certificate.getPublicKey().getEncoded());
         byte [] hashSubject = mdSubj.digest();
         MessageDigest mdIssuer = MessageDigest.getInstance(AlgorithmID.sha1.getJcaStandardName(),
                 IAIK.getInstance());
-        mdIssuer.update(keys.getSecond()[1].getPublicKey().getEncoded());
+        mdIssuer.update(issuerCert.getPublicKey().getEncoded());
         byte [] hashIssuer = mdIssuer.digest();
         cert.putAttribute(Attribute.HASH_OF_SUBJECT_PUBLIC_KEY, hashSubject);
         cert.putAttribute(Attribute.HASH_OF_ISSUER_PUBLIC_KEY, hashIssuer);
         cert.putAttribute(Attribute.ISSUER,issuer.getByteArrayValue());
-        cert.putAttribute(Attribute.VALUE, keys.getSecond()[0].getEncoded());
+        cert.putAttribute(Attribute.VALUE, certificate.getEncoded());
         return cert;
+    }
+
+    private Mechanism[] getMechList() {
+        Mechanism [] mechanisms = new Mechanism[26];
+        mechanisms[0] = Mechanism.RSA_PKCS_KEY_PAIR_GEN;
+        /** @deprecated */
+        mechanisms[1] = Mechanism.RSA_PKCS;
+        /** @deprecated */
+        mechanisms[2] = Mechanism.RSA_9796;
+        /** @deprecated */
+        mechanisms[3] = Mechanism.RSA_X_509;
+        /** @deprecated */
+        mechanisms[4] = Mechanism.MD2_RSA_PKCS;
+        /** @deprecated */
+        mechanisms[5] = Mechanism.MD5_RSA_PKCS;
+        /** @deprecated */
+        mechanisms[6] = Mechanism.SHA1_RSA_PKCS;
+        /** @deprecated */
+        mechanisms[7] = Mechanism.RIPEMD128_RSA_PKCS;
+        /** @deprecated */
+        mechanisms[8] = Mechanism.RIPEMD160_RSA_PKCS;
+        /** @deprecated */
+        mechanisms[9] = Mechanism.SHA256_RSA_PKCS;
+        /** @deprecated */
+        mechanisms[10] = Mechanism.SHA384_RSA_PKCS;
+        /** @deprecated */
+        mechanisms[11] = Mechanism.SHA512_RSA_PKCS;
+        /** @deprecated */
+        mechanisms[12] = Mechanism.RSA_PKCS_OAEP;
+        /** @deprecated */
+        mechanisms[13] = Mechanism.RSA_X9_31_KEY_PAIR_GEN;
+        /** @deprecated */
+        mechanisms[14] = Mechanism.RSA_X9_31;
+        /** @deprecated */
+        mechanisms[15] = Mechanism.SHA1_RSA_X9_31;
+        /** @deprecated */
+        mechanisms[16] = Mechanism.RSA_PKCS_PSS;
+        /** @deprecated */
+        mechanisms[17] = Mechanism.SHA1_RSA_PKCS_PSS;
+        /** @deprecated */
+        mechanisms[18] = Mechanism.SHA256_RSA_PKCS_PSS;
+        /** @deprecated */
+        mechanisms[19] = Mechanism.SHA384_RSA_PKCS_PSS;
+        /** @deprecated */
+        mechanisms[20] = Mechanism.SHA512_RSA_PKCS_PSS;
+        /** @deprecated */
+        mechanisms[21] = Mechanism.DSA_KEY_PAIR_GEN;
+        /** @deprecated */
+        mechanisms[22] = Mechanism.DSA;
+        /** @deprecated */
+        mechanisms[23] = Mechanism.DSA_SHA1;
+        /** @deprecated */
+        mechanisms[24] = Mechanism.DH_PKCS_KEY_PAIR_GEN;
+        /** @deprecated */
+        mechanisms[25] = Mechanism.DH_PKCS_DERIVE;
+        return mechanisms;
     }
 
     public static class MyServiceClass extends Provider.Service {
         IAIKPkcs11 provider;
         TokenManager manager;
         TokenKeyStoreSpi keyStoreSpi;
-        public  MyServiceClass(Provider provider, String type, String algorithm,
-                       String className, List<String> aliases,
-                       Map<String,String> attributes,
-                               TokenManager manager,
-                               TokenKeyStoreSpi keyStoreSpi) {
+
+        public MyServiceClass(Provider provider, String type, String algorithm,
+                              String className, List<String> aliases,
+                              Map<String, String> attributes,
+                              TokenManager manager,
+                              TokenKeyStoreSpi keyStoreSpi) {
             super(provider, type, algorithm, className, aliases, attributes);
-            this.provider = (IAIKPkcs11)provider;
+            this.provider = (IAIKPkcs11) provider;
             this.manager = manager;
             this.keyStoreSpi = keyStoreSpi;
         }
@@ -439,5 +544,6 @@ public class ModuleSim {
             return keyStoreSpi;
         }
     }
+
 
 }
