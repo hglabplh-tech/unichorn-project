@@ -13,10 +13,14 @@ import iaik.pkcs.pkcs11.provider.keys.IAIKPKCS11PrivateKey;
 import iaik.pkcs.pkcs11.provider.keys.IAIKPKCS11PublicKey;
 import iaik.pkcs.pkcs11.provider.keys.IAIKPKCS11SecretKey;
 import iaik.pkcs.pkcs11.wrapper.CK_ATTRIBUTE;
+import iaik.pkcs.pkcs12.PKCS12;
+import iaik.pkcs.pkcs12.PKCS12KeyStore;
 import iaik.security.provider.IAIK;
 import iaik.security.provider.IAIKMD;
+import iaik.security.rsa.RSAPssPrivateKey;
 import iaik.x509.X509Certificate;
 import org.harry.security.pkcs11.provider.IAIKPkcs11Private;
+import org.harry.security.util.CertificateWizzard;
 import org.harry.security.util.Tuple;
 import org.harry.security.util.certandkey.KeyStoreTool;
 import org.junit.Test;
@@ -58,6 +62,7 @@ public class ModuleSim {
     Certificate certificate;
     iaik.security.rsa.RSAPrivateKey key;
     TokenManager manager;
+    KeyStore globalKeyStore;
     @Test
     public void testSlotList() throws Exception {
         provider = mockPKCS11Module();
@@ -71,8 +76,7 @@ public class ModuleSim {
 
         Module pkcs11Module = Module.getInstance("blubber");
 
-        KeyStore keyStore = TokenKeyStore.getInstance(TokenKeyStore.KEYSTORE_TYPE);
-        keyStore.load(null, "changeit".toCharArray());
+        KeyStore keyStore = globalKeyStore;
 
 
             Enumeration<String> aliases = keyStore.aliases();
@@ -139,34 +143,37 @@ public class ModuleSim {
 
                         X509Certificate iaik = null;
                         CertificateFactory x509CertificateFactory = null;
-                        for (int index =0;index < objects.length; index++) {
-                            Object object = objects[index];
+                        int index = 0;
+                        while (objects.length > 0) {
+                            while (objects.length > index) {
+                                Object object = objects[index];
+                                index++;
 
-                            if (object instanceof X509PublicKeyCertificate) {
-                                try {
-                                    byte[] encodedCertificate = ((X509PublicKeyCertificate) object)
-                                            .getValue().getByteArrayValue();
-                                    if (x509CertificateFactory == null) {
-                                        x509CertificateFactory = CertificateFactory.getInstance("X.509");
+                                if (object instanceof X509PublicKeyCertificate) {
+                                    try {
+                                        byte[] encodedCertificate = ((X509PublicKeyCertificate) object)
+                                                .getValue().getByteArrayValue();
+                                        if (x509CertificateFactory == null) {
+                                            x509CertificateFactory = CertificateFactory.getInstance("X.509");
+                                        }
+                                        certificate = x509CertificateFactory
+                                                .generateCertificate(new ByteArrayInputStream(encodedCertificate));
+                                        if (certificate != null) {
+                                            iaik = new X509Certificate(certificate.getEncoded());
+                                            System.out.println("Certificate: " + iaik.toString());
+                                            System.out.println("Issuer : " + iaik.getIssuerDN().getName());
+                                        }
+                                    } catch (Exception ex) {
+                                        ex.printStackTrace();
                                     }
-                                    certificate = x509CertificateFactory
-                                            .generateCertificate(new ByteArrayInputStream(encodedCertificate));
-                                    if (certificate != null) {
-                                        iaik = new X509Certificate(certificate.getEncoded());
-                                        System.out.println("Certificate: " + iaik.toString());
-                                        System.out.println("Issuer : " + iaik.getIssuerDN().getName());
-                                    }
-                                } catch (Exception ex) {
-                                    ex.printStackTrace();
-                                }
-                            } else if (object instanceof RSAPrivateKey) {
+                                } else if (object instanceof RSAPrivateKey) {
                                     try {
                                         RSAPrivateKey privateKey = ((RSAPrivateKey) object);
 
                                         iaik.security.rsa.RSAPrivateKey newPriv = null;
                                         Constructor[] ctors = iaik.security.rsa.RSAPrivateKey.class.getDeclaredConstructors();
 
-                                        for (Constructor ctor:ctors) {
+                                        for (Constructor ctor : ctors) {
                                             int count = ctor.getParameterCount();
                                             ctor.setAccessible(true);
                                             if (count == 8) {
@@ -185,37 +192,28 @@ public class ModuleSim {
                                         Certificate[] cert = new Certificate[1];
                                         cert[0] = certificate;
                                         System.out.println("Modulus " + newPriv.getModulus());
-                                        if (certificate != null && newPriv != null) {
 
-
-                                            newPriv.setPubKey(iaik.getPublicKey());
-                                            //newPriv.setAttributes();
-                                            keyStore.setKeyEntry("keyentry",
-                                                    newPriv,
-                                                    "changeit".toCharArray(),
-                                                    cert);
-                                        }
                                     } catch (Exception ex) {
                                         ex.printStackTrace();
                                     }
-                            } else if (object instanceof X509AttributeCertificate) {
-                                try {
-                                    byte[] encodedCertificate = ((X509AttributeCertificate) object)
-                                            .getValue().getByteArrayValue();
-                                    if (x509CertificateFactory == null) {
-                                        x509CertificateFactory = CertificateFactory.getInstance("X.509");
-                                    }
-                                    Certificate certificate = x509CertificateFactory
-                                            .generateCertificate(new ByteArrayInputStream(encodedCertificate));
+                                } else if (object instanceof X509AttributeCertificate) {
+                                    try {
+                                        byte[] encodedCertificate = ((X509AttributeCertificate) object)
+                                                .getValue().getByteArrayValue();
+                                        if (x509CertificateFactory == null) {
+                                            x509CertificateFactory = CertificateFactory.getInstance("X.509");
+                                        }
+                                        Certificate certificate = x509CertificateFactory
+                                                .generateCertificate(new ByteArrayInputStream(encodedCertificate));
 
-                                } catch (Exception ex) {
+                                    } catch (Exception ex) {
+
+                                    }
 
                                 }
                             }
-                            // test the (deep) cloning feature
-                            // Object clonedObject = (Object) object.clone();
 
-
+                            objects = session.findObjects(1);
                         }
                         session.findObjectsFinal();
                     } finally {
@@ -276,16 +274,27 @@ public class ModuleSim {
         when(sessionInfo.getDeviceError()).thenReturn(0L);
         when(sessionInfo.isRwSession()).thenReturn(true);
         when(sessionInfo.isSerialSession()).thenReturn(true);
-        // initialize token mocking
-        Object privobj = getPrivateKey();
-        Object [] obj = getCertificateObjects();
-        Object [] objects = new Object[3];
-        int index = 0;
-
-        for (;index< obj.length; index++) {
-            objects[index] = obj[index];
+        globalKeyStore = KeyStoreTool.loadAppStore();
+        Enumeration<String> aliases = globalKeyStore.aliases();
+        Object privobj  = null;
+        Object[] objects = new Object[0];
+        while (aliases.hasMoreElements()) {
+            String alias = aliases.nextElement();
+            Tuple<PrivateKey, X509Certificate[]> keys = KeyStoreTool.getKeyEntry(globalKeyStore, alias, "geheim".toCharArray());
+            Object[] newObjects = new Object[keys.getSecond().length + 1];
+            int index = 0;
+            for (; index < (newObjects.length - 1); index++) {
+                if (CertificateWizzard.isCertificateSelfSigned(keys.getSecond()[index])) {
+                    newObjects[index] = getCertificateObject(keys.getSecond()[index], keys.getSecond()[index]);
+                } else {
+                    newObjects[index] = getCertificateObject(keys.getSecond()[index], keys.getSecond()[index + 1]);
+                }
+            }
+            privobj = getPrivateKey((iaik.security.rsa.RSAPrivateKey)keys.getFirst());
+            newObjects[index] = privobj;
+            objects = reallocAndAssign(objects, newObjects);
         }
-        objects[index] = privobj;
+
         doNothing().when(token).initToken("changeit".toCharArray(), "my token");
         when(token.openSession(anyBoolean(), anyBoolean(), any(), any()))
                 .thenReturn(session);
@@ -318,9 +327,9 @@ public class ModuleSim {
         when(session.getToken()).thenReturn(token);
         when(session.getSessionInfo()).thenReturn(sessionInfo);
         OngoingStubbing<Object[]> sessionStub = Mockito.when(session.findObjects(anyInt()));
-        sessionStub.thenReturn(objects,new Object[0]);
+        sessionStub.thenReturn(objects, new Object[0]);
         Object o = new X509PublicKeyCertificate();
-        when(session.createObject(o)).thenReturn(obj[0]);
+        when(session.createObject(o)).thenReturn(objects[0]);
         o = new RSAPrivateKey();
         when(session.createObject(o)).thenReturn(privobj);
         // here we have to mock encrypt / decrypt and something more
@@ -353,37 +362,8 @@ public class ModuleSim {
             }
         }
         GetInstance.Instance inst = null;
-        TokenKeyStoreSpi keyStoreSpi = new TokenKeyStoreSpi(manager);
-        TokenKeyStore keyStore = new TokenKeyStore(keyStoreSpi, provider,
-                TokenKeyStore.KEYSTORE_TYPE);
-
-        Provider.Service service = new MyServiceClass(provider,
-                "KeyStore",
-                TokenKeyStore.KEYSTORE_TYPE,
-                TokenKeyStore.class.getName(),
-                Collections.<String>emptyList(),
-                Collections.emptyMap(),
-                manager, keyStoreSpi);
-        try {
-            inst =
-                    (GetInstance.Instance)ctor.newInstance(service.getProvider(), keyStore);
-        } catch (InstantiationException e) {
-            e.printStackTrace();
-        } catch (IllegalAccessException e) {
-            e.printStackTrace();
-        } catch (InvocationTargetException e) {
-            e.printStackTrace();
-        }
-        Set<Provider.Service> serviceSet = new HashSet<>();
-        serviceSet.add(service);
 
 
-        doAnswer(new Answer<Provider.Service>() {
-            @Override
-            public Provider.Service answer(InvocationOnMock invocation) throws Throwable {
-                return service;
-            }
-        }).when(instanceMD).getService("KeyStore","PKCS11KeyStore");
 
 
         GetInstance.Instance finalInst = inst;
@@ -398,11 +378,7 @@ public class ModuleSim {
 
     }
 
-    private Object getPrivateKey() throws Exception {
-        KeyStore store = KeyStoreTool.loadAppStore();
-        Tuple<PrivateKey, X509Certificate[]> keys = KeyStoreTool.getAppKeyEntry(store);
-        key =
-                (iaik.security.rsa.RSAPrivateKey)keys.getFirst();
+    private Object getPrivateKey(iaik.security.rsa.RSAPrivateKey key) throws Exception {
         RSAPrivateKey privateKey = new RSAPrivateKey();
         privateKey.putAttribute(Attribute.EXPONENT_1,
                 key.getPrimeExponentP().toByteArray());
@@ -543,6 +519,21 @@ public class ModuleSim {
         public java.lang.Object newInstance(java.lang.Object constructorParameter) throws NoSuchAlgorithmException {
             return keyStoreSpi;
         }
+    }
+
+    private Object [] reallocAndAssign(Object[] source, Object[] newData) {
+        Object []temporaryObject = new Object[source.length + newData.length];
+        int index = 0;
+        for (Object object: source) {
+            temporaryObject[index] = object;
+            index++;
+        }
+        for (Object object: newData) {
+            temporaryObject[index] = object;
+            index++;
+        }
+        return temporaryObject;
+
     }
 
 
