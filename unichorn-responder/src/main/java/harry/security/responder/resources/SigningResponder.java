@@ -16,10 +16,7 @@ import iaik.x509.extensions.KeyUsage;
 import iaik.x509.extensions.SubjectKeyIdentifier;
 import iaik.x509.ocsp.utils.ResponseGenerator;
 import org.apache.commons.io.IOUtils;
-import org.harry.security.util.CertificateWizzard;
-import org.harry.security.util.SignPDFUtil;
-import org.harry.security.util.SigningUtil;
-import org.harry.security.util.Tuple;
+import org.harry.security.util.*;
 import org.harry.security.util.algoritms.DigestAlg;
 import org.harry.security.util.algoritms.SignatureAlg;
 import org.harry.security.util.bean.SigningBean;
@@ -105,6 +102,10 @@ public class SigningResponder extends HttpServlet {
    try {
        GSON.Params jInput = readJSon(servletRequest);
        if (jInput.parmType.equals("docSign")) {
+           docSigning(servletRequest, servletResponse, jInput);
+       }else if (jInput.parmType.equals("docVerify")) {
+           docVerify(servletRequest, servletResponse, jInput);
+       } else if (jInput.parmType.equals("docCompress")) {
            docSigning(servletRequest, servletResponse, jInput);
        } else if (jInput.parmType.equals("certSign")) {
            certSigning(servletRequest, servletResponse, jInput);
@@ -359,6 +360,85 @@ public class SigningResponder extends HttpServlet {
            Logger.trace(ex);
        }
     }
+
+    private void docCompress(HttpServletRequest servletRequest, HttpServletResponse servletResponse, GSON.Params jInput) throws KeyStoreException, IOException, ServletException {
+        try {
+            Logger.trace("read params....");
+            String sigType = jInput.signing.signatureType;
+            Logger.trace("type is: " + sigType);
+            String sigAlg = jInput.signing.signatureAlgorithm;
+            String digestAlg = jInput.signing.digestAlgorithm;
+            SigningBean.Mode smode;
+            File signStore = new File(APP_DIR, PROP_SIGNSTORE);
+            boolean found = false;
+            String foundID = null;
+            KeyStore store = null;
+            String password = decryptPassword("pwdFile");
+
+            if(sigType.equals(SigningBean.SigningType.Compress.name())) {
+                Logger.trace("Compress data");
+                Part part = servletRequest.getPart("data_to_sign");
+                SigningBean signingBean = new SigningBean().setDataIN(part.getInputStream());
+                DataSource result = CMSCompressUtil.compressDataStreamCMS(signingBean);
+                Logger.trace("Data compressed");
+                IOUtils.copy(result.getInputStream(), servletResponse.getOutputStream());
+                servletResponse.setStatus(Response.Status.CREATED.getStatusCode());
+            } else if(sigType.equals(SigningBean.SigningType.Compress.name())) {
+                Logger.trace("DeCompress data");
+                Part part = servletRequest.getPart("data_to_sign");
+                SigningBean signingBean = new SigningBean().setDataIN(part.getInputStream());
+                DataSource result = CMSCompressUtil.decompressDataStreamCMS(signingBean);
+                Logger.trace("Data de-compressed");
+                IOUtils.copy(result.getInputStream(), servletResponse.getOutputStream());
+                servletResponse.setStatus(Response.Status.CREATED.getStatusCode());
+            } else {
+                servletResponse.setStatus(Response.Status.BAD_REQUEST.getStatusCode());
+            }
+        } catch (Exception ex) {
+            Logger.trace("error during document signing " + ex.getMessage());
+            Logger.trace(ex);
+        }
+    }
+
+    private void docVerify(HttpServletRequest servletRequest, HttpServletResponse servletResponse, GSON.Params jInput) throws KeyStoreException, IOException, ServletException {
+        try {
+            Logger.trace("read params....");
+            String sigType = jInput.signing.signatureType;
+            Logger.trace("type is: " + sigType);
+            String sigAlg = jInput.signing.signatureAlgorithm;
+            String digestAlg = jInput.signing.digestAlgorithm;
+            SigningBean.Mode smode;
+            File signStore = new File(APP_DIR, PROP_SIGNSTORE);
+            boolean found = false;
+            String foundID = null;
+            KeyStore store = null;
+            String password = decryptPassword("pwdFile");
+
+            if(sigType.equals(SigningBean.SigningType.Compress.name())) {
+                Logger.trace("Compress data");
+                Part part = servletRequest.getPart("data_to_sign");
+                SigningBean signingBean = new SigningBean().setDataIN(part.getInputStream());
+                DataSource result = CMSCompressUtil.compressDataStreamCMS(signingBean);
+                Logger.trace("Data compressed");
+                IOUtils.copy(result.getInputStream(), servletResponse.getOutputStream());
+                servletResponse.setStatus(Response.Status.CREATED.getStatusCode());
+            } else if(sigType.equals(SigningBean.SigningType.Compress.name())) {
+                Logger.trace("DeCompress data");
+                Part part = servletRequest.getPart("data_to_sign");
+                SigningBean signingBean = new SigningBean().setDataIN(part.getInputStream());
+                DataSource result = CMSCompressUtil.decompressDataStreamCMS(signingBean);
+                Logger.trace("Data de-compressed");
+                IOUtils.copy(result.getInputStream(), servletResponse.getOutputStream());
+                servletResponse.setStatus(Response.Status.CREATED.getStatusCode());
+            } else {
+                servletResponse.setStatus(Response.Status.BAD_REQUEST.getStatusCode());
+            }
+        } catch (Exception ex) {
+            Logger.trace("error during document signing " + ex.getMessage());
+            Logger.trace(ex);
+        }
+    }
+
 
     public static void saveAppProperties(HttpServletRequest servletRequest,
                                          HttpServletResponse servletResponse, GSON.Params jInput) {
