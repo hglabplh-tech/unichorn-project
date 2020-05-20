@@ -57,6 +57,7 @@ import org.harry.security.util.Tuple;
 import org.harry.security.util.algoritms.CryptoAlg;
 import org.harry.security.util.bean.SigningBean;
 import org.harry.security.util.certandkey.KeyStoreTool;
+import org.harry.security.util.ocsp.HttpOCSPClient;
 import org.harry.security.util.trustlist.TrustListLoader;
 import org.harry.security.util.trustlist.TrustListManager;
 import org.pmw.tinylog.Logger;
@@ -160,7 +161,9 @@ public class UnicHornResponderUtil {
 
 
         } catch (Exception ex) {
+            OCSPResponse response = new OCSPResponse(OCSPResponse.unauthorized);
             Logger.trace("IO keystore exception" + ex.getMessage() + " of Type: " + ex.getClass().getName());
+            return response;
         }
         //
         PrivateKey responderKey = responseGenerator.getResponderKey();
@@ -179,6 +182,7 @@ public class UnicHornResponderUtil {
         crlList.addAll(getMoreCRLs());
         Logger.trace("Message is: crl loaded");
         System.out.println("Create response entries for crl...");
+
 
         Logger.trace( "Message is: before add resp entries");
         OCSPResponse response = checkCertificateRevocation(ocspRequest, responseGenerator, crl);
@@ -262,17 +266,22 @@ public class UnicHornResponderUtil {
                     CertID certID = (CertID) reqCert.getReqCert();
                     BigInteger serial = certID.getSerialNumber();
                     AlgorithmID hashAlg = certID.getHashAlgorithm();
-
-
-                    Date rDate = checkRevocation(crl, serial);
+                    Date rDate = null;
                     X509Certificate actualCert = getX509Certificate(serial);
+                    X509CRL crlAlterntative = HttpOCSPClient.getCRLOfCert(actualCert);
+                    if (crlAlterntative != null) {
+                        rDate = checkRevocation(crlAlterntative, serial);
+                    } else {
+                        rDate = checkRevocation(crl, serial);
+                    }
                     if (rDate == null && actualCert != null) {
                         setResponseEntry(responseGenerator, reqCert, null, actualCert);
                     } else if (actualCert == null && rDate == null) {
                         responseGenerator.addResponseEntry(reqCert, new CertStatus(new UnknownInfo()), actualDate, nextWeek);
                     } else {
                         CRLReason reason = CRLReason.KEY_COMPROMISE;
-                        if (crl.containsCertificate(serial) != null) {
+                        if (crl.containsCertificate(serial) != null
+                                || (crlAlterntative != null && crlAlterntative.containsCertificate(serial) != null)) {
                             X509CRLEntry entry = crl.getRevokedCertificate(serial);
                             reason = entry.getRevocationReason();
                         }
@@ -290,14 +299,23 @@ public class UnicHornResponderUtil {
                         crlToUse = crl;
                     }
 
-                    Date rDate = checkRevocation(crl, certificate.getSerialNumber());
+                    X509CRL crlAlterntative = HttpOCSPClient.getCRLOfCert(certificate);
+                    Date rDate = null;
+                    if (crlAlterntative != null) {
+                        rDate = checkRevocation(crlAlterntative, certificate.getSerialNumber());
+                    } else {
+                        rDate = checkRevocation(crl, certificate.getSerialNumber());
+                    }
                     X509Certificate actualCert = getX509Certificate(certificate.getSerialNumber());
+
                     if (rDate == null && actualCert != null) {
                         setResponseEntry(responseGenerator, reqCert, certificate, actualCert);
                     } else if (actualCert == null && rDate == null) {
                         responseGenerator.addResponseEntry(reqCert, new CertStatus(new UnknownInfo()), actualDate, nextWeek);
+                    } else {
                         CRLReason reason = CRLReason.KEY_COMPROMISE;
-                        if (crl.containsCertificate(certificate.getSerialNumber()) != null) {
+                        if (crl.containsCertificate(certificate.getSerialNumber()) != null
+                        || (crlAlterntative != null && crlAlterntative.containsCertificate(certificate.getSerialNumber()) != null)) {
                             X509CRLEntry entry = crl.getRevokedCertificate(certificate.getSerialNumber());
                             reason = entry.getRevocationReason();
                         }

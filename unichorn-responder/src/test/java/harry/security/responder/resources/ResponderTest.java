@@ -113,9 +113,9 @@ public class ResponderTest  {
         Tuple<PrivateKey, X509Certificate[]> keys = null;
 
         InputStream
-                keyStore = ResponderTest.class.getResourceAsStream("/application.jks");
-        KeyStore store = KeyStoreTool.loadStore(keyStore, "geheim".toCharArray(), "PKCS12");
-        keys = KeyStoreTool.getKeyEntry(store, ALIAS, "geheim".toCharArray());
+                keyStore = ResponderTest.class.getResourceAsStream("/application.p12");
+        KeyStore store = KeyStoreTool.loadAppStore();
+        keys = KeyStoreTool.getAppKeyEntry(store);
         X509Certificate[] certs = new X509Certificate[2];
         certs = keys.getSecond();
         for (X509Certificate cert : certList) {

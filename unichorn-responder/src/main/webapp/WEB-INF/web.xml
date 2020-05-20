@@ -17,6 +17,15 @@
         <load-on-startup>1</load-on-startup>
     </servlet>
 
+    <servlet>
+        <servlet-name>Timestamp REST Service</servlet-name>
+        <servlet-class>
+            harry.security.responder.resources.TspHttpServerServlet
+        </servlet-class>
+        <load-on-startup>1</load-on-startup>
+    </servlet>
+
+
 
     <servlet-mapping>
         <servlet-name>OCSP REST Service</servlet-name>
@@ -25,6 +34,10 @@
     <servlet-mapping>
         <servlet-name>Signing REST Service</servlet-name>
         <url-pattern>/rest/signing</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>Timestamp REST Service</servlet-name>
+        <url-pattern>/rest/tsp</url-pattern>
     </servlet-mapping>
     <listener>
         <listener-class>

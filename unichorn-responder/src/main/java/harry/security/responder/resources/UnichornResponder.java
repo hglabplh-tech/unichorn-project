@@ -103,6 +103,8 @@ public class UnichornResponder extends HttpServlet {
                 servletResponse.addHeader(key, messages.get(key));
             }
         } catch (Exception ex) {
+            OCSPResponse response = new OCSPResponse(OCSPResponse.malformedRequest);
+            response.writeTo(servletResponse.getOutputStream());
             servletResponse.setStatus(Response.Status.INTERNAL_SERVER_ERROR.getStatusCode());
             Logger.trace("Error Message is:" + ex.getMessage());
             for(String key: messages.keySet()) {

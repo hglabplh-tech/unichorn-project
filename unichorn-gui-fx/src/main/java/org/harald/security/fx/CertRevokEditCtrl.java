@@ -45,6 +45,14 @@ public class CertRevokEditCtrl implements ControllerInit {
         added.getItems().add("");
         revoked.setCellFactory(param -> new TextListCell.TextCell());
         revoked.getItems().add("");
+        addedCodes.add(new ReasonCode(ReasonCode.keyCompromise));
+        addedCodes.add(new ReasonCode(ReasonCode.keyCompromise));
+        addedCodes.add(new ReasonCode(ReasonCode.keyCompromise));
+        addedCodes.add(new ReasonCode(ReasonCode.keyCompromise));
+        revokedCodes.add(new ReasonCode(ReasonCode.keyCompromise));
+        revokedCodes.add(new ReasonCode(ReasonCode.keyCompromise));
+        revokedCodes.add(new ReasonCode(ReasonCode.keyCompromise));
+        revokedCodes.add(new ReasonCode(ReasonCode.keyCompromise));
 
         return null;
     }
@@ -118,7 +126,7 @@ public class CertRevokEditCtrl implements ControllerInit {
 
         int index = 0;
         for (Object alias: added.getItems()) {
-            if (!((String)alias).isEmpty()) {
+            if (!((String)alias).isEmpty() && index > 0) {
                 ReasonCode code = addedCodes.get(index);
                 X509Certificate cert = KeyStoreTool.getCertificateEntry(store, (String) alias);
                 editCRL.addCertificate(cert, code);
@@ -129,7 +137,7 @@ public class CertRevokEditCtrl implements ControllerInit {
 
         index = 0;
         for (Object alias: revoked.getItems()) {
-            if (!((String)alias).isEmpty()) {
+            if (!((String)alias).isEmpty() && index > 0) {
                 ReasonCode code = revokedCodes.get(index);
                 X509Certificate cert = KeyStoreTool.getCertificateEntry(store, (String) alias);
                 editCRL.addRevokedCertificate(cert, code);
