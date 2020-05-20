@@ -43,6 +43,7 @@ import java.security.Security;
 import java.util.*;
 
 import static harry.security.responder.resources.UnicHornResponderUtil.*;
+import static org.harry.security.CommonConst.OCSP_URL;
 import static org.harry.security.util.HttpsChecker.loadKey;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -85,7 +86,7 @@ public class ResponderTest  {
         int responseStatus = 0;
         for (X509Certificate cert : certList) {
             String ocspUrlOrig = HttpOCSPClient.getOCSPUrl(cert);
-            URL ocspUrl= new URL("http://localhost:8080/unichorn-responder-1.0-SNAPSHOT/rest/ocsp");
+            URL ocspUrl= new URL(OCSP_URL);
             /*OCSPResponse response = HttpOCSPClient.sendOCSPRequest(ocspUrl, keys.getFirst(),
                     certs, certList.toArray(new X509Certificate[0]), true); */
             OCSPClient client = new OCSPClient();
@@ -206,7 +207,7 @@ public class ResponderTest  {
                         certs, certArray,
                         false, ReqCert.certID, ocspURL);
 
-                String uri = "http://localhost:8080/unichorn-responder-1.0-SNAPSHOT/rest/ocsp";
+                String uri = OCSP_URL;
                 HttpOCSPRequest request = new HttpOCSPRequest
                         (new URL(uri));
                 request.sendGETRequest(ocspRequest);
@@ -240,7 +241,7 @@ public class ResponderTest  {
         int responseStatus = 0;
         for (X509Certificate cert : certList) {
             String ocspUrl = HttpOCSPClient.getOCSPUrl(cert);
-            ocspUrl= "http://localhost:8080/unichorn-responder-1.0-SNAPSHOT/rest/ocsp";
+            ocspUrl= OCSP_URL;
             /*OCSPResponse response = HttpOCSPClient.sendOCSPRequest(ocspUrl, keys.getFirst(),
                     certs, certList.toArray(new X509Certificate[0]), true); */
             OCSPResponse response = HttpOCSPClient.sendOCSPRequest(ocspUrl, null,
@@ -268,7 +269,7 @@ public class ResponderTest  {
         int responseStatus = 0;
         for (X509Certificate cert : certList) {
             String ocspUrl = HttpOCSPClient.getOCSPUrl(cert);
-            ocspUrl= "http://localhost:8080/unichorn-responder-1.0-SNAPSHOT/rest/ocsp";
+            ocspUrl= OCSP_URL;
             OCSPResponse response = HttpOCSPClient.sendOCSPRequest(ocspUrl, keys.getFirst(),
                     certs, certList.toArray(new X509Certificate[0]),
                     true, ReqCert.pKCert);
@@ -300,7 +301,7 @@ public class ResponderTest  {
         for (X509Certificate[] certArray : certList) {
             if (certArray.length > 1) {
                 String ocspUrl =  HttpOCSPClient.getOCSPUrl(certArray[0]);
-                ocspUrl = "http://localhost:8080/unichorn-responder-1.0-SNAPSHOT/rest/ocsp";
+                ocspUrl = OCSP_URL;
                 /*OCSPResponse response = HttpOCSPClient.sendOCSPRequest(ocspUrl, keys.getFirst(),
                         certs, certArray,
                         true, ReqCert.certID);
@@ -325,7 +326,7 @@ public class ResponderTest  {
         KeyStore keys = KeyStoreTool.loadStore(new FileInputStream(store), "geheim".toCharArray(), "PKCS12");
         X509Certificate[] chain = KeyStoreTool.getCertChainEntry(keys, keys.aliases().nextElement());
         String ocspUrl =  HttpOCSPClient.getOCSPUrl(chain[0]);
-        ocspUrl = "http://localhost:8080/unichorn-responder-1.0-SNAPSHOT/rest/ocsp";
+        ocspUrl = OCSP_URL;
         OCSPResponse response = HttpOCSPClient.sendOCSPRequest(ocspUrl, null,
                 null, chain,
                 false, ReqCert.certID);
@@ -346,7 +347,7 @@ public class ResponderTest  {
         KeyStore keys = KeyStoreTool.loadStore(store, "geheim".toCharArray(), "PKCS12");
         X509Certificate[] chain = KeyStoreTool.getCertChainEntry(keys, keys.aliases().nextElement());
         String ocspUrl =  HttpOCSPClient.getOCSPUrl(chain[0]);
-        ocspUrl = "http://localhost:8080/unichorn-responder-1.0-SNAPSHOT/rest/ocsp";
+        ocspUrl = OCSP_URL;
         OCSPResponse response = HttpOCSPClient.sendOCSPRequest(ocspUrl, null,
                 null, chain,
                 false, ReqCert.certID);
@@ -367,7 +368,7 @@ public class ResponderTest  {
         KeyStore keys = KeyStoreTool.loadStore(store, "geheim".toCharArray(), "PKCS12");
         X509Certificate[] chain = KeyStoreTool.getCertChainEntry(keys, keys.aliases().nextElement());
         String ocspUrl =  HttpOCSPClient.getOCSPUrl(chain[0]);
-        ocspUrl = "http://localhost:8080/unichorn-responder-1.0-SNAPSHOT/rest/ocsp";
+        ocspUrl = OCSP_URL;
         OCSPResponse response = HttpOCSPClient.sendOCSPRequest(ocspUrl, null,
                 null, chain,
                 false, ReqCert.certID);
@@ -387,7 +388,7 @@ public class ResponderTest  {
     @Test
     public void testPutPKCS12Store() throws Exception {
         InputStream keyStore = ResponderTest.class.getResourceAsStream("/appKeyStore.p12");
-        URL ocspUrl= new URL("http://localhost:8080/unichorn-responder-1.0-SNAPSHOT/rest/ocsp");
+        URL ocspUrl= new URL(OCSP_URL);
         // create closable http client and assign the certificate interceptor
         CloseableHttpClient httpClient = HttpClients.createDefault();
         System.out.println("Responder URL: " + ocspUrl.toString());
@@ -407,7 +408,7 @@ public class ResponderTest  {
     @Test
     public void testPutTrustList() throws Exception {
         InputStream keyStore = ResponderTest.class.getResourceAsStream("/TL-DE.xml");
-        URL ocspUrl= new URL("http://localhost:8080/unichorn-responder-1.0-SNAPSHOT/rest/ocsp");
+        URL ocspUrl= new URL(OCSP_URL);
         // create closable http client and assign the certificate interceptor
         CloseableHttpClient httpClient = HttpClients.createDefault();
         System.out.println("Responder URL: " + ocspUrl.toString());
@@ -452,7 +453,7 @@ public class ResponderTest  {
                         String ocspUrlOrig = HttpOCSPClient.getOCSPUrl(cert);
 
                         if (altResponder) {
-                            String ocspUrl ="http://localhost:8080/unichorn-responder-1.0-SNAPSHOT/rest/ocsp";
+                            String ocspUrl = OCSP_URL;
                         }
                         OCSPResponse response;
                         OCSPClient client = new OCSPClient();

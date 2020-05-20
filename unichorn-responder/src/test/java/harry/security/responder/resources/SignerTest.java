@@ -48,6 +48,7 @@ import java.util.Locale;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.harry.security.CommonConst.SIGNING_URL;
 
 public class SignerTest {
 
@@ -68,7 +69,7 @@ public class SignerTest {
     public void testSignSimpleCMS() throws Exception {
         InputStream
                 keyStore = SignerTest.class.getResourceAsStream("/application.jks");
-        URL ocspUrl= new URL("http://localhost:8080/unichorn-responder-1.0-SNAPSHOT/rest/signing");
+        URL ocspUrl= new URL(SIGNING_URL);
         // create closable http client and assign the certificate interceptor
         CloseableHttpClient httpClient = HttpClients.createDefault();
         System.out.println("Responder URL: " + ocspUrl.toString());
@@ -101,7 +102,7 @@ public class SignerTest {
     public void testSignSimpleCAdES() throws Exception {
         InputStream
                 keyStore = SignerTest.class.getResourceAsStream("/application.jks");
-        URL ocspUrl= new URL("http://localhost:8080/unichorn-responder-1.0-SNAPSHOT/rest/signing");
+        URL ocspUrl= new URL(SIGNING_URL);
         // create closable http client and assign the certificate interceptor
         CloseableHttpClient httpClient = HttpClients.createDefault();
         System.out.println("Responder URL: " + ocspUrl.toString());
@@ -139,7 +140,7 @@ public class SignerTest {
 
         InputStream privKeyEncr = createPrivKeyEncr(pair.getPrivate(), password);
 
-        URL ocspUrl= new URL("http://localhost:8080/unichorn-responder-1.0-SNAPSHOT/rest/signing");
+        URL ocspUrl= new URL(SIGNING_URL);
         // create closable http client and assign the certificate interceptor
         CloseableHttpClient httpClient = HttpClients.createDefault();
         System.out.println("Responder URL: " + ocspUrl.toString());
@@ -230,7 +231,7 @@ public class SignerTest {
     }
 
     private String getPassCode() throws Exception {
-        URL ocspUrl= new URL("http://localhost:8080/unichorn-responder-1.0-SNAPSHOT/rest/signing");
+        URL ocspUrl= new URL(SIGNING_URL);
         // create closable http client and assign the certificate interceptor
         CloseableHttpClient httpClient = HttpClients.createDefault();
         URIBuilder builder = new URIBuilder(ocspUrl.toURI());

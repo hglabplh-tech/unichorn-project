@@ -3,7 +3,9 @@ package harry.security.responder.resources;
 import iaik.asn1.CodingException;
 import iaik.asn1.structures.AlgorithmID;
 import iaik.tsp.MessageImprint;
+import iaik.tsp.TSTInfo;
 import iaik.tsp.TimeStampReq;
+import iaik.tsp.TimeStampToken;
 import iaik.tsp.transport.http.TspHttpClient;
 import iaik.tsp.transport.http.TspHttpResponse;
 import org.junit.Test;
@@ -12,6 +14,10 @@ import org.pmw.tinylog.Logger;
 import java.io.IOException;
 import java.net.URL;
 import java.security.NoSuchAlgorithmException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+
+import static org.harry.security.CommonConst.TSP_URL;
 
 public class TimeStampTest {
 
@@ -19,8 +25,12 @@ public class TimeStampTest {
 
     @Test
     public void getTimestampOk() throws Exception  {
-        String tspUrl = "http://localhost:8080/unichorn-responder-1.0-SNAPSHOT/rest/tsp";
-        sendAndReceiveData(createTimeStampRequest(), tspUrl);
+        TspHttpResponse response = sendAndReceiveData(createTimeStampRequest(), TSP_URL);
+        TimeStampToken token = response.getTimeStampResp().getTimeStampToken();
+        TSTInfo info = token.getTSTInfo();
+        Date date = info.getGenTime();
+        SimpleDateFormat fmt = new SimpleDateFormat("\"dd/MM/yyyy'T'HH:mm:ss:SSS\"");
+        System.out.println("Atomic TimeStamp: " + fmt.format(date));
     }
 
     public TspHttpResponse sendAndReceiveData(TimeStampReq request, String url) throws NullPointerException, IOException,

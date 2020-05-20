@@ -51,6 +51,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.math.BigInteger;
+import java.util.Calendar;
 import java.util.Date;
 
 import javax.servlet.ServletException;
@@ -60,6 +61,7 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.harry.security.util.httpclient.NTPServerUtil;
 
 /**
  * This demo class extends the <code>HttpServlet</code>.<br>
@@ -156,7 +158,9 @@ public class TspHttpServerServlet extends HttpServlet {
 
     //create TSTInfo
     TSTInfo tstInfo = new TSTInfo();
-    tstInfo.setGenTime(new Date());
+    Calendar time = NTPServerUtil.getNTPTime();
+    Date atomicTime = new Date(time.getTimeInMillis());
+    tstInfo.setGenTime(atomicTime);
     tstInfo.setMessageImprint(tspRequest.getMessageImprint());
     if (config_.setAccuracy()) {
       tstInfo.setAccuracy(config_.getAccuracy());
