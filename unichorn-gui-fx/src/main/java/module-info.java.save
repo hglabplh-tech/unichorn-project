@@ -1,0 +1,11 @@
+module org.harald.security.fx {
+    requires iaik.jce.full.ima.license.trustedlib.unlimited;
+    requires org.apache.httpcomponents.httpcore;
+    requires org.apache.httpcomponents.httpclient;
+    requires javafx.base;
+    requires javafx.fxml;
+    requires javafx.controls;
+    requires javafx.graphics;
+    requires java.activation;
+    requires unichorncore;
+}

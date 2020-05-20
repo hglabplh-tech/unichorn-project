@@ -46,7 +46,7 @@ import iaik.x509.X509Certificate;
 import iaik.x509.X509ExtensionException;
 import iaik.x509.extensions.*;
 import org.harry.security.util.certandkey.KeyStoreTool;
-import sun.security.x509.X509CertImpl;
+
 
 import java.io.*;
 import java.math.BigInteger;

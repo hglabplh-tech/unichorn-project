@@ -1,7 +1,6 @@
 package org.harry.security;
 
 import com.beust.jcommander.JCommander;
-import com.sun.crypto.provider.SunJCE;
 import iaik.cms.SecurityProvider;
 import iaik.cms.SignedDataStream;
 import iaik.cms.ecc.ECCelerateProvider;
@@ -16,7 +15,7 @@ import org.harry.security.util.bean.SigningBean;
 import org.harry.security.util.certandkey.CertWriterReader;
 import org.harry.security.util.certandkey.KeyStoreTool;
 import org.harry.security.util.trustlist.TrustListManager;
-import sun.security.provider.Sun;
+
 
 import javax.activation.DataSource;
 import java.io.File;

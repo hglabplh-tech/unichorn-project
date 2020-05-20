@@ -1,8 +1,6 @@
 package org.harry.security.util;
 
-import com.itextpdf.io.image.ImageData;
-import com.itextpdf.io.image.ImageDataFactory;
-import com.itextpdf.layout.element.Image;
+
 import com.itextpdf.text.DocumentException;
 import com.itextpdf.text.Jpeg;
 import com.itextpdf.text.Rectangle;
@@ -23,8 +21,6 @@ import iaik.pdf.signature.PdfSignatureException;
 import iaik.pdf.signature.PdfSignatureInstance;
 import iaik.tsp.transport.http.TspHttpClient;
 import iaik.x509.X509Certificate;
-import org.apache.pdfbox.pdmodel.interactive.digitalsignature.visible.PDVisibleSigProperties;
-import org.apache.pdfbox.pdmodel.interactive.digitalsignature.visible.PDVisibleSignDesigner;
 import org.harry.security.util.algoritms.DigestAlg;
 import org.harry.security.util.bean.SigningBean;
 import org.pmw.tinylog.Logger;
@@ -95,16 +91,7 @@ public class SignPDFUtil {
                 certChain, params);
 
         InputStream image = SignPDFUtil.class.getResourceAsStream("/graphic/cert.png");
-        PDVisibleSignDesigner visibleSig = new PDVisibleSignDesigner(image);
-        visibleSig.coordinates(0,-100).zoom(-50)
-                .adjustForRotation()
-                .signatureFieldName("ApplicantSignature");
-        PDVisibleSigProperties signatureProperties = new PDVisibleSigProperties();
-        signatureProperties.signerName(params.getSignatureContactInfo())
-                .signerLocation(params.getSignatureLocation())
-                .signatureReason(params.getSignatureReason()).preferredSize(40).page(1)
-                .visualSignEnabled(true).setPdVisibleSignature(visibleSig)
-                .buildSignature();
+
 
     }
 

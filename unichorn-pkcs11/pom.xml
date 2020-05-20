@@ -13,14 +13,13 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <maven.compiler.source>8</maven.compiler.source>
-        <maven.compiler.target>8</maven.compiler.target>
+
     </properties>
 
     <dependencies>
         <dependency>
             <groupId>org.harry.security</groupId>
-            <artifactId>unichorn-core</artifactId>
+            <artifactId>unichorncore</artifactId>
             <version>1.0-SNAPSHOT</version>
         </dependency>
         <dependency>
@@ -86,6 +85,11 @@
         <dependency>
             <groupId>iaik-eval</groupId>
             <artifactId>iaik-pkcs11provider-eval</artifactId>
+            <version>1.7</version>
+        </dependency>
+        <dependency>
+            <groupId>iaik-eval</groupId>
+            <artifactId>iaik-pkcs11provider-cms-eval</artifactId>
             <version>1.7</version>
         </dependency>
 
@@ -181,8 +185,9 @@
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>3.8.0</version>
 
+
             </plugin>
-            <plugin>
+          <!--  <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
                 <version>3.2.0</version>
@@ -194,7 +199,7 @@
                         </goals>
                     </execution>
                 </executions>
-            </plugin>
+            </plugin> -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-source-plugin</artifactId>

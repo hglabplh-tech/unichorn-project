@@ -3,6 +3,7 @@ package org.harry.security.pkcs11;
 import iaik.asn1.structures.AlgorithmID;
 import iaik.pkcs.pkcs11.*;
 import iaik.pkcs.pkcs11.Mechanism;
+import iaik.pkcs.pkcs11.Module;
 import iaik.pkcs.pkcs11.objects.*;
 import iaik.pkcs.pkcs11.objects.Key;
 import iaik.pkcs.pkcs11.objects.Object;
@@ -13,6 +14,7 @@ import iaik.pkcs.pkcs11.provider.keys.IAIKPKCS11PrivateKey;
 import iaik.pkcs.pkcs11.provider.keys.IAIKPKCS11PublicKey;
 import iaik.pkcs.pkcs11.provider.keys.IAIKPKCS11SecretKey;
 import iaik.pkcs.pkcs11.wrapper.CK_ATTRIBUTE;
+import iaik.pkcs.pkcs11.wrapper.PKCS11;
 import iaik.pkcs.pkcs12.PKCS12;
 import iaik.pkcs.pkcs12.PKCS12KeyStore;
 import iaik.security.provider.IAIK;
@@ -32,8 +34,7 @@ import org.mockito.stubbing.OngoingStubbing;
 import org.powermock.api.mockito.PowerMockito;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
-import sun.security.jca.GetInstance;
-import sun.security.pkcs11.wrapper.PKCS11;
+
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -353,23 +354,6 @@ public class ModuleSim {
 
         Constructor ctor = null;
 
-        Constructor [] ctors = GetInstance.Instance.class.getDeclaredConstructors();
-        for (Constructor actual: ctors) {
-            if (actual.getParameterCount() == 2) {
-                ctor = actual;
-                ctor.setAccessible(true);
-                break;
-            }
-        }
-        GetInstance.Instance inst = null;
-
-
-
-
-        GetInstance.Instance finalInst = inst;
-        //PowerMockito.mockStatic(GetInstance.class);
-        //PowerMockito.when(GetInstance.getInstance(service, notNull(Class.class)))
-         //       .thenReturn(finalInst);
 
 
 
