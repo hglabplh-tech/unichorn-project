@@ -42,7 +42,7 @@ public class KeyStoreTool {
     public static KeyStore initStore(String type, String password) {
         try {
             KeyStore store = KeyStore.getInstance(type, IAIK.getInstance());
-            store.load(null, null);
+            store.load(null, password.toCharArray());
             return store;
         } catch (Exception ex) {
             throw new IllegalStateException("cannot load keystore", ex);
@@ -226,13 +226,10 @@ public class KeyStoreTool {
                               X509Certificate[] certChain, String alias) {
         try {
 
-           // KeyStore.Entry entry = new KeyStore.PrivateKeyEntry(key, certChain);
-            if (store.containsAlias(alias)) {
+
                 // Warning
                 store.setKeyEntry(alias, key, passwd,certChain);
-            } else {
-                store.setKeyEntry(alias, key, passwd, certChain);
-            }
+
 
         } catch (Exception ex) {
             throw new IllegalStateException("delete entry failed", ex);

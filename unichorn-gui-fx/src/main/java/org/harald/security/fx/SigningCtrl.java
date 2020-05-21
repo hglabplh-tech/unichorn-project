@@ -23,6 +23,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import static org.harald.security.fx.util.Miscellaneous.*;
+import static org.harry.security.CommonConst.TSP_URL;
 
 public class SigningCtrl implements ControllerInit {
 
@@ -43,7 +44,9 @@ public class SigningCtrl implements ControllerInit {
     "http://services.globaltrustfinder.com/adss/tsa",
     "https://tsp.iaik.tugraz.at/tsp/TspRequest",
     "http://timestamp.apple.com/ts01",
-    "http://timestamp.entrust.net/TSS/RFC3161sha2TS"
+    "http://timestamp.entrust.net/TSS/RFC3161sha2TS",
+    TSP_URL
+
     );
     File keyStoreStream = null;
     File dataInput = null;

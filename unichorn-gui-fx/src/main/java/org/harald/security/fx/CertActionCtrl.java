@@ -13,6 +13,7 @@ import org.harry.security.util.certandkey.CertWriterReader;
 import org.harry.security.util.certandkey.KeyStoreTool;
 
 import java.io.*;
+import java.security.KeyPair;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.cert.CertificateEncodingException;
@@ -95,9 +96,9 @@ public class CertActionCtrl implements ControllerInit {
         ConfigReader.MainProperties props = ConfigReader.loadStore();
         props.setKeystorePass(passwd.getText());
             CertificateWizzard wizzard = new CertificateWizzard(ConfigReader.loadStore());
-            wizzard.generateCA();
-            wizzard.generateIntermediate();
-            wizzard.generateUser();
+        KeyPair caKeys = wizzard.generateCA(props.getCommonName(), true);
+        KeyPair interKeys = wizzard.generateIntermediate(caKeys, props.getCommonName(), true);
+        wizzard.generateUser(interKeys, props.getCommonName(), true);
             KeyStore store = wizzard.getStore();
             File outFile = showSaveDialogFromButton(event, "expTarget");
             KeyStoreTool.storeKeyStore(store, new FileOutputStream(outFile), passwd.getText().toCharArray());

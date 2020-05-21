@@ -8,6 +8,8 @@ import iaik.cms.*;
 import iaik.pdf.asn1objects.*;
 import iaik.pdf.cmscades.CadesSignatureStream;
 import iaik.pdf.cmscades.CmsCadesException;
+import iaik.security.rsa.RSAPssPublicKey;
+import iaik.security.rsa.RSAPublicKey;
 import iaik.smime.attributes.SignatureTimeStampToken;
 import iaik.tsp.TimeStampToken;
 import iaik.tsp.TspVerificationException;
@@ -24,6 +26,7 @@ import java.net.URL;
 import java.security.DigestOutputStream;
 import java.security.MessageDigest;
 import java.security.PrivateKey;
+import java.security.PublicKey;
 import java.security.cert.Certificate;
 import java.util.*;
 
@@ -42,6 +45,8 @@ public class VerifyUtil {
 
     private final SigningBean bean;
 
+    private final AlgorithmPathChecker algPathChecker;
+
 
     /**
      * The default constructor for verification
@@ -50,6 +55,7 @@ public class VerifyUtil {
     public VerifyUtil(List<TrustListManager> walkers, SigningBean bean) {
         this.walkers = walkers;
         this.bean = bean;
+        this.algPathChecker = new AlgorithmPathChecker(walkers, bean);
     }
 
     public static boolean quickCheck(InputStream signature, InputStream data) throws IOException, CMSParsingException {
@@ -173,7 +179,8 @@ public class VerifyUtil {
                                 new Tuple<>(signCert.getSubjectDN().getName(), Outcome.SUCCESS));
                         System.out.println("Signer " + (j + 1) + " signature value is valid.");
                         vResult.addSignersInfo(signCert.getSubjectDN().getName(), results);
-                        detectChain(signCert, results);
+                        algPathChecker.checkSignatureAlgorithm(sigAlg, signCert.getPublicKey(), results);
+                        algPathChecker.detectChain(signCert, results);
                         // tsp verification
                         SignatureTimeStamp[] timestamps = cadesSig.getSignatureTimeStamps(j);
                         for (SignatureTimeStamp tst : timestamps) {
@@ -266,7 +273,7 @@ public class VerifyUtil {
                                     results.addSignatureResult(signCert.getSubjectDN().getName(),
                                             new Tuple<>("signature base check succeded", Outcome.SUCCESS));
 
-                                    detectChain(signCert, results);
+                                    algPathChecker.detectChain(signCert, results);
 
                                 } else {
                                     results.addSignatureResult(signCert.getSubjectDN().getName(),
@@ -288,62 +295,7 @@ public class VerifyUtil {
         }
     }
 
-    /**
-     * Here the chain is checked for validity and consistency
-     * @param signCert the signers certificate
-     * @param results the check results object
-     */
-    public X509Certificate[] detectChain(X509Certificate signCert, SignerInfoCheckResults results) {
-        X509Certificate[] certArray;
-        certArray = new X509Certificate[3];
-        X509Certificate actualCert = signCert;
-        int index = 0;
-        while (!CertificateWizzard.isCertificateSelfSigned(actualCert)) {
-            results.addSignatureResult(
-                    actualCert.getSubjectDN().getName(), new Tuple<>("signature ok", Outcome.SUCCESS));
-            Optional<X509Certificate> certOpt = Optional.empty();
-            certOpt = getX509IssuerCertificate(actualCert, certOpt);
-            if (certOpt.isPresent()) {
-                System.out.println("found subject:" + certOpt.get().getSubjectDN().getName());
-                certArray[index] = actualCert;
-                certArray[index + 1] = certOpt.get();
-                if (bean.isCheckPathOcsp()) {
-                    checkOCSP(results, certArray);
-                }
-            } else {
-                results.addSignatureResult(
-                        "", new Tuple<>("signature chain building failed", Outcome.FAILED));
-            }
-            if (certOpt.isPresent()) {
-                actualCert = certOpt.get();
-            } else {
-                break;
-            }
-            index++;
-        }
-        return certArray;
 
-    }
-
-    /**
-     * retrieve the issuers cedrtificate by searching it in the trust list
-     * @param signCert the signers certificate
-     * @param certOpt the certificate optional holding the issuer later on
-     * @return the optional holding the found cdertificate
-     */
-    public Optional<X509Certificate> getX509IssuerCertificate(X509Certificate signCert, Optional<X509Certificate> certOpt) {
-        for (TrustListManager walker : walkers) {
-            certOpt = walker.getAllCerts()
-                    .stream().filter(e ->
-                            e.getSubjectDN().getName()
-                                    .equals(signCert.getIssuerDN().getName()))
-                    .findFirst();
-            if (certOpt.isPresent()) {
-                break;
-            }
-        }
-        return certOpt;
-    }
 
 
     /**
@@ -430,46 +382,6 @@ public class VerifyUtil {
         }
     }
 
-    /**
-     * This method checks the specified certificate chain with
-     * OCSP
-     * @param results the check results object
-     * @param chain the certificate chain
-     */
-    private void checkOCSP (SignerInfoCheckResults results, X509Certificate [] chain) {
-        try {
-            boolean reqIsSigned = true;
-            Tuple<PrivateKey, X509Certificate[]> bean = loadKey();
-            X509Certificate[] certs;
-            certs = bean.getSecond();
-            int responseStatus = 0;
-            String ocspUrl = HttpOCSPClient.getOCSPUrl(chain[0]);
-            OCSPResponse response = null;
-            if (reqIsSigned == true && ocspUrl != null) {
-                 response = HttpOCSPClient.sendOCSPRequest(ocspUrl, bean.getFirst(),
-                        certs, chain, false, ReqCert.certID);
-            } else if (ocspUrl != null){
-                response = HttpOCSPClient.sendOCSPRequest(ocspUrl, null,
-                        null, chain,false, ReqCert.certID);
-            }
-
-            if (response != null) {
-                responseStatus = HttpOCSPClient.getClient().parseOCSPResponse(response, true);
-                String resultName = chain[0].getSubjectDN().getName();
-                if (responseStatus == OCSPResponse.successful) {
-                    results.addOcspResult(resultName, new Tuple<String, Outcome>(response.getResponseStatusName(), Outcome.SUCCESS));
-                } else if (responseStatus == OCSPResponse.tryLater) {
-                    results.addOcspResult(resultName, new Tuple<String, Outcome>(response.getResponseStatusName(),
-                            Outcome.UNDETERMINED));
-                } else {
-                    results.addOcspResult(resultName, new Tuple<String, Outcome>(response.getResponseStatusName(),
-                            Outcome.FAILED));
-                }
-            }
-        } catch (Exception ex){
-            throw new IllegalStateException("OCSP check failed with exception", ex);
-        }
-    }
 
     /**
      * Verifies the archive timestamp, extracts the archived verification data and uses this data to
@@ -528,7 +440,7 @@ public class VerifyUtil {
 
                 // verify archived signature - only exemplary verification
 
-                X509Certificate[] signerCertChain = detectChain(signerCert, results);
+                X509Certificate[] signerCertChain = algPathChecker.detectChain(signerCert, results);
 
                 if (signerCertChain.length > 1) {
                     CertID certID = new CertID(AlgorithmID.sha1,

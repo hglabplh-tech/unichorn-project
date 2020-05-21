@@ -46,9 +46,9 @@ import static org.harry.security.util.CertificateWizzard.PROP_TRUST_NAME;
 @WebServlet
 @MultipartConfig(
         location = "c:\\tmp",
-        fileSizeThreshold   = 1024 * 1024 * 10,  // 10 MB
-        maxFileSize         = 1024 * 1024 * 100, // 100 MB
-        maxRequestSize      = 1024 * 1024 * 150 // 150 MB
+        fileSizeThreshold   = 0,  // 10 MB
+        maxFileSize         = -1L, // 100 MB
+        maxRequestSize      = -1L // 150 MB
 )
 public class SigningResponder extends HttpServlet {
 
@@ -330,9 +330,17 @@ public class SigningResponder extends HttpServlet {
                    }
                    signingBean = signingBean.setTspURL(url);
                    ds = util.signCAdES(signingBean, setArchiveInfo);
-                   IOUtils.copy(ds.getInputStream(), servletResponse.getOutputStream());
+                   InputStream input = ds.getInputStream();
+                   OutputStream servletOut = servletResponse.getOutputStream();
+                   IOUtils.copy(input, servletOut);
+                   servletOut.flush();
+                   servletOut.close();
+                   input.close();
                    servletResponse.setStatus(Response.Status.CREATED.getStatusCode());
+                   Logger.trace("Http Status is: " + servletResponse.getStatus());
                    Logger.trace("Signed CAdES");
+                   Thread.sleep(10 * 1000);
+                   Logger.trace(" Now return");
                } else if(sigType.equals(SigningBean.SigningType.PAdES.name())) {
                    Logger.trace("Sign PAdES");
                    tempData.delete();

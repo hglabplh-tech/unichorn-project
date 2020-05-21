@@ -177,7 +177,8 @@ public class CMSSigner {
                 }
             } else if (command.equals(Commands.GEN_KEYSTORE)) {
                 try {
-                    generateThis();
+                    GenerateKeyStore generator = new GenerateKeyStore(params);
+                    generator.generateCertificates();
                 } catch (Exception e) {
                     throw new IllegalStateException("error occured when generating keyStore", e);
                 }

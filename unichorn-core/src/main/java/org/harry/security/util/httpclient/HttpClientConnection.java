@@ -3,6 +3,9 @@ package org.harry.security.util.httpclient;
 import com.google.gson.Gson;
 import org.apache.commons.io.IOUtils;
 import org.apache.http.HttpEntity;
+import org.apache.http.HttpResponse;
+import org.apache.http.client.ClientProtocolException;
+import org.apache.http.client.ResponseHandler;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
@@ -20,6 +23,7 @@ import java.io.*;
 import java.net.URL;
 import java.util.Base64;
 import java.util.Vector;
+import java.util.concurrent.TimeUnit;
 
 public class HttpClientConnection {
 
@@ -98,13 +102,26 @@ public class HttpClientConnection {
                 .addPart("data_to_sign", input);
 
         post.setEntity(builder.build());
-        CloseableHttpResponse response = httpClient.execute(post);
-        if (response.getStatusLine().getStatusCode() == 200
-        || response.getStatusLine().getStatusCode() == 201) {
-            InputStream result = response.getEntity().getContent();
-            IOUtils.copy(result, new FileOutputStream(output));
+        ResponseHandler<InputStream> responseHandler = new ResponseHandler<InputStream>() {
 
-        }
+            @Override
+            public InputStream handleResponse(HttpResponse response) throws ClientProtocolException, IOException {
+                if (response.getStatusLine().getStatusCode() == 200
+                        || response.getStatusLine().getStatusCode() == 201) {
+                    InputStream result = response.getEntity().getContent();
+                    OutputStream stream = new FileOutputStream(output);
+                    IOUtils.copy(result, stream);
+                    stream.flush();
+                    stream.close();
+                    result.close();
+                    return result;
+
+                }
+                return null;
+            }
+        };
+        InputStream response = httpClient.execute(post, responseHandler);
+
 
     }
 }

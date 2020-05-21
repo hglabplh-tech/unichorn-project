@@ -111,14 +111,34 @@ public class VerifyUtilTest extends TestBase {
     }
 
     @Test
+    public void checkPomSigningOKCAdES() throws Exception{
+        KeyStore store = KeyStoreTool.loadAppStore();
+        Tuple<PrivateKey, X509Certificate[]> keys = KeyStoreTool.getAppKeyEntry(store);
+        SigningUtil util = new SigningUtil();        //
+        File dummy = File.createTempFile(
+                "sig", "pkcs7");
+        // InputStream in = this.getClass().getResourceAsStream("/certificates/example.pem");
+        InputStream signature = this.getClass().getResourceAsStream("/data/pom.xml.pkcs7");
+        URL url = this.getClass().getResource("/data/pom.xml");
+        File urlFile = new File(url.toURI());
+        FileInputStream in = new FileInputStream(urlFile);
+        SigningBean bean = setBean(keys.getSecond(), keys.getFirst(), dummy, urlFile, false);
+        List<TrustListManager> walkers = ConfigReader.loadAllTrusts();
+        VerifyUtil vutil = new VerifyUtil(walkers, bean);
+        vutil.verifyCadesSignature(signature, in);
+    }
+
+
+    @Test
     public void detectChainTest() {
         KeyStore store = KeyStoreTool.loadAppStore();
         Tuple<PrivateKey, X509Certificate[]> keys = KeyStoreTool.getAppKeyEntry(store);
         SigningBean bean = new SigningBean();
         List<TrustListManager> walkers = ConfigReader.loadAllTrusts();
         VerifyUtil vutil = new VerifyUtil(walkers, bean);
+        AlgorithmPathChecker pathChecker = new AlgorithmPathChecker(walkers, bean);
         VerifyUtil.SignerInfoCheckResults results = new VerifyUtil.SignerInfoCheckResults();
-        X509Certificate[] chain = vutil.detectChain(keys.getSecond()[0], results);
+        X509Certificate[] chain = pathChecker.detectChain(keys.getSecond()[0], results);
         int index = 0;
         for (X509Certificate cert: chain) {
             X509Certificate other = keys.getSecond()[index];

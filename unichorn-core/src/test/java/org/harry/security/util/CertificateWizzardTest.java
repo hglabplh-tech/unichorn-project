@@ -8,6 +8,7 @@ import org.junit.Test;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.security.KeyPair;
 
 public class CertificateWizzardTest extends TestBase {
 
@@ -17,9 +18,9 @@ public class CertificateWizzardTest extends TestBase {
         properties.setKeystorePass("geheim");
 
         CertificateWizzard wizzard = new CertificateWizzard(properties);
-        wizzard.generateCA();
-        wizzard.generateIntermediate();
-        wizzard.generateUser();
+        KeyPair caKeys = wizzard.generateCA(properties.getCommonName(), true);
+        KeyPair interKeys = wizzard.generateIntermediate(caKeys, properties.getCommonName(), true);
+        wizzard.generateUser(interKeys, properties.getCommonName(), true);
         File tempStore = File.createTempFile("keyStore", ".jks");
         FileOutputStream stream = new FileOutputStream(tempStore);
         File tempTrust = File.createTempFile("trust", ".xml");

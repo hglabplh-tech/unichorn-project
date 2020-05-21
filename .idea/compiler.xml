@@ -6,9 +6,9 @@
         <sourceOutputDir name="target/generated-sources/annotations" />
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
-        <module name="unichorncore" />
         <module name="unichorn-responder" />
         <module name="unichorn-gui-fx" />
+        <module name="unichorncore" />
         <module name="unichorn-pkcs11" />
       </profile>
     </annotationProcessing>

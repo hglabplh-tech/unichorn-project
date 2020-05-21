@@ -51,6 +51,8 @@ public enum SignatureAlg {
             "ecdsa_With_SHA3_384", AlgorithmID.ecdsa_With_SHA3_384.getAlgorithm()),
     ECDSA_WITH_SHA3_512(AlgorithmID.ecdsa_With_SHA3_512,
             "ecdsa_With_SHA3_512", AlgorithmID.ecdsa_With_SHA3_512.getAlgorithm()),
+    RSA_PSS(AlgorithmID.rsassaPss,
+            "rsapss", AlgorithmID.rsassaPss.getAlgorithm()),
 
     ;
 
