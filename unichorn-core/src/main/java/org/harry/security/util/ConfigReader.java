@@ -135,7 +135,7 @@ public class ConfigReader {
         try {
             in = new FileInputStream(trustFile);
             return TrustListLoader.loadTrust(in);
-        } catch(IOException ex) {
+        } catch(Exception ex) {
             throw new IllegalStateException("trust list load failed ", ex);
         }
 

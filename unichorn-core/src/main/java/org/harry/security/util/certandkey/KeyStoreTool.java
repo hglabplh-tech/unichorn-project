@@ -222,6 +222,19 @@ public class KeyStoreTool {
         }
     }
 
+    public static void addCertificateChain(KeyStore store, X509Certificate[] certificateChain) {
+        try {
+            KeyStore appStore = KeyStoreTool.loadAppStore();
+            Tuple<PrivateKey, X509Certificate[]> keys = KeyStoreTool.getAppKeyEntry(appStore);
+            store.setKeyEntry(certificateChain[0].getSubjectDN().getName(),
+                    keys.getFirst(),
+                    "geheim".toCharArray(),
+                    certificateChain);
+        } catch (Exception ex) {
+            throw new IllegalStateException("delete entry failed", ex);
+        }
+    }
+
     public static void addKey(KeyStore store, PrivateKey key, char [] passwd,
                               X509Certificate[] certChain, String alias) {
         try {

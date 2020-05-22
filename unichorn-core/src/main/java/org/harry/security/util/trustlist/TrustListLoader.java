@@ -1,10 +1,14 @@
 package org.harry.security.util.trustlist;
 
+import com.sun.org.apache.xalan.internal.utils.XMLSecurityPropertyManager;
+import com.sun.org.apache.xerces.internal.impl.PropertyManager;
+import com.sun.org.apache.xerces.internal.impl.XMLStreamReaderImpl;
 import iaik.x509.X509Certificate;
 import org.etsi.uri._02231.v2_.*;
 
 import javax.xml.bind.*;
 import javax.xml.namespace.QName;
+import javax.xml.stream.XMLStreamReader;
 import java.io.*;
 import java.security.cert.CertificateEncodingException;
 import java.util.List;
@@ -52,7 +56,7 @@ public class TrustListLoader {
      * @return the manager
      * @throws IOException error case
      */
-    public TrustListManager getManager(File trustListFile) throws IOException {
+    public TrustListManager getManager(File trustListFile) throws Exception {
         if(trustListFile != null && trustListFile.exists()) {
             InputStream stream = new FileInputStream(trustListFile);
             TrustStatusListType trust = loadTrust(stream);
@@ -68,8 +72,10 @@ public class TrustListLoader {
 
     }
 
-    public static TrustStatusListType loadTrust(InputStream trustList) {
+    public static TrustStatusListType loadTrust(InputStream trustList) throws Exception {
         JAXBContext jaxbContext;
+
+
         try {
             jaxbContext = JAXBContext.newInstance(TrustStatusListType.class);
             Unmarshaller umarshall  = jaxbContext.createUnmarshaller();

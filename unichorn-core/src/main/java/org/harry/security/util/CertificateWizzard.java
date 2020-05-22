@@ -79,7 +79,7 @@ public class CertificateWizzard {
     public CertificateWizzard(ConfigReader.MainProperties properties) {
         try {
             manager = loader.getManager(null);
-        } catch (IOException e) {
+        } catch (Exception e) {
 
         }
         this.properties = properties;

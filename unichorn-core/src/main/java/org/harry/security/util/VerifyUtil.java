@@ -538,6 +538,7 @@ public class VerifyUtil {
     public static class SignerInfoCheckResults {
         Map<String, Tuple<String, Outcome>> signatureResults = new HashMap<>();
         Map<String, Tuple<String, Outcome>> ocspResults = new HashMap<>();
+        X509Certificate [] signerChain = null;
         SignerInfo info = null;
         Map<Tuple<String, Outcome>, List<X509Certificate>> signersChain = new HashMap<>();
 
@@ -545,7 +546,8 @@ public class VerifyUtil {
             this.info = info;
         }
 
-        public void addCertChain(Tuple<String,Outcome> result, List<X509Certificate> resultCerts) {
+        public void addCertChain(Tuple<String,Outcome> result, List<X509Certificate> resultCerts, X509Certificate [] certChain) {
+            signerChain = certChain;
             signersChain.put(result, resultCerts);
         }
 
@@ -563,6 +565,10 @@ public class VerifyUtil {
 
         public Map<String, Tuple<String, Outcome>> getOcspResult() {
             return ocspResults;
+        }
+
+        public X509Certificate [] getSignerChain() {
+            return signerChain;
         }
 
         public SignerInfoCheckResults addSignatureResult(String resultName, Tuple<String, Outcome> signatureResult) {

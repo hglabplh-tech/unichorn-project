@@ -14,8 +14,9 @@ public class CardSignerTest {
         SigningBean signingBean = new SigningBean().setDataIN(input)
                 .setSigningMode(SigningBean.Mode.EXPLICIT);
         CardSigner signer = new CardSigner();
+        String cardPIN = "315631";
         signer.readCardData();
-        signer.getKeyStore();
+        signer.getKeyStore(cardPIN);
         signer.sign(signingBean);
     }
 }

@@ -15,6 +15,9 @@ import org.harry.security.util.bean.SigningBean;
 import org.harry.security.util.certandkey.CertWriterReader;
 import org.harry.security.util.certandkey.KeyStoreTool;
 import org.harry.security.util.trustlist.TrustListManager;
+import org.pmw.tinylog.Configurator;
+import org.pmw.tinylog.Level;
+import org.pmw.tinylog.writers.ConsoleWriter;
 
 
 import javax.activation.DataSource;
@@ -100,6 +103,7 @@ public class CMSSigner {
         setProviders();
         CertificateWizzard.initThis();
         Commands command = cmds.getCommand();
+        Configurator.defaultConfig().level(Level.TRACE).writer(new ConsoleWriter()).activate();
         ConfigReader.MainProperties params = ConfigReader.loadStore();
         List<TrustListManager> walkers = ConfigReader.loadAllTrusts();
         try {

@@ -1,6 +1,9 @@
 package org.harry.security.util;
 
+import iaik.asn1.ObjectID;
 import iaik.asn1.structures.AlgorithmID;
+import iaik.asn1.structures.Name;
+import iaik.asn1.structures.RDN;
 import iaik.security.dsa.DSA;
 import iaik.security.dsa.DSAPublicKey;
 import iaik.security.ec.common.AbstractECPublicKey;
@@ -15,6 +18,7 @@ import org.harry.security.util.trustlist.TrustListManager;
 
 import java.security.PrivateKey;
 import java.security.PublicKey;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
@@ -67,6 +71,7 @@ public class AlgorithmPathChecker {
             }
             index++;
         }
+        results.addCertChain(new Tuple<>("set signer chain", VerifyUtil.Outcome.SUCCESS), Arrays.asList(certArray), certArray);
         return certArray;
 
     }
@@ -77,12 +82,23 @@ public class AlgorithmPathChecker {
      * @param certOpt the certificate optional holding the issuer later on
      * @return the optional holding the found cdertificate
      */
-    public Optional<X509Certificate> getX509IssuerCertificate(X509Certificate signCert, Optional<X509Certificate> certOpt) {
+    public Optional<X509Certificate> getX509IssuerCertificate(X509Certificate signCert, Optional<X509Certificate> certOpt)
+    {
+
         for (TrustListManager walker : walkers) {
             certOpt = walker.getAllCerts()
-                    .stream().filter(e ->
-                            e.getSubjectDN().getName()
-                                    .equals(signCert.getIssuerDN().getName()))
+                    .stream().filter(e -> {
+                                try {
+                                    RDN commonIssuer = ((Name) signCert.getIssuerDN()).element(ObjectID.commonName);
+                                    String issuer = commonIssuer.getRFC2253String();
+                                    RDN commonSubject = ((Name) e.getSubjectDN()).element(ObjectID.commonName);
+                                    String subject = commonSubject.getRFC2253String();
+                                    return issuer.equals(subject);
+                                } catch (Exception ex) {
+                                    return false;
+                                }
+
+                            })
                     .findFirst();
             if (certOpt.isPresent()) {
                 break;

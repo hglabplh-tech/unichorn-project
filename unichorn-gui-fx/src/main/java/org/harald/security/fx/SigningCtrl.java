@@ -7,6 +7,7 @@ import javafx.scene.control.CheckBox;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.TextField;
 import org.harry.security.CMSSigner;
+import org.harry.security.pkcs11.CardSigner;
 import org.harry.security.util.SigningUtil;
 import org.harry.security.util.Tuple;
 import org.harry.security.util.algoritms.CryptoAlg;
@@ -92,6 +93,7 @@ public class SigningCtrl implements ControllerInit {
 
     private void sign() throws Exception {
         CheckBox archiveInfo = getCheckBoxByFXID("archiveInfo");
+        TextField pin = getTextFieldByFXID("pin");
         boolean addArchiveInfo = archiveInfo.isSelected();
         SigningBean bean = SecHarry.contexts.get();
         bean = filloutBean(bean);
@@ -115,9 +117,21 @@ public class SigningCtrl implements ControllerInit {
                 params.signing.cadesParams.TSAURL = bean.getTspURL();
                 params.signing.cadesParams.addArchiveinfo = addArchiveInfo;
             }
-            HttpClientConnection
-                    .sendDocSigningRequest(bean.getDataIN(),
-                            params, new File(bean.getOutputPath()));
+            if (bean.getSignatureType().equals(SigningBean.SigningType.PKCS11)) {
+                String cardPin = pin.getText();
+                boolean reallySign = (cardPin != null && cardPin.length() == 6);
+                CardSigner signer = new CardSigner();
+                signer.readCardData();
+                if (reallySign) {
+                    signer.getKeyStore(cardPin);
+                    DataSource signed = signer.sign(bean);
+                    util.writeToFile(signed, bean);
+                }
+            } else {
+                HttpClientConnection
+                        .sendDocSigningRequest(bean.getDataIN(),
+                                params, new File(bean.getOutputPath()));
+            }
         } else if (bean.getAction().equals(CMSSigner.Commands.ENCRYPT_SIGN)) {
             Tuple<DataSource, DataSource> outCome = util.encryptAndSign(bean);
             util.writeToFile(outCome.getSecond(), bean);

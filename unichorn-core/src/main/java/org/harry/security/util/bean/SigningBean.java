@@ -78,7 +78,8 @@ public class SigningBean {
         CAdES,
         PAdES,
         Compress,
-        Decompress
+        Decompress,
+        PKCS11
     }
 
     public String getKeyStoreType() {

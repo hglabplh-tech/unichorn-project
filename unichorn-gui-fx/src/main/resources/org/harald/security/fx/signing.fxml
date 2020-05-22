@@ -40,8 +40,7 @@
             <ComboBox fx:id="encrAlg" prefWidth="150.0" GridPane.columnIndex="1" GridPane.rowIndex="5" />
             <Button fx:id="signEncr" mnemonicParsing="false" onAction="#signEncr" text="Process" GridPane.rowIndex="8" />
             <Button fx:id="cancelSigning" mnemonicParsing="false" onAction="#cancelSigning" text="Cancel" GridPane.columnIndex="1" GridPane.rowIndex="8" />
-            <Label text="Certificate" />
-            <TextField fx:id="cetificate" GridPane.columnIndex="1" />
+            <Label text="Card PIN" />
             <Label text="Optional Parameters" GridPane.columnIndex="2" />
             <Label text="Encryption PW" GridPane.columnIndex="2" GridPane.rowIndex="5" />
             <PasswordField fx:id="passwd" GridPane.columnIndex="3" GridPane.rowIndex="5" />
@@ -49,6 +48,7 @@
             <Label text="The following Values are CAdES only" GridPane.columnSpan="2" GridPane.rowIndex="6" />
             <ComboBox fx:id="tspField" prefHeight="25.0" prefWidth="150.0" GridPane.columnIndex="1" GridPane.rowIndex="7" />
             <CheckBox fx:id="archiveInfo" mnemonicParsing="false" text="Add Archive Info" GridPane.columnIndex="2" GridPane.rowIndex="7" />
+            <PasswordField fx:id="pin" GridPane.columnIndex="1" />
          </children>
       </GridPane>
    </children>

@@ -1,7 +1,14 @@
 package org.harry.security.util.trustlist;
 
+import com.google.common.base.Charsets;
+import iaik.utils.Base64Exception;
+import iaik.utils.Util;
 import iaik.x509.X509Certificate;
 import org.etsi.uri._02231.v2_.*;
+import org.pmw.tinylog.Configurator;
+import org.pmw.tinylog.Level;
+import org.pmw.tinylog.Logger;
+import org.pmw.tinylog.writers.ConsoleWriter;
 
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.CertificateException;
@@ -21,11 +28,14 @@ public class TrustListManager {
     private List<TSPServiceInformationType> flattenTspServiceInfoList = new ArrayList<>();
 
     private List<X509Certificate> allCerts = new ArrayList<>();
+
+    private List<String> allSubjNames = new ArrayList<>();
     
     private List<DigitalIdentityType> listDigi = new ArrayList();
 
     public TrustListManager(TrustStatusListType trustList) {
         this.trustList = trustList;
+        Configurator.defaultConfig().level(Level.TRACE).writer(new ConsoleWriter()).activate();
         preLoad();
     }
 
@@ -49,12 +59,16 @@ public class TrustListManager {
         for(TSPServiceInformationType infoType: flattenTspServiceInfoList) {
             List<DigitalIdentityType> digitIdList = getServiceDigitalId(infoType);
             for (DigitalIdentityType id:digitIdList) {
+                Logger.trace(id.getX509SubjectName());
                 byte [] buffer = id.getX509Certificate();
                 try {
                     if (buffer != null && buffer.length > 0) {
+                        Logger.trace("get certificate");
                         X509Certificate cert = new X509Certificate(buffer);
+                        Logger.trace(cert.getSubjectDN().getName());
                         allCerts.add(cert);
                     }
+                    allSubjNames.add(id.getX509SubjectName());
                 } catch (CertificateException e) {
                     e.printStackTrace();
                 }
@@ -63,7 +77,15 @@ public class TrustListManager {
         }
     }
 
+    public List<String> getAllSubjNames() {
+        return allSubjNames;
+    }
+
     public List<DigitalIdentityType> getServiceDigitalId(TSPServiceInformationType infoType) {
+
+        for(String name : infoType.getServiceName().getName()) {
+            Logger.trace("Service Name is searchiung digital id: " + name);
+        }
         return infoType.getServiceDigitalIdentity().getDigitalId();
     }
     

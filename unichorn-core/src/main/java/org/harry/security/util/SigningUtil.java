@@ -406,6 +406,7 @@ public class SigningUtil {
             while ((bytesRead = stream.read(buffer)) > 0) {
                 out.write(buffer, 0, bytesRead);
             }
+            out.flush();
             stream.close();
             out.close();
         } catch (IOException e) {

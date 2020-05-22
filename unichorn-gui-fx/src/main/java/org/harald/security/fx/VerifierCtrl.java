@@ -1,5 +1,6 @@
 package org.harald.security.fx;
 
+import iaik.x509.X509Certificate;
 import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
@@ -10,12 +11,11 @@ import org.harry.security.util.ConfigReader;
 import org.harry.security.util.Tuple;
 import org.harry.security.util.VerifyUtil;
 import org.harry.security.util.bean.SigningBean;
+import org.harry.security.util.certandkey.KeyStoreTool;
 import org.harry.security.util.trustlist.TrustListManager;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
+import java.security.KeyStore;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -77,6 +77,7 @@ public class VerifierCtrl implements ControllerInit {
                 List<VerifyUtil.SignerInfoCheckResults> set = result.getSignersCheck();
                 List<ResultEntry> entryList = new ArrayList<>();
                 for (VerifyUtil.SignerInfoCheckResults entry : set) {
+                    X509Certificate[] signerChain = entry.getSignerChain();
                     Map<String, Tuple<String, VerifyUtil.Outcome>> sigResult = entry.getSignatureResult();
                     Map<String, Tuple<String, VerifyUtil.Outcome>> ocspResult = entry.getOcspResult();
                     for (Map.Entry<String, Tuple<String, VerifyUtil.Outcome>> sigEntry : sigResult.entrySet()) {
@@ -95,6 +96,12 @@ public class VerifierCtrl implements ControllerInit {
                     data.clear();
                     verifyResults.setVisible(false);
                     data.addAll(entryList);
+                    if (signerChain != null) {
+                        KeyStore store = KeyStoreTool.initStore("PKCS12", null);
+                        KeyStoreTool.addCertificateChain(store, signerChain);
+                        ConfigReader.MainProperties props = ConfigReader.loadStore();
+                        KeyStoreTool.storeKeyStore(store,new FileOutputStream(props.getKeystorePath()), "geheim".toCharArray());
+                    }
                 }
             } else {
 
@@ -102,6 +109,7 @@ public class VerifierCtrl implements ControllerInit {
                 List<VerifyUtil.SignerInfoCheckResults> set = result.getSignersCheck();
                 List<ResultEntry> entryList = new ArrayList<>();
                 for (VerifyUtil.SignerInfoCheckResults entry : set) {
+                    X509Certificate[] signerChain = entry.getSignerChain();
                     Map<String, Tuple<String, VerifyUtil.Outcome>> sigResult = entry.getSignatureResult();
                     Map<String, Tuple<String, VerifyUtil.Outcome>> ocspResult = entry.getOcspResult();
                     for (Map.Entry<String, Tuple<String, VerifyUtil.Outcome>> sigEntry : sigResult.entrySet()) {
@@ -120,6 +128,12 @@ public class VerifierCtrl implements ControllerInit {
                     data.clear();
                     verifyResults.setVisible(false);
                     data.addAll(entryList);
+                    if (signerChain != null && signerChain.length == 3) {
+                        KeyStore store = KeyStoreTool.initStore("PKCS12", "geheim");
+                        KeyStoreTool.addCertificateChain(store, signerChain);
+                        ConfigReader.MainProperties props = ConfigReader.loadStore();
+                        KeyStoreTool.storeKeyStore(store,new FileOutputStream(props.getKeystorePath()), "geheim".toCharArray());
+                    }
                 }
             }
             status.setText("File checked with: " + type.name());

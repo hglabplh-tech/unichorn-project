@@ -43,7 +43,7 @@ public class TrustListEditCtrl implements ControllerInit {
         keyStoreFile = Miscellaneous.showOpenDialog(event, "keyStoreLoc");
     }
     @FXML
-    public void selectFile(ActionEvent event) throws IOException  {
+    public void selectFile(ActionEvent event) throws Exception  {
         trustListFile = Miscellaneous.showOpenDialog(event, "trustFile");
         loader = new TrustListLoader();
         manager = loader.getManager(trustListFile);
@@ -56,7 +56,7 @@ public class TrustListEditCtrl implements ControllerInit {
     }
 
     @FXML
-    public void download(ActionEvent event) throws IOException  {
+    public void download(ActionEvent event) throws Exception  {
         trustListFile = Miscellaneous.showSaveDialogFromButton(event, "trustFile");
         URL ocspUrl= new URL("http://localhost:8080/unichorn-responder-1.0-SNAPSHOT/rest/ocsp");
         OutputStream out = new FileOutputStream(trustListFile);

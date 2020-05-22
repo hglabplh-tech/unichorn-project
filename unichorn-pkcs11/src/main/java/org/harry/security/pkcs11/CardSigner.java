@@ -11,6 +11,7 @@ import iaik.pkcs.pkcs11.TokenException;
 import iaik.pkcs.pkcs11.objects.Object;
 import iaik.pkcs.pkcs11.objects.X509PublicKeyCertificate;
 import iaik.pkcs.pkcs11.provider.IAIKPkcs11;
+import iaik.pkcs.pkcs11.provider.TokenKeyStore;
 import iaik.pkcs.pkcs11.provider.TokenManager;
 import iaik.security.provider.IAIK;
 import iaik.security.rsa.RSAPrivateKey;
@@ -69,6 +70,8 @@ public class CardSigner {
      */
     protected X509Certificate signerCertificate_;
 
+
+
     /**
      * Creates a SignedDataStreamDemo object for the given module name.
      *
@@ -121,6 +124,7 @@ public class CardSigner {
             objects = session.findObjects(1);
         }
         session.findObjectsFinal();
+        session.closeSession();
 
     }
 
@@ -133,16 +137,17 @@ public class CardSigner {
      * @exception IOException
      *              If loading the key store fails.
      */
-    public void getKeyStore() throws GeneralSecurityException, IOException {
+    public void getKeyStore(String pin) throws GeneralSecurityException, IOException {
         KeyStore tokenKeyStore = null;
         tokenKeyStore = KeyStore.getInstance("PKCS11KeyStore", pkcs11Provider_.getName());
 
+        tokenKeyStore_ = tokenKeyStore;
         if (tokenKeyStore == null) {
             System.out
                     .println("Got no key store. Ensure that the provider is properly configured and installed.");
             throw new GeneralSecurityException("Got no key store.");
         }
-        tokenKeyStore.load(null, "315631".toCharArray()); // this call binds the keystore to the first instance of the
+        tokenKeyStore.load(null, pin.toCharArray()); // this call binds the keystore to the first instance of the
         // IAIKPkcs11 provider
 
         tokenKeyStore_ = tokenKeyStore;
@@ -150,7 +155,7 @@ public class CardSigner {
         while(aliases.hasMoreElements()) {
             String alias = aliases.nextElement();
             System.out.println(alias);
-            Key key = tokenKeyStore_.getKey(alias, "315631".toCharArray());
+            Key key = tokenKeyStore_.getKey(alias, pin.toCharArray());
             if (key instanceof RSAPrivateCrtKey) {
                 RSAPrivateCrtKey rsaKey = (RSAPrivateCrtKey)key;
                 if (signerCertificate_.getPublicKey() instanceof java.security.interfaces.RSAPublicKey) {
@@ -284,6 +289,8 @@ public class CardSigner {
         System.out.println("##########");
         return ds;
     }
+
+
 
 
     public byte[] verify() throws GeneralSecurityException, CMSException, IOException, SignatureException {
