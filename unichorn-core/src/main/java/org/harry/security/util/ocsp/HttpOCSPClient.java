@@ -27,6 +27,8 @@ import java.security.PrivateKey;
 import java.util.Base64;
 import java.util.Enumeration;
 
+import static org.harry.security.util.httpclient.ClientFactory.createSSLClient;
+
 /**
  * This class is for get6ting access to a OCSP responder it calls a
  * HTTP connection via HttpClient apache
@@ -94,7 +96,7 @@ public class HttpOCSPClient {
         try {
 
             // create closable http client and assign the certificate interceptor
-            httpClient = HttpClients.createDefault();
+            httpClient = createSSLClient();
             System.out.println("Responder URL: " + ocspServerURL.toString());
             HttpPost post = new HttpPost(new URL(ocspServerURL).toURI());
             post.setHeader("Content-Type","application/ocsp-request");

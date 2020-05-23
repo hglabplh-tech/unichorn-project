@@ -1,6 +1,7 @@
 package harry.security.responder.resources;
 
 import com.google.gson.Gson;
+import com.sun.net.httpserver.BasicAuthenticator;
 import iaik.asn1.structures.AlgorithmID;
 import iaik.asn1.structures.Name;
 import iaik.cms.SignedData;
@@ -33,11 +34,13 @@ import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.*;
 import javax.ws.rs.core.Response;
 import java.io.*;
-import java.security.KeyStore;
-import java.security.KeyStoreException;
-import java.security.PrivateKey;
-import java.security.PublicKey;
+import java.net.PasswordAuthentication;
+import java.security.*;
 import java.util.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 import static harry.security.responder.resources.UnicHornResponderUtil.*;
 import static org.harry.security.util.CertificateWizzard.PROP_STORE_NAME;
@@ -97,8 +100,11 @@ public class SigningResponder extends HttpServlet {
         Logger.trace("enter ocsp method");
 
 
-
-
+       boolean success = isAuthenticated(servletRequest);
+       if(!success) {
+            servletResponse.setStatus(Response.Status.FORBIDDEN.getStatusCode());
+            return;
+        }
    try {
        GSON.Params jInput = readJSon(servletRequest);
        if (jInput.parmType.equals("docSign")) {
@@ -136,6 +142,24 @@ public class SigningResponder extends HttpServlet {
 
     }
 
+    private boolean isAuthenticated(HttpServletRequest servletRequest) throws IOException {
+        boolean success = false;
+        String tokIN = servletRequest.getParameter("token");
+        File tokFile = new File(APP_DIR, "token.bytes");
+        if (tokFile.exists()) {
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            IOUtils.copy(new FileInputStream(tokFile), out);
+            out.flush();
+            String token = new String(out.toByteArray());
+            if (tokIN.equalsIgnoreCase(token)) {
+                success = true;
+            }
+        } else {
+            success = false;
+        }
+        return success;
+    }
+
     @Override
     public void doGet(HttpServletRequest servletRequest, HttpServletResponse servletResponse) throws ServletException, IOException {
        String action = servletRequest.getParameter("action");
@@ -146,8 +170,34 @@ public class SigningResponder extends HttpServlet {
             outstream.write(fname.getBytes());
             servletResponse.getOutputStream().write(fname.getBytes());
             servletResponse.setStatus(Response.Status.CREATED.getStatusCode());
-        }if (action != null & action.equals("clean")) {
+        } else if (action != null & action.equals("token")) {
+            String password = decryptPassword("pwdServiceFile");
+            String passwdHeader = servletRequest.getHeader("passwd");
+            String decodedString = null;
+            if (passwdHeader != null) {
+                byte[] decodedPwd = Base64.getDecoder().decode(passwdHeader.getBytes());
+                decodedString = new String(decodedPwd);
+                if (!decodedString.equals(password)) {
+                    servletResponse.setStatus(Response.Status.FORBIDDEN.getStatusCode());
+                    return;
+                }
+            } else {
+                servletResponse.setStatus(Response.Status.FORBIDDEN.getStatusCode());
+                return;
+            }
+            File tokFile = new File(APP_DIR, "token.bytes");
+            if (!tokFile.exists()) {
+                String token = UUID.randomUUID().toString();
+                ExecutorService executor = Executors.newFixedThreadPool(5);
 
+                Future<?> task = executor.submit(new TokenThread(tokFile, token));
+                ByteArrayInputStream input = new ByteArrayInputStream(token.getBytes());
+                IOUtils.copy(input, servletResponse.getOutputStream());
+                servletResponse.setStatus(Response.Status.CREATED.getStatusCode());
+            } else{
+                IOUtils.copy(new FileInputStream(tokFile),servletResponse.getOutputStream());
+                servletResponse.setStatus(Response.Status.CREATED.getStatusCode());
+            }
         }
     }
 

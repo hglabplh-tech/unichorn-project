@@ -10,6 +10,7 @@ import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpPut;
+import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.entity.ContentType;
 import org.apache.http.entity.InputStreamEntity;
 import org.apache.http.entity.mime.MultipartEntityBuilder;
@@ -25,12 +26,17 @@ import java.util.Base64;
 import java.util.Vector;
 import java.util.concurrent.TimeUnit;
 
+import static org.harry.security.CommonConst.OCSP_URL;
+import static org.harry.security.CommonConst.SIGNING_URL;
+import static org.harry.security.util.certandkey.CSRHandler.getToken;
+import static org.harry.security.util.httpclient.ClientFactory.createSSLClient;
+
 public class HttpClientConnection {
 
     public static InputStream sendGetForResources(URL connectUrl,
                                                             String fileType, OutputStream output) {
         try {
-            CloseableHttpClient httpClient = HttpClients.createDefault();
+            CloseableHttpClient httpClient = createSSLClient();
             System.out.println("Responder URL: " + connectUrl.toString());
             HttpGet get = new HttpGet(connectUrl.toURI());
             get.setHeader("fileType", fileType);
@@ -52,9 +58,9 @@ public class HttpClientConnection {
     }
 
     public static void sendPutData(InputStream data, String fileType) throws Exception {
-        URL ocspUrl= new URL("http://localhost:8080/unichorn-responder-1.0-SNAPSHOT/rest/ocsp");
+        URL ocspUrl= new URL(OCSP_URL);
         // create closable http client and assign the certificate interceptor
-        CloseableHttpClient httpClient = HttpClients.createDefault();
+        CloseableHttpClient httpClient = createSSLClient();
         System.out.println("Responder URL: " + ocspUrl.toString());
         HttpPut put = new HttpPut(ocspUrl.toURI());
         put.setHeader("fileType", fileType);
@@ -69,9 +75,9 @@ public class HttpClientConnection {
 
 
     public static void sendPutDataWithPath(InputStream data, String fileType, Vector<String> path) throws Exception {
-        URL ocspUrl= new URL("http://localhost:8080/unichorn-responder-1.0-SNAPSHOT/rest/ocsp");
+        URL ocspUrl= new URL(OCSP_URL);
         // create closable http client and assign the certificate interceptor
-        CloseableHttpClient httpClient = HttpClients.createDefault();
+        CloseableHttpClient httpClient = createSSLClient();
         System.out.println("Responder URL: " + ocspUrl.toString());
         HttpPut put = new HttpPut(ocspUrl.toURI());
         put.setHeader("fileType", fileType);
@@ -87,10 +93,13 @@ public class HttpClientConnection {
     }
 
     public static void sendDocSigningRequest(InputStream data, GSON.Params params, File output) throws Exception {
-        URL ocspUrl= new URL("http://localhost:8080/unichorn-responder-1.0-SNAPSHOT/rest/signing");
-        CloseableHttpClient httpClient = HttpClients.createDefault();
-        System.out.println("Responder URL: " + ocspUrl.toString());
-        HttpPost post = new HttpPost(ocspUrl.toURI());
+        String token = getToken();
+        URL ocspUrl= new URL(SIGNING_URL);
+        CloseableHttpClient httpClient = createSSLClient();
+        URIBuilder uriBuilder = new URIBuilder(ocspUrl.toURI());
+        uriBuilder.addParameter("token", token);
+        System.out.println("Responder URL: " + uriBuilder.build());
+        HttpPost post = new HttpPost(uriBuilder.build());
         Gson gson = new Gson();
         String jsonString = gson.toJson(params);
         StringBody json = new StringBody(jsonString, ContentType.APPLICATION_JSON);

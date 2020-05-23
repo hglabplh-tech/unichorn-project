@@ -14,18 +14,28 @@ import iaik.pkcs.pkcs9.ChallengePassword;
 import iaik.pkcs.pkcs9.ExtensionRequest;
 import iaik.security.ec.provider.ECCelerate;
 import iaik.security.provider.IAIKMD;
+import iaik.x509.X509Certificate;
 import iaik.x509.extensions.KeyUsage;
 import org.apache.commons.io.IOUtils;
+import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.utils.URIBuilder;
+import org.apache.http.config.RegistryBuilder;
+import org.apache.http.conn.socket.ConnectionSocketFactory;
+import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
+import org.apache.http.conn.ssl.X509HostnameVerifier;
 import org.apache.http.entity.ContentType;
 import org.apache.http.entity.mime.MultipartEntityBuilder;
 import org.apache.http.entity.mime.content.InputStreamBody;
 import org.apache.http.entity.mime.content.StringBody;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
+import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
+import org.apache.http.ssl.SSLContextBuilder;
+import org.apache.http.ssl.SSLContexts;
+import org.apache.http.ssl.TrustStrategy;
 import org.harry.security.util.CertificateWizzard;
 import org.harry.security.util.certandkey.GSON;
 import org.junit.Before;
@@ -35,13 +45,12 @@ import org.pmw.tinylog.Level;
 import org.pmw.tinylog.writers.ConsoleWriter;
 
 
+import javax.net.ssl.*;
 import java.io.*;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
-import java.security.KeyPair;
-import java.security.NoSuchAlgorithmException;
-import java.security.PrivateKey;
-import java.security.Security;
+import java.security.*;
+import java.security.cert.CertificateException;
 import java.util.Base64;
 import java.util.Locale;
 
@@ -49,6 +58,7 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.harry.security.CommonConst.SIGNING_URL;
+import static org.harry.security.util.httpclient.ClientFactory.createSSLClient;
 
 public class SignerTest {
 
@@ -71,7 +81,7 @@ public class SignerTest {
                 keyStore = SignerTest.class.getResourceAsStream("/application.jks");
         URL ocspUrl= new URL(SIGNING_URL);
         // create closable http client and assign the certificate interceptor
-        CloseableHttpClient httpClient = HttpClients.createDefault();
+        CloseableHttpClient httpClient = createSSLClient();
         System.out.println("Responder URL: " + ocspUrl.toString());
         HttpPost post = new HttpPost(ocspUrl.toURI());
         byte [] encoded = Base64.getEncoder().encode("geheim".getBytes());
@@ -100,11 +110,16 @@ public class SignerTest {
 
     @Test
     public void testSignSimpleCAdES() throws Exception {
+        HttpsURLConnection.setDefaultHostnameVerifier(new HostnameVerifier() {
+            public boolean verify(String s, SSLSession sslSession) {
+                return true;
+            }
+        });
         InputStream
-                keyStore = SignerTest.class.getResourceAsStream("/application.jks");
+                keyStore = SignerTest.class.getResourceAsStream("/application.p12");
         URL ocspUrl= new URL(SIGNING_URL);
         // create closable http client and assign the certificate interceptor
-        CloseableHttpClient httpClient = HttpClients.createDefault();
+        CloseableHttpClient httpClient = createSSLClient();
         System.out.println("Responder URL: " + ocspUrl.toString());
         HttpPost post = new HttpPost(ocspUrl.toURI());
         byte [] encoded = Base64.getEncoder().encode("geheim".getBytes());
@@ -128,12 +143,14 @@ public class SignerTest {
         CloseableHttpResponse response = httpClient.execute(post);
         assertThat(response.getEntity().getContent(), notNullValue());
         assertThat(response.getStatusLine().getStatusCode(),
-                is(201));
+                is(200));
     }
 
     @Test
     public void testSignSimpleCert() throws Exception {
         String password = getPassCode();
+        String token = getToken();
+
         KeyPair pair = CertificateWizzard.generateKeyPair("RSA", 2048);
         InputStream
                 certReqStream = createCertificateRequestStream(pair, password);
@@ -141,10 +158,12 @@ public class SignerTest {
         InputStream privKeyEncr = createPrivKeyEncr(pair.getPrivate(), password);
 
         URL ocspUrl= new URL(SIGNING_URL);
+        URIBuilder uriBuilder = new URIBuilder(ocspUrl.toURI());
+        uriBuilder.addParameter("token", token);
         // create closable http client and assign the certificate interceptor
-        CloseableHttpClient httpClient = HttpClients.createDefault();
+        CloseableHttpClient httpClient = createSSLClient();
         System.out.println("Responder URL: " + ocspUrl.toString());
-        HttpPost post = new HttpPost(ocspUrl.toURI());
+        HttpPost post = new HttpPost(uriBuilder.build());
         byte [] encoded = Base64.getEncoder().encode("geheim".getBytes());
         String encodeString = new String(encoded);
         GSON.Params param = new GSON.Params();
@@ -233,11 +252,28 @@ public class SignerTest {
     private String getPassCode() throws Exception {
         URL ocspUrl= new URL(SIGNING_URL);
         // create closable http client and assign the certificate interceptor
-        CloseableHttpClient httpClient = HttpClients.createDefault();
+        CloseableHttpClient httpClient = createSSLClient();
         URIBuilder builder = new URIBuilder(ocspUrl.toURI());
         builder.addParameter("action", "passwd");
         System.out.println("Responder URL: " + builder.build().toString());
         HttpGet get = new HttpGet(builder.build());
+        CloseableHttpResponse response = httpClient.execute(get);
+        InputStream result = response.getEntity().getContent();
+        String text = IOUtils.toString(result, StandardCharsets.UTF_8.name());
+        return text;
+    }
+
+    private String getToken() throws Exception {
+        URL ocspUrl= new URL(SIGNING_URL);
+        // create closable http client and assign the certificate interceptor
+        CloseableHttpClient httpClient = createSSLClient();
+        URIBuilder builder = new URIBuilder(ocspUrl.toURI());
+        builder.addParameter("action", "token");
+        System.out.println("Responder URL: " + builder.build().toString());
+        HttpGet get = new HttpGet(builder.build());
+        byte [] encoded = Base64.getEncoder().encode("geheim".getBytes());
+        String encodeString = new String(encoded);
+        get.setHeader("passwd", encodeString);
         CloseableHttpResponse response = httpClient.execute(get);
         InputStream result = response.getEntity().getContent();
         String text = IOUtils.toString(result, StandardCharsets.UTF_8.name());

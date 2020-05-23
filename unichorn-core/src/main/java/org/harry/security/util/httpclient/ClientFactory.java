@@ -8,18 +8,24 @@ import org.apache.http.conn.ManagedHttpClientConnection;
 import org.apache.http.conn.ssl.NoopHostnameVerifier;
 import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
 import org.apache.http.conn.ssl.TrustAllStrategy;
+import org.apache.http.conn.ssl.X509HostnameVerifier;
 import org.apache.http.impl.client.BasicCookieStore;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.protocol.HttpCoreContext;
 import org.apache.http.ssl.SSLContextBuilder;
+import org.apache.http.ssl.SSLContexts;
+import org.apache.http.ssl.TrustStrategy;
 
-import javax.net.ssl.HostnameVerifier;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLSession;
+import javax.net.ssl.*;
+import java.io.IOException;
+import java.security.KeyManagementException;
 import java.security.KeyStore;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
 import java.security.cert.Certificate;
+import java.security.cert.CertificateException;
 
 public class ClientFactory {
 
@@ -97,4 +103,51 @@ public class ClientFactory {
             return HttpClients.createDefault();
         }
     }
+
+    public static CloseableHttpClient
+    createSSLClient() throws KeyManagementException, NoSuchAlgorithmException, KeyStoreException {
+        SSLContextBuilder builder = SSLContexts.custom();
+        builder.loadTrustMaterial(null, new TrustStrategy() {
+            @Override
+            public boolean isTrusted(java.security.cert.X509Certificate[] x509Certificates, String s) throws CertificateException {
+                return true;
+            }
+
+
+        });
+        SSLContext sslContext = builder.build();
+        SSLConnectionSocketFactory sslsf = new SSLConnectionSocketFactory(
+                sslContext, new X509HostnameVerifier() {
+
+
+            @Override
+            public void verify(String s, java.security.cert.X509Certificate x509Certificate) throws SSLException {
+
+            }
+
+
+
+            @Override
+            public void verify(String s, SSLSocket sslSocket) throws IOException {
+
+            }
+
+            @Override
+            public void verify(String host, String[] cns,
+                               String[] subjectAlts) throws SSLException {
+            }
+
+            @Override
+            public boolean verify(String s, SSLSession sslSession) {
+                return true;
+            }
+        });
+
+
+
+        CloseableHttpClient httpclient = HttpClients.custom()
+                .setSSLSocketFactory(sslsf).build();
+        return httpclient;
+    }
+
 }

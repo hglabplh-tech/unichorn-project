@@ -18,9 +18,9 @@ public class CommonConst {
 
     public static final String TSP_URL = "http://localhost:8080/unichorn-responder-1.0-SNAPSHOT/rest/tsp";
 
-    public static final String OCSP_URL  = "http://localhost:8080/unichorn-responder-1.0-SNAPSHOT/rest/ocsp";
+    public static final String OCSP_URL  = "https://localhost/unichorn-responder-1.0-SNAPSHOT/rest/ocsp";
 
-    public static final String SIGNING_URL  = "http://localhost:8080/unichorn-responder-1.0-SNAPSHOT/rest/signing";
+    public static final String SIGNING_URL  = "https://localhost/unichorn-responder-1.0-SNAPSHOT/rest/signing";
 
     static {
         String userDir = System.getProperty("user.home");

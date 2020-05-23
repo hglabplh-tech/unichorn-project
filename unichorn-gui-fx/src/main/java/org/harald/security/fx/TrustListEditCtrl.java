@@ -21,6 +21,8 @@ import java.util.Enumeration;
 import java.util.List;
 import java.util.Vector;
 
+import static org.harry.security.CommonConst.OCSP_URL;
+
 public class TrustListEditCtrl implements ControllerInit {
 
     private File keyStoreFile;
@@ -58,9 +60,9 @@ public class TrustListEditCtrl implements ControllerInit {
     @FXML
     public void download(ActionEvent event) throws Exception  {
         trustListFile = Miscellaneous.showSaveDialogFromButton(event, "trustFile");
-        URL ocspUrl= new URL("http://localhost:8080/unichorn-responder-1.0-SNAPSHOT/rest/ocsp");
+        URL connectUrl = new URL(OCSP_URL);
         OutputStream out = new FileOutputStream(trustListFile);
-        HttpClientConnection.sendGetForResources(ocspUrl, "trust", out);
+        HttpClientConnection.sendGetForResources(connectUrl, "trust", out);
         out.flush();
         out.close();
         loader = new TrustListLoader();

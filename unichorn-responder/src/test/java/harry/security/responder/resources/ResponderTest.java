@@ -230,10 +230,10 @@ public class ResponderTest  {
         certList.add(new X509Certificate(ResponderTest.class.getResourceAsStream("/hglabplh.cer")));
         Tuple<PrivateKey, X509Certificate[]> keys = null;
 
-            InputStream keyStore = ResponderTest.class.getResourceAsStream("/application.jks");
-            KeyStore store = KeyStoreTool.loadStore(keyStore, "geheim".toCharArray(), "PKCS12");
+            InputStream keyStore = ResponderTest.class.getResourceAsStream("/application.p12");
+            KeyStore store = KeyStoreTool.loadAppStore();
 
-            keys = KeyStoreTool.getKeyEntry(store, ALIAS, "geheim".toCharArray());
+            keys = KeyStoreTool.getAppKeyEntry(store);
         X509Certificate[] certs = new X509Certificate[2];
         certs = keys.getSecond();
                 /*OCSPResponse response = HttpOCSPClient.sendOCSPRequest(ocspUrl, bean.getSelectedKey(),

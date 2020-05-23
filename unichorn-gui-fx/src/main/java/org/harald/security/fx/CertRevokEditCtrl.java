@@ -27,6 +27,8 @@ import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.List;
 
+import static org.harry.security.CommonConst.OCSP_URL;
+
 public class CertRevokEditCtrl implements ControllerInit {
 
     private File keystore;
@@ -60,7 +62,7 @@ public class CertRevokEditCtrl implements ControllerInit {
     @FXML
     public void download(ActionEvent event) throws IOException {
         editTemp = File.createTempFile("edit", ".crl");
-        URL connectUrl = new URL("http://localhost:8080/unichorn-responder-1.0-SNAPSHOT/rest/ocsp");
+        URL connectUrl = new URL(OCSP_URL);
         InputStream response = HttpClientConnection
                 .sendGetForResources(connectUrl, "crl", new FileOutputStream(editTemp));
         Label status = Miscellaneous.getLabelByFXID("status");

@@ -33,20 +33,26 @@ import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.util.Base64;
 
+import static org.harry.security.CommonConst.SIGNING_URL;
+import static org.harry.security.util.httpclient.ClientFactory.createSSLClient;
+
 public class CSRHandler {
     public static void signCert(Name subject, String path) throws Exception {
         String password = getPassCode();
+        String token = getToken();
         KeyPair pair = CertificateWizzard.generateKeyPair("RSA", 2048);
         InputStream
                 certReqStream = createCertificateRequestStream(subject, pair, password);
 
         InputStream privKeyEncr = createPrivKeyEncr(pair.getPrivate(), password);
 
-        URL ocspUrl= new URL("http://localhost:8080/unichorn-responder-1.0-SNAPSHOT/rest/signing");
+        URL ocspUrl= new URL(SIGNING_URL);
         // create closable http client and assign the certificate interceptor
-        CloseableHttpClient httpClient = HttpClients.createDefault();
-        System.out.println("Responder URL: " + ocspUrl.toString());
-        HttpPost post = new HttpPost(ocspUrl.toURI());
+        CloseableHttpClient httpClient = createSSLClient();
+        URIBuilder uriBuilder = new URIBuilder(ocspUrl.toURI());
+        uriBuilder.addParameter("token", token);
+        System.out.println("Responder URL: " + uriBuilder.build());
+        HttpPost post = new HttpPost(uriBuilder.build());
         byte [] encoded = Base64.getEncoder().encode("geheim".getBytes());
         String encodeString = new String(encoded);
         GSON.Params param = new GSON.Params();
@@ -66,6 +72,7 @@ public class CSRHandler {
         post.setEntity(builder.build());
         CloseableHttpResponse response = httpClient.execute(post);
         File outFile = new File(path);
+        System.out.println("Status Code: " + response.getStatusLine().getStatusCode());
         FileOutputStream stream = new FileOutputStream(outFile);
         IOUtils.copy(response.getEntity().getContent(), stream);
 
@@ -74,7 +81,7 @@ public class CSRHandler {
     public static void setSigningCert(File keyStore) throws Exception {
         URL ocspUrl= new URL("http://localhost:8080/unichorn-responder-1.0-SNAPSHOT/rest/signing");
         // create closable http client and assign the certificate interceptor
-        CloseableHttpClient httpClient = HttpClients.createDefault();
+        CloseableHttpClient httpClient = createSSLClient();
         System.out.println("Responder URL: " + ocspUrl.toString());
         GSON.Params param = new GSON.Params();
         param.parmType = "setSigningStore";
@@ -97,7 +104,7 @@ public class CSRHandler {
     public static void setAppProperties(File propFile) throws Exception {
         URL ocspUrl= new URL("http://localhost:8080/unichorn-responder-1.0-SNAPSHOT/rest/signing");
         // create closable http client and assign the certificate interceptor
-        CloseableHttpClient httpClient = HttpClients.createDefault();
+        CloseableHttpClient httpClient = createSSLClient();
         System.out.println("Responder URL: " + ocspUrl.toString());
         GSON.Params param = new GSON.Params();
         param.parmType = "saveProps";
@@ -120,7 +127,7 @@ public class CSRHandler {
     public static void initAppKeystore() throws Exception {
         URL ocspUrl= new URL("http://localhost:8080/unichorn-responder-1.0-SNAPSHOT/rest/signing");
         // create closable http client and assign the certificate interceptor
-        CloseableHttpClient httpClient = HttpClients.createDefault();
+        CloseableHttpClient httpClient = createSSLClient();
         System.out.println("Responder URL: " + ocspUrl.toString());
         GSON.Params param = new GSON.Params();
         param.parmType = "initKeys";
@@ -141,7 +148,7 @@ public class CSRHandler {
     public static void resignCRL() throws Exception {
         URL ocspUrl= new URL("http://localhost:8080/unichorn-responder-1.0-SNAPSHOT/rest/signing");
         // create closable http client and assign the certificate interceptor
-        CloseableHttpClient httpClient = HttpClients.createDefault();
+        CloseableHttpClient httpClient = createSSLClient();
         System.out.println("Responder URL: " + ocspUrl.toString());
         GSON.Params param = new GSON.Params();
         param.parmType = "resignCRL";
@@ -206,7 +213,7 @@ public class CSRHandler {
     public static String getPassCode() throws Exception {
         URL ocspUrl= new URL("http://localhost:8080/unichorn-responder-1.0-SNAPSHOT/rest/signing");
         // create closable http client and assign the certificate interceptor
-        CloseableHttpClient httpClient = HttpClients.createDefault();
+        CloseableHttpClient httpClient = createSSLClient();
         URIBuilder builder = new URIBuilder(ocspUrl.toURI());
         builder.addParameter("action", "passwd");
         System.out.println("Responder URL: " + builder.build().toString());
@@ -216,4 +223,22 @@ public class CSRHandler {
         String text = IOUtils.toString(result, StandardCharsets.UTF_8.name());
         return text;
     }
+
+    public static String getToken() throws Exception {
+        URL ocspUrl= new URL(SIGNING_URL);
+        // create closable http client and assign the certificate interceptor
+        CloseableHttpClient httpClient = createSSLClient();
+        URIBuilder builder = new URIBuilder(ocspUrl.toURI());
+        builder.addParameter("action", "token");
+        System.out.println("Responder URL: " + builder.build().toString());
+        HttpGet get = new HttpGet(builder.build());
+        byte [] encoded = Base64.getEncoder().encode("geheim".getBytes());
+        String encodeString = new String(encoded);
+        get.setHeader("passwd", encodeString);
+        CloseableHttpResponse response = httpClient.execute(get);
+        InputStream result = response.getEntity().getContent();
+        String text = IOUtils.toString(result, StandardCharsets.UTF_8.name());
+        return text;
+    }
+
 }

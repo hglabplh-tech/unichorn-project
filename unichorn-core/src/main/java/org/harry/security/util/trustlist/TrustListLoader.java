@@ -1,9 +1,7 @@
 package org.harry.security.util.trustlist;
 
-import com.sun.org.apache.xalan.internal.utils.XMLSecurityPropertyManager;
-import com.sun.org.apache.xerces.internal.impl.PropertyManager;
-import com.sun.org.apache.xerces.internal.impl.XMLStreamReaderImpl;
-import iaik.x509.X509Certificate;
+
+
 import org.etsi.uri._02231.v2_.*;
 
 import javax.xml.bind.*;
