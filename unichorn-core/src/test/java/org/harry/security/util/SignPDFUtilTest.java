@@ -10,6 +10,7 @@ import iaik.x509.X509Certificate;
 import org.apache.commons.io.IOUtils;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
+import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.entity.ContentType;
 import org.apache.http.entity.mime.MultipartEntityBuilder;
 import org.apache.http.entity.mime.content.InputStreamBody;
@@ -34,6 +35,9 @@ import java.util.Base64;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.harry.security.CommonConst.SIGNING_URL;
+import static org.harry.security.util.certandkey.CSRHandler.getToken;
+import static org.harry.security.util.httpclient.ClientFactory.createSSLClient;
 
 public class SignPDFUtilTest {
 
@@ -61,31 +65,19 @@ public class SignPDFUtilTest {
         util.signPDF(bean,  params);
     }
 
-    @Test
-    public void signPDFIAIK() throws Exception {
-        KeyStore store = KeyStoreTool.loadAppStore();
-        Tuple<PrivateKey, X509Certificate[]> keys = KeyStoreTool.getAppKeyEntry(store);
-        SignPDFUtil util = new SignPDFUtil(keys.getFirst(), keys.getSecond());
-        InputStream input = SignPDFUtilTest.class.getResourceAsStream("/data/ergo.pdf");
-        File out = File.createTempFile("data", ".pdf");
-        out.delete();
-        SigningBean bean = new SigningBean().setOutputPath(out.getAbsolutePath())
-                .setTspURL("http://zeitstempel.dfn.de")
-                .setDataIN(input);
-        PadesBESParameters params = util.createParameters(bean);
-        util.prepareSigning(bean,params);
-        util.signPdf();
-    }
+
 
 
     @Test
     public void testSignSimplePAdES() throws Exception {
         InputStream input = SignPDFUtilTest.class.getResourceAsStream("/data/ergo.pdf");
-        URL ocspUrl= new URL("http://localhost:8080/unichorn-responder-1.0-SNAPSHOT/rest/signing");
-        // create closable http client and assign the certificate interceptor
-        CloseableHttpClient httpClient = HttpClients.createDefault();
-        System.out.println("Responder URL: " + ocspUrl.toString());
-        HttpPost post = new HttpPost(ocspUrl.toURI());
+        String token = getToken();
+        URL ocspUrl= new URL(SIGNING_URL);
+        URIBuilder uriBuilder = new URIBuilder(ocspUrl.toURI());
+        uriBuilder.addParameter("token", token);
+        System.out.println("Responder URL: " + uriBuilder.build());
+        CloseableHttpClient httpClient = createSSLClient();
+        HttpPost post = new HttpPost(uriBuilder.build());
         byte [] encoded = Base64.getEncoder().encode("geheim".getBytes());
         String encodeString = new String(encoded);
         GSON.Params param = new GSON.Params();

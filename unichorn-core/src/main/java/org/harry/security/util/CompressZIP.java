@@ -54,6 +54,7 @@ public class CompressZIP {
         while (zae != null) {
 
             File curfile = new File(target, zae.getName());
+            System.out.println("Current File:" + curfile.getAbsolutePath());
             File parent = curfile.getParentFile().getAbsoluteFile();
 
             if (parent != null && !parent.exists()) {

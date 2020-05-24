@@ -410,7 +410,7 @@ public class SigningUtil {
             stream.close();
             out.close();
         } catch (IOException e) {
-            throw new IllegalStateException("faild to write output");
+            throw new IllegalStateException("failed to write output" + e.getMessage(), e);
         }
      }
 

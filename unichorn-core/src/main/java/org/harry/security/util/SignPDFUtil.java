@@ -1,6 +1,8 @@
 package org.harry.security.util;
 
 
+
+
 import com.itextpdf.text.DocumentException;
 import com.itextpdf.text.Jpeg;
 import com.itextpdf.text.Rectangle;
@@ -36,9 +38,11 @@ import java.security.cert.CRL;
 import java.security.cert.Certificate;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 
 public class SignPDFUtil {
+
 
 
     private PrivateKey privKey;
@@ -52,107 +56,25 @@ public class SignPDFUtil {
         // you can add the ECCelerate provider, if you use EC keys
         // Security.addProvider(new ECCelerate());
     }
-    /**
-     *
-     * Sign the given file using the previously set key.
-     *
-     * @throws IOException
-     *           if a file can't be read or written
-     * @throws PdfSignatureException
-     *           if errors during signing occur
-     */
-    public void signPdf()
-            throws IOException, PdfSignatureException {
 
 
-
-        // create signed pdf using specified name
-        pdfSignatureInstance.sign();
-    }
-
-    /**
-     * Prepare the signature parameters and initialize signature instance.
-     *
-     * @param bean
-     *          the data for preparing
-     * @param params
-     *          the bes parameters
-     * @throws IOException
-     *           if document can't be read or written
-     * @throws PdfSignatureException
-     *           if parameters are invalid or certificates can't be parsed
-     */
-    public void prepareSigning(SigningBean bean, PadesBESParameters params)
-            throws IOException, PdfSignatureException {
-
-
-        FileOutputStream stream = new FileOutputStream(bean.getOutputPath());
-        pdfSignatureInstance.initSign(bean.getDataIN(), null, stream, privKey,
-                certChain, params);
-
-        InputStream image = SignPDFUtil.class.getResourceAsStream("/graphic/cert.png");
-
-
-    }
 
     public PadesBESParameters createParameters(SigningBean bean) throws Exception {
-        TSAClientIAIK client = new
-                TSAClientIAIK(bean.getTspURL());
-        int estimate = client.getTokenSizeEstimate();
-        estimate = estimate * 2;
-        client = new
-                TSAClientIAIK(bean.getTspURL(), null, null, estimate,
-                DigestAlg.SHA256.getAlgId().getImplementationName());
         PadesBESParameters params = new PadesBESParameters();
-        params.getEstimatedLength();
-
-        params.setSignatureReason("test");
-        params.setSignatureLocation("Stuttgart");
-        params.setSignatureContactInfo("Ronny");
-        // set timestamp authority to add timestamp as unsigned attribute in
-        // signature
-        System.out.println("configuring signature engine to include a timestamp.");
-        if (bean.getTspURL() != null) {
-            /**
-             * TODO: if we set the next two lines we get the following runtime exception:
-             * java.io.IOException: Signature too large for allocated space, unknown attributes may be used
-             *
-             * 	at iaik.pdf.itext.PdfSignatureInstanceItext.a(Unknown Source)
-             * 	at iaik.pdf.itext.PdfSignatureInstanceItext.sign(Unknown Source)
-             * 	at org.harry.security.util.SignPDFUtil.signPdf(SignPDFUtil.java:52)
-             * 	at org.harry.security.util.SignPDFUtilTest.signPDFSSimple(SignPDFUtilTest.java:30)
-             * 	at sun.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
-             * 	at sun.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62)
-             * 	at sun.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
-             * 	at java.lang.reflect.Method.invoke(Method.java:498)
-             * 	at org.junit.runners.model.FrameworkMethod$1.runReflectiveCall(FrameworkMethod.java:59)
-             * 	at org.junit.internal.runners.model.ReflectiveCallable.run(ReflectiveCallable.java:12)
-             * 	at org.junit.runners.model.FrameworkMethod.invokeExplosively(FrameworkMethod.java:56)
-             * 	at org.junit.internal.runners.statements.InvokeMethod.evaluate(InvokeMethod.java:17)
-             * 	at org.junit.runners.ParentRunner$3.evaluate(ParentRunner.java:306)
-             * 	at org.junit.runners.BlockJUnit4ClassRunner$1.evaluate(BlockJUnit4ClassRunner.java:100)
-             * 	at org.junit.runners.ParentRunner.runLeaf(ParentRunner.java:366)
-             * 	at org.junit.runners.BlockJUnit4ClassRunner.runChild(BlockJUnit4ClassRunner.java:103)
-             * 	at org.junit.runners.BlockJUnit4ClassRunner.runChild(BlockJUnit4ClassRunner.java:63)
-             * 	at org.junit.runners.ParentRunner$4.run(ParentRunner.java:331)
-             * 	at org.junit.runners.ParentRunner$1.schedule(ParentRunner.java:79)
-             * 	at org.junit.runners.ParentRunner.runChildren(ParentRunner.java:329)
-             * 	at org.junit.runners.ParentRunner.access$100(ParentRunner.java:66)
-             * 	at org.junit.runners.ParentRunner$2.evaluate(ParentRunner.java:293)
-             * 	at org.junit.runners.ParentRunner$3.evaluate(ParentRunner.java:306)
-             * 	at org.junit.runners.ParentRunner.run(ParentRunner.java:413)
-             * 	at org.junit.runner.JUnitCore.run(JUnitCore.java:137)
-             * 	at com.intellij.junit4.JUnit4IdeaTestRunner.startRunnerWithArgs(JUnit4IdeaTestRunner.java:68)
-             * 	at com.intellij.rt.junit.IdeaTestRunner$Repeater.startRunnerWithArgs(IdeaTestRunner.java:33)
-             * 	at com.intellij.rt.junit.JUnitStarter.prepareStreamsAndStart(JUnitStarter.java:230)
-             * 	at com.intellij.rt.junit.JUnitStarter.main(JUnitStarter.java:58)
-             * 	This exception is documented as a internal LIB error so we have to research later on.
-             */
-           params.setSignatureTimestampProperties(bean.getTspURL(), null, null);
-            //params.setContentTimestampProperties(bean.getTspURL(), null, null);
+        if (bean.getDigestAlgorithm() != null) {
+            params.setDigestAlgorithm(bean.getDigestAlgorithm().getAlgId().getJcaStandardName());
         }
+        if (bean.getSignatureAlgorithm() != null) {
+            params.setDigestAlgorithm(bean.getSignatureAlgorithm().getAlgId().getJcaStandardName());
+        }
+        if (bean.getTspURL() != null) {
+            params.setContentTimestampProperties(bean.getTspURL(), null, null);
+            params.setSignatureTimestampProperties(bean.getTspURL(), null, null);
+        }
+        params.setSignatureContactInfo("Harald Glab-Plhak");
+        params.setSignatureLocation("Gäufelden");
+        params.setSignatureReason("Just for fun");
         return params;
-
     }
 
     /**
@@ -176,6 +98,7 @@ public class SignPDFUtil {
         // include OCSP response
         OcspClient ocspClient = new OcspClientIAIK();
 
+
         // extract URL to timestamp server from certificate
         TSAClient tsaClient = null;
         int estimation = 0;
@@ -193,12 +116,13 @@ public class SignPDFUtil {
         // sign <pdfToSign>, save signed PDF to <signedPdf>
         SignWithProvider app = new SignWithProvider();
         app.sign(bean.getDataIN(), bean.getOutputPath(), chain, pk, DigestAlgorithms.SHA256, providerName,
-                "IAIK", MakeSignature.CryptoStandard.CMS,
+                "IAIK", MakeSignature.CryptoStandard.CADES,
                 params.getSignatureReason(),
                 params.getSignatureLocation(),
                 params.getSignatureContactInfo(),
                 ocspClient, tsaClient,
                 estimation);
+
 
     }
 
@@ -266,16 +190,17 @@ public class SignPDFUtil {
             ExternalSignature pks = new PrivateKeySignature(pk, digestAlgorithm,
                     signatureProvider);
             ExternalDigest digest = new ProviderDigest(mdProvider);
-            MakeSignature.signDetached(appearance, digest, pks, chain,null, ocspClient,
+
+
+
+
+
+            MakeSignature.signDetached(appearance, digest, pks, chain, null, ocspClient,
                     tsaClient, estimatedSize, subfilter);
+
         }
     }
 
-    public static void printUsage() {
-        System.out.println(
-                "Usage: SignWithExternalProvider <PKCS#12 file> <password for PKCS#12 file>");
-        System.out.println(" e.g.: SignWithExternalProvider mykeys.p12 password");
-    }
 
 }
 

@@ -4,7 +4,6 @@ import iaik.asn1.structures.AlgorithmID;
 import iaik.cms.SecurityProvider;
 import iaik.cms.ecc.ECCelerateProvider;
 import iaik.security.ec.provider.ECCelerate;
-import iaik.security.ec.provider.ECCelerateAddon;
 import iaik.security.provider.IAIKMD;
 import iaik.x509.X509CRL;
 import iaik.x509.X509Certificate;

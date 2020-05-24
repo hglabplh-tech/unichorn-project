@@ -17,7 +17,6 @@ import iaik.x509.X509Certificate;
 import iaik.x509.X509ExtensionException;
 import iaik.x509.X509ExtensionInitException;
 import iaik.x509.extensions.*;
-import iaik.xml.crypto.xades.dom.XadesDOMStructure;
 import org.harry.security.util.certandkey.KeyStoreTool;
 import org.harry.security.util.trustlist.TrustListLoader;
 import org.harry.security.util.trustlist.TrustListManager;
@@ -32,6 +31,8 @@ import java.security.*;
 import java.security.cert.CertificateException;
 import java.security.spec.AlgorithmParameterSpec;
 import java.util.*;
+
+import static org.harry.security.CommonConst.OCSP_URL;
 
 /**
  * This is a class for generating valid certificate chains and add the
@@ -351,7 +352,7 @@ public class CertificateWizzard {
                 extKeyUsage.setCritical(true);
                 cert.addExtension(extKeyUsage);
                 cert.addExtension(keyUsage);
-                setOCSPUrl(cert, "http://localhost:8080/unichorn-responder-1.0-SNAPSHOT/rest/ocsp");
+                setOCSPUrl(cert, OCSP_URL);
             }
             String explicitText = "This certificate may be used for testing purposes only";
             PolicyQualifierInfo policyQualifier = new PolicyQualifierInfo(null, null, explicitText);
