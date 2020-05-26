@@ -8,9 +8,12 @@ import iaik.tsp.TimeStampReq;
 import iaik.tsp.TimeStampToken;
 import iaik.tsp.transport.http.TspHttpClient;
 import iaik.tsp.transport.http.TspHttpResponse;
+import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
+import org.apache.http.conn.ssl.X509HostnameVerifier;
 import org.junit.Test;
 import org.pmw.tinylog.Logger;
 
+import javax.net.ssl.*;
 import java.io.IOException;
 import java.net.URL;
 import java.security.NoSuchAlgorithmException;
@@ -41,7 +44,15 @@ public class TimeStampTest {
         }
 
         Logger.debug("Client connects to TSP server at: " + url);
-        TspHttpClient tspHttpClient = new TspHttpClient(new URL(url));
+        HttpsURLConnection.setDefaultHostnameVerifier(new HostnameVerifier() {
+                                                          @Override
+                                                          public boolean verify(String s, SSLSession sslSession) {
+                                                              return true;
+                                                          }
+                                                      });
+                HttpsURLConnection conn = (HttpsURLConnection) new URL(url).openConnection();
+                conn.setDoOutput(true);
+        TspHttpClient tspHttpClient = new TspHttpClient(conn);
 
 
 

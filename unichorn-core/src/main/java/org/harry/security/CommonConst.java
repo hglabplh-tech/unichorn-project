@@ -16,7 +16,7 @@ public class CommonConst {
 
     public static final String PROP_TLS = "harry.trust.listurls";
 
-    public static final String TSP_URL = "http://localhost:8080/unichorn-responder-1.0-SNAPSHOT/rest/tsp";
+    public static final String TSP_URL = "https://localhost/unichorn-responder-1.0-SNAPSHOT/rest/tsp";
 
     public static final String OCSP_URL  = "https://localhost/unichorn-responder-1.0-SNAPSHOT/rest/ocsp";
 

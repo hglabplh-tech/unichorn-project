@@ -27,8 +27,7 @@ import static junit.framework.TestCase.assertNull;
 import static junit.framework.TestCase.assertTrue;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
-
-
+import static org.harry.security.CommonConst.TSP_URL;
 
 
 public class VerifyUtilTest extends TestBase {
@@ -97,7 +96,7 @@ public class VerifyUtilTest extends TestBase {
                 "sig", "pkcs7");
         File urlFile = new File(url.toURI());
         InputStream in;
-        SigningBean bean = initVerifyCAdES(keys.getSecond(), keys.getFirst(), out, urlFile, SigningBean.Mode.IMPLICIT);
+        SigningBean bean = initVerifyCAdES(keys.getSecond(), keys.getFirst(), out, urlFile, SigningBean.Mode.IMPLICIT, false);
         InputStream input = new FileInputStream(out);
         assertNotNull(input);
         List<TrustListManager> walkers = ConfigReader.loadAllTrusts();
@@ -116,7 +115,7 @@ public class VerifyUtilTest extends TestBase {
                 "sig", "pkcs7");
         File urlFile = new File(url.toURI());
         InputStream in;
-        SigningBean bean = initVerifyCAdES(keys.getSecond(), keys.getFirst(), out, urlFile, SigningBean.Mode.EXPLICIT);
+        SigningBean bean = initVerifyCAdES(keys.getSecond(), keys.getFirst(), out, urlFile, SigningBean.Mode.EXPLICIT, false);
         InputStream input = new FileInputStream(out);
         assertNotNull(input);
         List<TrustListManager> walkers = ConfigReader.loadAllTrusts();
@@ -124,6 +123,27 @@ public class VerifyUtilTest extends TestBase {
         VerifyUtil vutil = new VerifyUtil(walkers, bean);
         vutil.verifyCadesSignature(input, in);
     }
+
+    @Test
+    public void checkCertOKCAdESExplicitWithUpgrade() throws Exception{
+        KeyStore store = KeyStoreTool.loadAppStore();
+        Tuple<PrivateKey, X509Certificate[]> keys = KeyStoreTool.getAppKeyEntry(store);
+        SigningUtil util = new SigningUtil();
+        URL url = this.getClass().getResource("/certificates/example.pem");
+        File out = File.createTempFile(
+                "sig", "pkcs7");
+        File urlFile = new File(url.toURI());
+        InputStream in;
+        SigningBean bean = initVerifyCAdES(keys.getSecond(), keys.getFirst(), out, urlFile,
+                SigningBean.Mode.EXPLICIT, true);
+        InputStream input = new FileInputStream(out);
+        assertNotNull(input);
+        List<TrustListManager> walkers = ConfigReader.loadAllTrusts();
+        in = this.getClass().getResourceAsStream("/certificates/example.pem");
+        VerifyUtil vutil = new VerifyUtil(walkers, bean);
+        vutil.verifyCadesSignature(input, in);
+    }
+
 
 
     @Test
@@ -182,14 +202,18 @@ public class VerifyUtilTest extends TestBase {
     }
 
     private SigningBean initVerifyCAdES(X509Certificate[] cert, PrivateKey key,
-                                   File out, File in, SigningBean.Mode signingMode) throws Exception {
+                                        File out, File in, SigningBean.Mode signingMode, boolean upgrade) throws Exception {
         SigningUtil util = new SigningUtil();
         InputStream input = VerifyUtilTest.class.getResourceAsStream("/certificates/attrCert2.cer");
         AttributeCertificate attrCert = new AttributeCertificate(input);
         CertWriterReader.KeyStoreBean keys = new CertWriterReader.KeyStoreBean(cert,key);
         SigningBean bean = new SigningBean().setDataINFile(in)
                 .setAttributeCertificate(attrCert)
+                .setTspURL("http://zeitstempel.dfn.de")
+                //.setTspURL(TSP_URL)
                 .setDataIN(new FileInputStream(in))
+                .setDigestAlgorithm(DigestAlg.SHA3_512)
+                .setSignatureAlgorithm(SignatureAlg.SHA3_512_WITH_RSA)
                 .setOutputPath(out.getAbsolutePath())
                 .setOutputDS(new FileDataSource(out))
                 .setKeyStoreBean(keys)

@@ -125,6 +125,7 @@ public class SigningUtil {
             signedData.setCertificateSet(certSet);
             ByteArrayOutputStream out = new ByteArrayOutputStream();
             Logger.trace("Encode signature Stream");
+            signedData.setSDSEncodeListener(new TimeStampListener(signingBean.getTspURL()));
             signatureStream.encodeSignature(out);
             ByteArrayInputStream  in = new ByteArrayInputStream(out.toByteArray());
             DataSource ds = new InputStreamDataSource(in);
