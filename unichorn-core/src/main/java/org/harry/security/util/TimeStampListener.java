@@ -72,9 +72,7 @@ import java.security.SignatureException;
  * attribute (which then may be added later).
  * <p>
  * This SDSEncodeListener implementation is part of the CMS TimeStamp demo.
- * Please look at {@link demo.cms.tsp.TimeStampDemo TimeStampDemo} for an usage example:
  * <pre>
- * // cretae a SignedDataStream object
  * SignedDataStream signedData = ...;
  * ...
  * // add certificates and SignerInfo...
@@ -91,8 +89,7 @@ import java.security.SignatureException;
  * signedData.writeTo(...);
  * </pre>
  * 
- * 
- * @see demo.cms.tsp.TimeStampDemo
+ *
  * @see SDSEncodeListener
  * @see SignedDataStream
  * @see SignerInfo
