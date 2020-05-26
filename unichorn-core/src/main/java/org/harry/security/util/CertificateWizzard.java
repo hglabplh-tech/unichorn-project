@@ -12,18 +12,28 @@ import iaik.security.provider.IAIK;
 import iaik.security.rsa.RSAPssKeyPairGenerator;
 import iaik.security.rsa.RSAPssPrivateKey;
 import iaik.security.rsa.RSAPssPublicKey;
+import iaik.utils.Util;
 import iaik.x509.SimpleChainVerifier;
 import iaik.x509.X509Certificate;
 import iaik.x509.X509ExtensionException;
 import iaik.x509.X509ExtensionInitException;
+import iaik.x509.attr.*;
+import iaik.x509.attr.attributes.*;
+import iaik.x509.attr.extensions.AuditIdentity;
+import iaik.x509.attr.extensions.NoRevAvail;
+import iaik.x509.attr.extensions.ProxyInfo;
+import iaik.x509.attr.extensions.TargetInformation;
 import iaik.x509.extensions.*;
+import org.harry.security.util.bean.AttrCertBean;
 import org.harry.security.util.certandkey.KeyStoreTool;
 import org.harry.security.util.trustlist.TrustListLoader;
 import org.harry.security.util.trustlist.TrustListManager;
 
+
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.math.BigInteger;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -51,6 +61,7 @@ public class CertificateWizzard {
     private X509Certificate caEC;
     private X509Certificate intermediateRSA;
     private X509Certificate intermediateEC;
+    private final OutputStream attrCertOut;
 
     private final SimpleChainVerifier verifier = new SimpleChainVerifier();
     private final ConfigReader.MainProperties properties;
@@ -77,12 +88,13 @@ public class CertificateWizzard {
         APP_DIR_TRUST = dirTrust.getAbsolutePath();
         APP_DIR= userDir;
     }
-    public CertificateWizzard(ConfigReader.MainProperties properties) {
+    public CertificateWizzard(ConfigReader.MainProperties properties, OutputStream attrCertOut) {
         try {
             manager = loader.getManager(null);
         } catch (Exception e) {
 
         }
+        this.attrCertOut = attrCertOut;
         this.properties = properties;
         store = KeyStoreTool.initStore("PKCS12", "geheim");
 
@@ -287,8 +299,27 @@ public class CertificateWizzard {
             certChain[0] = userCertEC;
             certChain[1] = intermediateEC;
             certChain[2] = caEC;
+            String[] targetnames = new String[]{"Unichorn Team 1", "Unichorn Team 2", "Unichorn Team 3", "Unichorn Team 4"};
+            AttrCertBean attrBean = new AttrCertBean()
+                    .setRoleName("urn:signer")
+                    .setCommonName("Common Signer Author")
+                    .setTargetName("Unichorn Signer")
+                    .setTargetNames(targetnames)
+                    .setTargetGroup("Unichorn Signing Group")
+                    .setAuthCountry("DE")
+                    .setAuthOrganization("Unichorn Signing GmbH")
+                    .setAuthOrganizationalUnit("Unichorn Signing Development Team")
+                    .setAuthCommonName("Unichorn Signers Group")
+                    .setCategory("signing")
+                    .setAccessIdentityService("www.unichorn-signing.de")
+                    .setAccessIdentityIdent("signingId")
+                    .setGroupValue1("Developers Certificates 1")
+                    .setGroupValue2("Developers Certificates 2");
+            AttributeCertificate attrCert = createAttributeCertificate(userCert, intermediateRSA,
+                    inter_rsa.getPrivate(), attrBean);
             // and verify the chain
             verifier.verifyChain(certChain);
+            attrCert.writeTo(this.attrCertOut);
             KeyStoreTool.addKey(store, userKeysEC.getPrivate(),
                     properties.getKeystorePass().toCharArray(),
                     certChain, UUID.randomUUID().toString() + "UserEC");
@@ -437,6 +468,240 @@ public class CertificateWizzard {
 
     }
 
+    public static AttributeCertificate createAttributeCertificate(X509Certificate issuer,
+                                                                  X509Certificate user,
+                                                                  PrivateKey issuerPK,
+                                                                  AttrCertBean attrBean) {
+        try {
+
+            // only for this sample we create a rudimentary role specification
+            // certificate where nothing else is set as holder and issuer fiels
+            AttributeCertificate roleSpecificationCert = new AttributeCertificate();
+            Name roleIssuer = new Name();
+            roleIssuer.addRDN(ObjectID.commonName, attrBean.getCommonName());
+            roleSpecificationCert.setIssuer(new V2Form(roleIssuer));
+            Holder roleHolder = new Holder();
+            GeneralName roleName = new GeneralName(GeneralName.uniformResourceIdentifier,attrBean.getRoleName());
+            roleHolder.setEntityName(new GeneralNames(roleName));
+            roleSpecificationCert.setHolder(roleHolder);
+            // in practice we now would add validity, extensions,... and sign the
+            // cert...
+
+            // create Attribute Certificate
+            AttributeCertificate attributeCertificate = new AttributeCertificate();
+            // issuer
+            Name issuerName = (Name) issuer.getSubjectDN();
+            V2Form v2Form = new V2Form(issuerName);
+            attributeCertificate.setIssuer(v2Form);
+            // holder (from base certificate)
+            X509Certificate baseCert = user;
+            Holder holder = new Holder();
+            holder.setBaseCertificateID(baseCert);
+            attributeCertificate.setHolder(holder);
+            // for this demo we use a ramdomly generated serial number
+            Random random = new Random();
+            BigInteger serial= BigInteger.valueOf(random.nextLong());
+            attributeCertificate.setSerialNumber(serial);
+            // validity
+            GregorianCalendar c = new GregorianCalendar();
+            Date notBeforeTime = c.getTime();
+            c.add(Calendar.MONTH, 1);
+            Date notAfterTime = c.getTime();
+            attributeCertificate.setNotBeforeTime(notBeforeTime);
+            attributeCertificate.setNotAfterTime(notAfterTime);
+            // add attributes
+            addAttributes(attributeCertificate, roleSpecificationCert, attrBean);
+            // add extensions
+            addExtensions(attributeCertificate, attrBean);
+            // sign certificate
+            attributeCertificate.sign(AlgorithmID.sha1WithRSAEncryption, issuerPK);
+
+            byte[] test = attributeCertificate.getEncoded();            // send certificate to ...
+
+
+            // receive certificate
+            attributeCertificate = new AttributeCertificate(test);
+            System.out.println("Attribute Certificate: ");
+            System.out.println(attributeCertificate.toString(true));
+            // verify signature
+
+            return attributeCertificate;
+
+
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            throw new RuntimeException();
+        }
+
+
+    }
+
+
+
+    /**
+     * Creates and adds some attribute certificate extensions. The following
+     * extensions are added:
+     * <ul>
+     * <li>iaik.x509.attr.extensions.AuditIdentity
+     * <li>iaik.x509.attr.extensions.NoRevAvail
+     * <li>iaik.x509.attr.extensions.TargetInformation
+     * <li>iaik.x509.attr.extensions.ProxyInfo
+     * </ul>
+     *
+     * @param attributeCertificate
+     *          the attribute certificate to which the extensions shall be added
+     *
+     * @throws Exception
+     *           if an error occurs while creating/adding the extensions
+     */
+    private static void addExtensions(AttributeCertificate attributeCertificate, AttrCertBean attrBean)
+            throws Exception
+    {
+
+        // AuditIdentity extension
+        byte[] auditValue = { 1, 1, 1, 1, 1, 1, 1, 1 };
+        AuditIdentity auditIdentity = new AuditIdentity(auditValue);
+        attributeCertificate.addExtension(auditIdentity);
+
+        // NoRevAvail extension
+        NoRevAvail noRevAvail = new NoRevAvail();
+        attributeCertificate.addExtension(noRevAvail);
+
+        // TargetInformation extension
+        TargetInformation targetInformation = new TargetInformation();
+        // create and add a TargetName
+        GeneralName name = new GeneralName(GeneralName.uniformResourceIdentifier,
+                attrBean.getTargetName());
+        TargetName targetName = new TargetName(name);
+        targetInformation.addTargetElement(targetName);
+        // create and add a TargetGroup
+        GeneralName groupName = new GeneralName(GeneralName.dNSName, attrBean.getTargetGroup());
+        TargetGroup targetGroup = new TargetGroup(groupName);
+        targetInformation.addTargetElement(targetGroup);
+        // add extension
+        attributeCertificate.addExtension(targetInformation);
+
+        // ProxyInfo extension
+        ProxyInfo proxyInfo = new ProxyInfo();
+        // add two Targets
+        TargetName targetName1 = new TargetName(new GeneralName(
+                GeneralName.uniformResourceIdentifier, attrBean.getTargetNames()[0]));
+        TargetName targetName2 = new TargetName(new GeneralName(
+                GeneralName.uniformResourceIdentifier, attrBean.getTargetNames()[1]));
+        // first Targets (ProxySet)
+        Targets targets1 = new Targets();
+        targets1.setTargets(new Target[] { targetName1, targetName2 });
+        proxyInfo.addTargets(targets1);
+        TargetName targetName3 = new TargetName(new GeneralName(
+                GeneralName.uniformResourceIdentifier, attrBean.getTargetNames()[2]));
+        TargetName targetName4 = new TargetName(new GeneralName(
+                GeneralName.uniformResourceIdentifier, attrBean.getTargetNames()[3]));
+        // second Targets (ProxySet)
+        Targets targets2 = new Targets();
+        targets2.addTarget(targetName3);
+        targets2.addTarget(targetName4);
+        proxyInfo.addTargets(targets2);
+        // add extension
+        attributeCertificate.addExtension(proxyInfo);
+
+    }
+
+    /**
+     * Creates and adds some attributes. The following attributes are added:
+     * <ul>
+     * <li>{@link iaik.x509.attr.attributes.AccessIdentity AccessIdentity}
+     * <li>{@link iaik.x509.attr.attributes.ChargingIdentity ChargingIdentity}
+     * <li>{@link iaik.x509.attr.attributes.Clearance Clearance}
+     * <li>{@link iaik.x509.attr.attributes.Group Group}
+     * <li>{@link iaik.x509.attr.attributes.Role Role}
+     * <li>{@link iaik.x509.attr.attributes.ServiceAuthenticationInfo
+     * ServiceAuthenticationInfo}
+     * </ul>
+     *
+     * @param attributeCertificate
+     *          the attribute certificate to which the attributes shall be added
+     *
+     * @throws Exception
+     *           if an error occurs while creating/adding the extensions
+     */
+    private static void addAttributes(AttributeCertificate attributeCertificate,
+                                      AttributeCertificate roleSpecificationCert,
+                                      AttrCertBean attrBean)
+            throws Exception
+    {
+        try {
+
+            // AccessIdentity
+            GeneralName aiService = new GeneralName(GeneralName.uniformResourceIdentifier,
+                    attrBean.getAccessIdentityService());
+            GeneralName aiIdent = new GeneralName(GeneralName.rfc822Name,
+                    attrBean.getAccessIdentityIdent());
+            AccessIdentity accessIdentity = new AccessIdentity(aiService, aiIdent);
+            // add AccessIdentity attribute
+            attributeCertificate.addAttribute(new Attribute(accessIdentity));
+
+            // Charging Identity
+            ObjectID[] ciValues = { ObjectID.iaik };
+            ChargingIdentity chargingIdentity = new ChargingIdentity(ciValues);
+            // set policy authority
+            Name name = new Name();
+            name.addRDN(ObjectID.country, attrBean.getAuthCountry());
+            name.addRDN(ObjectID.organization, attrBean.getAuthOrganization());
+            name.addRDN(ObjectID.organizationalUnit, attrBean.getAuthOrganizationalUnit());
+            name.addRDN(ObjectID.commonName, attrBean.getAuthCommonName());
+            GeneralName policyName = new GeneralName(GeneralName.directoryName, name);
+            GeneralNames policyAuthority = new GeneralNames(policyName);
+            chargingIdentity.setPolicyAuthority(policyAuthority);
+            // add ChargingIdentity attribute
+            attributeCertificate.addAttribute(new Attribute(chargingIdentity));
+
+            // Clearance
+            ObjectID policyId = new ObjectID("1.3.6.1.4.1.2706.2.2.1.6.1.2");
+            Clearance clearance = new Clearance(policyId);
+            // class list
+            int classList = Clearance.TOP_SECRET;
+            clearance.setClassList(classList);
+            // register SecurityCategory
+            SecurityCategory.register(MySecurityCategory.type, MySecurityCategory.class);
+            SecurityCategory[] categories = { new MySecurityCategory(attrBean.getCategory()) };
+            clearance.setSecurityCategories(categories);
+            // add Clearance attribute
+            attributeCertificate.addAttribute(new Attribute(clearance));
+
+            // Group
+            String gValue1 = attrBean.getGroupValue1();
+            String gValue2 = attrBean.getGroupValue2();
+            String[] gValues = { gValue1, gValue2 };
+            Group group = new Group(gValues);
+            // add Group attribute
+            attributeCertificate.addAttribute(new Attribute(group));
+
+            // Role
+            GeneralName roleName = new GeneralName(GeneralName.uniformResourceIdentifier,attrBean.getRoleName());
+            Role role = new Role(roleName);
+            // set role authority to the issuer of the corresponding role
+            // specification cert
+            role.setRoleAuthority(roleSpecificationCert);
+            // add Role attribute
+            attributeCertificate.addAttribute(new Attribute(role));
+
+            // ServiceAuthenticationInfo
+            GeneralName service = new GeneralName(GeneralName.uniformResourceIdentifier,
+                    "test.iaik.at");
+            GeneralName ident = new GeneralName(GeneralName.rfc822Name,
+                    "John.Doe@iaik.tugraz.at");
+            ServiceAuthenticationInfo serviceAuthInf = new ServiceAuthenticationInfo(service,
+                    ident);
+            byte[] authInfo = Util.toASCIIBytes("topSecret");
+            serviceAuthInf.setAuthInfo(authInfo);
+            // add ServiceAuthenticationInformation attribute
+            attributeCertificate.addAttribute(new Attribute(serviceAuthInf));
+
+        } catch (Exception ex) {
+            System.err.println("Error adding attribute: " + ex.toString());
+            throw ex;
+        }
+    }
 
 
     public static void initThis() {
@@ -446,11 +711,12 @@ public class CertificateWizzard {
         if (!keystore.exists() && !trustFile.exists()) {
             ConfigReader.MainProperties properties = ConfigReader.loadStore();
             properties.setKeystorePass("geheim");
-            CertificateWizzard wizzard = new CertificateWizzard(properties);
-            KeyPair caKeys = wizzard.generateCA(properties.getCommonName(), true);
-            KeyPair interKeys = wizzard.generateIntermediate(caKeys, properties.getCommonName(), true);
-            wizzard.generateUser(interKeys, properties.getCommonName(), true);
             try {
+                FileOutputStream stream = new FileOutputStream(properties.getAttrCertPath());
+                CertificateWizzard wizzard = new CertificateWizzard(properties, stream);
+                KeyPair caKeys = wizzard.generateCA(properties.getCommonName(), true);
+                KeyPair interKeys = wizzard.generateIntermediate(caKeys, properties.getCommonName(), true);
+                wizzard.generateUser(interKeys, properties.getCommonName(), true);
                 KeyStoreTool.storeKeyStore(wizzard.getStore(),
                         new FileOutputStream(keystore),
                         properties.getKeystorePass().toCharArray());
@@ -475,11 +741,13 @@ public class CertificateWizzard {
         File keystore = new File(properties.getKeystorePath());
         File keystoreEC = new File(properties.getKeystorePath() + "_EC");
         properties.setKeystorePass("geheim");
-        CertificateWizzard wizzard = new CertificateWizzard(properties);
-        KeyPair caKeys = wizzard.generateCA(properties.getCommonName(), true);
-        KeyPair interKeys = wizzard.generateIntermediate(caKeys, properties.getCommonName(), true);
-        wizzard.generateUser(interKeys, properties.getCommonName(), true);
         try {
+            FileOutputStream stream = new FileOutputStream(properties.getAttrCertPath());
+            CertificateWizzard wizzard = new CertificateWizzard(properties, stream);
+            KeyPair caKeys = wizzard.generateCA(properties.getCommonName(), true);
+            KeyPair interKeys = wizzard.generateIntermediate(caKeys, properties.getCommonName(), true);
+            wizzard.generateUser(interKeys, properties.getCommonName(), true);
+
             KeyStoreTool.storeKeyStore(wizzard.getStore(),
                     new FileOutputStream(keystore),
                     properties.getKeystorePass().toCharArray());

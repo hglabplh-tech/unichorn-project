@@ -13,8 +13,10 @@ import iaik.security.rsa.RSAPublicKey;
 import iaik.smime.attributes.SignatureTimeStampToken;
 import iaik.tsp.TimeStampToken;
 import iaik.tsp.TspVerificationException;
+import iaik.utils.Util;
 import iaik.x509.X509CRL;
 import iaik.x509.X509Certificate;
+import iaik.x509.attr.AttributeCertificate;
 import iaik.x509.ocsp.*;
 import org.harry.security.util.bean.SigningBean;
 import org.harry.security.util.ocsp.HttpOCSPClient;
@@ -23,11 +25,9 @@ import org.harry.security.util.trustlist.TrustListManager;
 
 import java.io.*;
 import java.net.URL;
-import java.security.DigestOutputStream;
-import java.security.MessageDigest;
-import java.security.PrivateKey;
-import java.security.PublicKey;
+import java.security.*;
 import java.security.cert.Certificate;
+import java.security.cert.CertificateException;
 import java.util.*;
 
 import static org.harry.security.util.HttpsChecker.loadKey;
@@ -126,6 +126,8 @@ public class VerifyUtil {
             List<X509Certificate> signCertList =
             findSigners(signedData.getX509Certificates(), signerInfos);
             result = isSuccessOfSigner(signedData, signerInfos, signCertList);
+            CertificateSet certificateSet = signedData.getCertificateSet();
+            checkAttributeCertIfThere(certificateSet, result.getSignersCheck().get(0));
             int index = 0;
             for (X509Certificate out: signCertList) {
                 FileOutputStream stream = new FileOutputStream("./certificate(" + index +").pem");
@@ -164,6 +166,9 @@ public class VerifyUtil {
                     System.out.println("Signature contains " + signerInfoLength + " signer infos");
 
                     SignerInfoCheckResults results = new SignerInfoCheckResults();
+                    SignedDataStream signedData = cadesSig.getSignedDataObject();
+                    CertificateSet certificateSet = signedData.getCertificateSet();
+
                     int j = 0;
                     for (SignerInfo info: cadesSig.getSignerInfos()) {
                         AlgorithmID sigAlg = info.getSignatureAlgorithm();
@@ -174,6 +179,7 @@ public class VerifyUtil {
                         results.addSignatureResult("digest algorithm",
                                 new Tuple<>(digestAlg.getImplementationName(), Outcome.SUCCESS));
                         X509Certificate signCert = cadesSig.verifySignatureValue(j);
+                        checkAttributeCertIfThere(certificateSet, results);
                         vResult.addSignersInfo(signCert.getSubjectDN().getName(), results);
                         results.addSignatureResult("signature value",
                                 new Tuple<>(signCert.getSubjectDN().getName(), Outcome.SUCCESS));
@@ -206,6 +212,23 @@ public class VerifyUtil {
                 }
 
                 return vResult;
+    }
+
+    private void checkAttributeCertIfThere(CertificateSet certificateSet,SignerInfoCheckResults results) throws
+            CertificateException, NoSuchAlgorithmException, InvalidKeyException,
+            NoSuchProviderException, SignatureException {
+        X509Certificate [] certificates = certificateSet.getX509Certificates();
+        X509Certificate[] arranged = Util.arrangeCertificateChain(certificates, false);
+        for (Certificate candidate: certificateSet.getAttributeCertificates()) {
+            AttributeCertificate attrCert = new AttributeCertificate(candidate.getEncoded());
+            try {
+                attrCert.verify(arranged[0].getPublicKey());
+                results.addSignatureResult("attribute certificate check", new Tuple<>("attrCertCheck", Outcome.SUCCESS));
+            } catch(Exception ex) {
+                results.addSignatureResult("attribute certificate check", new Tuple<>("attrCertCheck", Outcome.FAILED));
+            }
+
+        }
     }
 
 
@@ -504,6 +527,17 @@ public class VerifyUtil {
                 }
             }
         }
+    }
+
+    private Certificate[] allocSetChain(Certificate [] chain, Certificate newCert) {
+        Certificate[] temp = new Certificate[chain.length + 1];
+        int index = 0;
+        for (Certificate element: chain) {
+            temp[index] = element;
+            index++;
+        }
+        temp[index] = newCert;
+        return temp;
     }
 
 

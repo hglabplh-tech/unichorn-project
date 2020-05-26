@@ -3,6 +3,7 @@ package org.harry.security.util;
 import iaik.pdf.cmscades.CadesSignatureStream;
 import iaik.pdf.cmscades.CmsCadesException;
 import iaik.x509.X509Certificate;
+import iaik.x509.attr.AttributeCertificate;
 import org.harry.security.testutils.Generator;
 import org.harry.security.testutils.TestBase;
 import org.harry.security.util.algoritms.DigestAlg;
@@ -34,16 +35,14 @@ public class VerifyUtilTest extends TestBase {
 
     @Test
     public void quickCheckCertOK() throws Exception{
-        X509Certificate cert = Generator.createCertificate();
-        PrivateKey key = Generator.pk;
+        KeyStore store = KeyStoreTool.loadAppStore();
+        Tuple<PrivateKey, X509Certificate[]> keys = KeyStoreTool.getAppKeyEntry(store);
         File out = File.createTempFile(
                 "sig", "pkcs7");
         InputStream in = this.getClass().getResourceAsStream("/certificates/example.pem");
-        X509Certificate[] chain = new X509Certificate[1];
-        chain[0] = cert;
         URL url = this.getClass().getResource("/certificates/example.pem");
         File urlFile = new File(url.toURI());
-        initVerify(chain, key, out, urlFile, SigningBean.Mode.EXPLICIT);
+        initVerifyCMS(keys.getSecond(), keys.getFirst(), out, urlFile, SigningBean.Mode.EXPLICIT);
         InputStream input = new FileInputStream(out);
         assertNotNull(input);
         in = this.getClass().getResourceAsStream("/certificates/example.pem");
@@ -52,16 +51,14 @@ public class VerifyUtilTest extends TestBase {
 
     @Test
     public void checkCertOKExplicit() throws Exception{
-        X509Certificate cert = Generator.createCertificate();
-        PrivateKey key = Generator.pk;
+        KeyStore store = KeyStoreTool.loadAppStore();
+        Tuple<PrivateKey, X509Certificate[]> keys = KeyStoreTool.getAppKeyEntry(store);
         File out = File.createTempFile(
                 "sig", "pkcs7");
         InputStream in = this.getClass().getResourceAsStream("/certificates/example.pem");
-        X509Certificate[] chain = new X509Certificate[1];
-        chain[0] = cert;
         URL url = this.getClass().getResource("/certificates/example.pem");
         File urlFile = new File(url.toURI());
-        SigningBean bean = initVerify(chain, key, out, urlFile, SigningBean.Mode.EXPLICIT);
+        SigningBean bean = initVerifyCMS(keys.getSecond(), keys.getFirst(), out, urlFile, SigningBean.Mode.EXPLICIT);
         InputStream input = new FileInputStream(out);
         assertNotNull(input);
         in = this.getClass().getResourceAsStream("/certificates/example.pem");
@@ -81,7 +78,7 @@ public class VerifyUtilTest extends TestBase {
         chain[0] = cert;
         URL url = this.getClass().getResource("/certificates/example.pem");
         File urlFile = new File(url.toURI());
-        SigningBean bean = initVerify(chain, key, out, urlFile, SigningBean.Mode.IMPLICIT);
+        SigningBean bean = initVerifyCMS(chain, key, out, urlFile, SigningBean.Mode.IMPLICIT);
         InputStream input = new FileInputStream(out);
         assertNotNull(input);
         in = this.getClass().getResourceAsStream("/certificates/example.pem");
@@ -91,41 +88,41 @@ public class VerifyUtilTest extends TestBase {
     }
 
     @Test
-    public void checkCertOKCAdES() throws Exception{
+    public void checkCertOKCAdESImplicit() throws Exception{
         KeyStore store = KeyStoreTool.loadAppStore();
         Tuple<PrivateKey, X509Certificate[]> keys = KeyStoreTool.getAppKeyEntry(store);
         SigningUtil util = new SigningUtil();
+        URL url = this.getClass().getResource("/certificates/example.pem");
         File out = File.createTempFile(
                 "sig", "pkcs7");
-        //
-        // InputStream in = this.getClass().getResourceAsStream("/certificates/example.pem");
-        URL url = this.getClass().getResource("/certificates/example.pem");
         File urlFile = new File(url.toURI());
-        FileInputStream in = new FileInputStream(urlFile);
-        SigningBean bean = setBean(keys.getSecond(), keys.getFirst(), out, urlFile, true);
-        DataSource ds = util.signCAdES(bean, true);
-        bean = setBean(keys.getSecond(), keys.getFirst(), out, urlFile, false);
+        InputStream in;
+        SigningBean bean = initVerifyCAdES(keys.getSecond(), keys.getFirst(), out, urlFile, SigningBean.Mode.IMPLICIT);
+        InputStream input = new FileInputStream(out);
+        assertNotNull(input);
         List<TrustListManager> walkers = ConfigReader.loadAllTrusts();
+        in = this.getClass().getResourceAsStream("/certificates/example.pem");
         VerifyUtil vutil = new VerifyUtil(walkers, bean);
-        vutil.verifyCadesSignature(ds.getInputStream(), in);
+        vutil.verifyCadesSignature(input, in);
     }
 
     @Test
-    public void checkPomSigningOKCAdES() throws Exception{
+    public void checkCertOKCAdESExplicit() throws Exception{
         KeyStore store = KeyStoreTool.loadAppStore();
         Tuple<PrivateKey, X509Certificate[]> keys = KeyStoreTool.getAppKeyEntry(store);
-        SigningUtil util = new SigningUtil();        //
-        File dummy = File.createTempFile(
+        SigningUtil util = new SigningUtil();
+        URL url = this.getClass().getResource("/certificates/example.pem");
+        File out = File.createTempFile(
                 "sig", "pkcs7");
-        // InputStream in = this.getClass().getResourceAsStream("/certificates/example.pem");
-        InputStream signature = this.getClass().getResourceAsStream("/data/pom.xml.pkcs7");
-        URL url = this.getClass().getResource("/data/pom.xml");
         File urlFile = new File(url.toURI());
-        FileInputStream in = new FileInputStream(urlFile);
-        SigningBean bean = setBean(keys.getSecond(), keys.getFirst(), dummy, urlFile, false);
+        InputStream in;
+        SigningBean bean = initVerifyCAdES(keys.getSecond(), keys.getFirst(), out, urlFile, SigningBean.Mode.EXPLICIT);
+        InputStream input = new FileInputStream(out);
+        assertNotNull(input);
         List<TrustListManager> walkers = ConfigReader.loadAllTrusts();
+        in = this.getClass().getResourceAsStream("/certificates/example.pem");
         VerifyUtil vutil = new VerifyUtil(walkers, bean);
-        vutil.verifyCadesSignature(signature, in);
+        vutil.verifyCadesSignature(input, in);
     }
 
 
@@ -164,11 +161,14 @@ public class VerifyUtilTest extends TestBase {
     }
 
 
-    private SigningBean initVerify(X509Certificate[] cert, PrivateKey key,
-                                   File out, File in, SigningBean.Mode signingMode) throws IOException {
+    private SigningBean initVerifyCMS(X509Certificate[] cert, PrivateKey key,
+                                      File out, File in, SigningBean.Mode signingMode) throws Exception {
         SigningUtil util = new SigningUtil();
+        InputStream input = VerifyUtilTest.class.getResourceAsStream("/certificates/attrCert2.cer");
+        AttributeCertificate attrCert = new AttributeCertificate(input);
         CertWriterReader.KeyStoreBean keys = new CertWriterReader.KeyStoreBean(cert,key);
         SigningBean bean = new SigningBean().setDataINFile(in)
+                .setAttributeCertificate(attrCert)
                 .setDataIN(new FileInputStream(in))
                 .setOutputPath(out.getAbsolutePath())
                 .setOutputDS(new FileDataSource(out))
@@ -181,11 +181,33 @@ public class VerifyUtilTest extends TestBase {
         return bean;
     }
 
-    private SigningBean setBean(X509Certificate[] cert, PrivateKey key, File out, File in, boolean setTSA) throws FileNotFoundException {
+    private SigningBean initVerifyCAdES(X509Certificate[] cert, PrivateKey key,
+                                   File out, File in, SigningBean.Mode signingMode) throws Exception {
+        SigningUtil util = new SigningUtil();
+        InputStream input = VerifyUtilTest.class.getResourceAsStream("/certificates/attrCert2.cer");
+        AttributeCertificate attrCert = new AttributeCertificate(input);
         CertWriterReader.KeyStoreBean keys = new CertWriterReader.KeyStoreBean(cert,key);
+        SigningBean bean = new SigningBean().setDataINFile(in)
+                .setAttributeCertificate(attrCert)
+                .setDataIN(new FileInputStream(in))
+                .setOutputPath(out.getAbsolutePath())
+                .setOutputDS(new FileDataSource(out))
+                .setKeyStoreBean(keys)
+                .setDigestAlgorithm(DigestAlg.SHA3_512)
+                .setSignatureAlgorithm(SignatureAlg.SHA3_512_WITH_RSA)
+                .setSigningMode(signingMode);
+        DataSource ds = util.signCAdES(bean, false);
+        util.writeToFile(ds, bean);
+        return bean;
+    }
 
+    private SigningBean setBean(X509Certificate[] cert, PrivateKey key, File out, File in, boolean setTSA) throws Exception {
+        CertWriterReader.KeyStoreBean keys = new CertWriterReader.KeyStoreBean(cert,key);
+        InputStream inputCert = VerifyUtilTest.class.getResourceAsStream("/certificates/attrCert2.cer");
+        AttributeCertificate attrCert = new AttributeCertificate(inputCert);
         FileInputStream input = new FileInputStream(in);
         SigningBean bean = new SigningBean()
+                .setAttributeCertificate(attrCert)
                 .setSigningMode(SigningBean.Mode.EXPLICIT)
                 .setDataIN(input)
                 .setDataINFile(in).setOutputPath(out.getAbsolutePath())

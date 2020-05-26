@@ -13,6 +13,7 @@ import iaik.pkcs.pkcs9.ExtensionRequest;
 import iaik.utils.Util;
 import iaik.x509.X509CRL;
 import iaik.x509.X509Certificate;
+import iaik.x509.attr.AttributeCertificate;
 import iaik.x509.extensions.KeyUsage;
 import iaik.x509.extensions.SubjectKeyIdentifier;
 import iaik.x509.ocsp.utils.ResponseGenerator;
@@ -306,6 +307,11 @@ public class SigningResponder extends HttpServlet {
            int mode = jInput.signing.mode;
            String sigAlg = jInput.signing.signatureAlgorithm;
            String digestAlg = jInput.signing.digestAlgorithm;
+           AttributeCertificate attrCert = null;
+           if (jInput.signing.attributeCert != null) {
+               byte[] encoded = Util.fromBase64String(jInput.signing.attributeCert);
+               attrCert = new AttributeCertificate(encoded);
+           }
            Logger.trace("mode is: " + mode);
            SigningBean.Mode smode;
            if (mode == SignedData.EXPLICIT) {
@@ -361,7 +367,8 @@ public class SigningResponder extends HttpServlet {
                        .setDigestAlgorithm(DigestAlg.getFromName(digestAlg))
                        .setSignatureAlgorithm(SignatureAlg.getFromName(sigAlg))
                        .setSigningMode(smode)
-                       .setKeyStoreBean(bean);
+                       .setKeyStoreBean(bean)
+                       .setAttributeCertificate(attrCert);
                SigningUtil util = new SigningUtil();
                DataSource ds = null;
                if (sigType.equals(SigningBean.SigningType.CMS.name())) {

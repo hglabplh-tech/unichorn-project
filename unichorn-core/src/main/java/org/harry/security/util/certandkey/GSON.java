@@ -11,6 +11,7 @@ public class GSON {
         public int    mode = 0;
         public String signatureAlgorithm = null;
         public String digestAlgorithm = null;
+        public String attributeCert = null;
         public SigningCAdES cadesParams = null;
 
     }

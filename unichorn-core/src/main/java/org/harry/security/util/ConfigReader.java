@@ -23,6 +23,8 @@ import static org.harry.security.CommonConst.*;
 public class ConfigReader {
     public static final String PROP_KEYSTORE_PATH = "harry.signer.keystore";
 
+    public static final String PROP_ATTR_CERT_PATH = "harry.signer.attributeCert";
+
     public static final String PROP_KEYSTORE_TYPE = "harry.signer.storeType";
 
     public static final String PROP_KEYSTORE_PASS = "harry.signer.storePass";
@@ -57,6 +59,7 @@ public class ConfigReader {
         if (!propFile.exists()) {
 
             props.setProperty(PROP_KEYSTORE_PATH, "./.keystore");
+            props.setProperty(PROP_ATTR_CERT_PATH, "./attributeCert.cer");
             props.setProperty(PROP_KEYSTORE_TYPE, "PKCS12");
 
             props.setProperty(PROP_KEYSTORE_ALIAS, "invalid");
@@ -96,6 +99,7 @@ public class ConfigReader {
             Properties props = new Properties();
             props.load(new FileInputStream(new File(APP_DIR, "application.properties")));
             String path = props.getProperty(PROP_KEYSTORE_PATH, "./.keystore");
+            String attrCertPath = props.getProperty(PROP_ATTR_CERT_PATH, "./attributeCert.cer");
             String type = props.getProperty(PROP_KEYSTORE_TYPE, "PKCS12");
             String password = props.getProperty(PROP_KEYSTORE_PASS);
             String alias = props.getProperty(PROP_KEYSTORE_ALIAS, "invalid");
@@ -123,7 +127,8 @@ public class ConfigReader {
                     commonName,
                     decrPasswd,
                     pbeAlg,
-                    envelopAlg).setTrustLists(trusts);
+                    envelopAlg).setTrustLists(trusts)
+                    .setAttrCertPath(attrCertPath);
         } catch (IOException e) {
             throw new IllegalStateException("properties not loaded", e);
         }
@@ -235,6 +240,7 @@ public class ConfigReader {
 
     public static class MainProperties {
         private  String keystorePath;
+        private  String attrCertPath;
         private  String keystoreType;
         private String keystorePass;
         private  String alias;
@@ -383,6 +389,15 @@ public class ConfigReader {
 
         public MainProperties setCommonName(String commonName) {
             this.commonName = commonName;
+            return this;
+        }
+
+        public String getAttrCertPath() {
+            return attrCertPath;
+        }
+
+        public MainProperties setAttrCertPath(String attrCertPath) {
+            this.attrCertPath = attrCertPath;
             return this;
         }
     }

@@ -530,7 +530,9 @@ public class GenerateKeyStore implements CertGeneratorConstants {
    */
   public void generateCertificates() throws IOException {
 
-    CertificateWizzard wizzard = new CertificateWizzard(properties);
+
+    FileOutputStream stream = new FileOutputStream(properties.getAttrCertPath());
+    CertificateWizzard wizzard = new CertificateWizzard(properties, stream);
     KeyPair caKeys = wizzard.generateCA(properties.getCommonName(), true);
     KeyPair interKeys = wizzard.generateIntermediate(caKeys, properties.getCommonName(), true);
     wizzard.generateUser(interKeys, properties.getCommonName(), true);

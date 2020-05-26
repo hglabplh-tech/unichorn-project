@@ -17,13 +17,11 @@ import org.apache.http.protocol.HttpCoreContext;
 import org.apache.http.ssl.SSLContextBuilder;
 import org.apache.http.ssl.SSLContexts;
 import org.apache.http.ssl.TrustStrategy;
+import org.harry.security.util.certandkey.KeyStoreTool;
 
 import javax.net.ssl.*;
 import java.io.IOException;
-import java.security.KeyManagementException;
-import java.security.KeyStore;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
+import java.security.*;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 
@@ -105,7 +103,7 @@ public class ClientFactory {
     }
 
     public static CloseableHttpClient
-    createSSLClient() throws KeyManagementException, NoSuchAlgorithmException, KeyStoreException {
+    createSSLClient() throws KeyManagementException, NoSuchAlgorithmException, KeyStoreException, UnrecoverableKeyException {
         SSLContextBuilder builder = SSLContexts.custom();
         builder.loadTrustMaterial(null, new TrustStrategy() {
             @Override
@@ -115,7 +113,9 @@ public class ClientFactory {
 
 
         });
-        SSLContext sslContext = builder.build();
+        SSLContext sslContext = builder
+                .loadKeyMaterial(readStore(), "geheim".toCharArray())
+                .build();
         SSLConnectionSocketFactory sslsf = new SSLConnectionSocketFactory(
                 sslContext, new X509HostnameVerifier() {
 
@@ -148,6 +148,10 @@ public class ClientFactory {
         CloseableHttpClient httpclient = HttpClients.custom()
                 .setSSLSocketFactory(sslsf).build();
         return httpclient;
+    }
+
+    private static KeyStore readStore()  {
+        return KeyStoreTool.loadAppStore();
     }
 
 }

@@ -117,8 +117,12 @@ public class SigningUtil {
             InputStream stream = signingBean.getDataIN();
             Logger.trace("Create signature Stream");
             CadesSignatureStream signatureStream = new CadesSignatureStream(stream, mode);
+            SignedDataStream signedData = signatureStream.getSignedDataObject();
+            CertificateSet certSet = new CertificateSet();
+            addCertificates(signingBean, signer, certSet);
             signatureStream.addSignerInfo(signingBean.getKeyStoreBean().getSelectedKey(),
                     signer, params);
+            signedData.setCertificateSet(certSet);
             ByteArrayOutputStream out = new ByteArrayOutputStream();
             Logger.trace("Encode signature Stream");
             signatureStream.encodeSignature(out);
@@ -195,7 +199,7 @@ public class SigningUtil {
      */
     private InputStreamDataSource getInputStreamSigDataSource(SigningBean signingBean)
             throws CodingException, NoSuchAlgorithmException, IOException, CMSException, CertificateException {
-        X509Certificate selectedCert = signingBean.getKeyStoreBean().getSelectedCert();
+        X509Certificate[] chain = signingBean.getKeyStoreBean().getChain();
         PrivateKey selectedKey = signingBean.getKeyStoreBean().getSelectedKey();
         InputStream dataStream;
         if (signingBean.getDataSource() != null) {
@@ -208,9 +212,9 @@ public class SigningUtil {
         Logger.trace("create signing stream");
         int mode = signingBean.getSigningMode().getMode();
         SignedDataStream stream = new SignedDataStream(dataStream, mode);
-        X509Certificate [] certChain = new X509Certificate[1];
-        certChain[0] = selectedCert;
-        stream.setCertificates(certChain);
+        CertificateSet certSet = new CertificateSet();
+        addCertificates(signingBean, chain, certSet);
+        stream.setCertificateSet(certSet);
         AlgorithmID digestAlgorithm = null;
         AlgorithmID signatureAlgorithm = null;
         if (signingBean.getDigestAlgorithm() != null) {
@@ -222,7 +226,7 @@ public class SigningUtil {
             signatureAlgorithm = alg.getAlgId();
         }
         Logger.trace("Create signer info");
-        SignerInfo signerInfo = new SignerInfo(selectedCert,
+        SignerInfo signerInfo = new SignerInfo(chain[0],
                 digestAlgorithm,
                 signatureAlgorithm,
                 selectedKey);
@@ -233,7 +237,7 @@ public class SigningUtil {
         Logger.trace("Set content attributes");
         SigningTime signingTime = new SigningTime();
         Attribute [] attributes = new Attribute[3];
-        SigningCertificate signingCertificate = new SigningCertificate(certChain);
+        SigningCertificate signingCertificate = new SigningCertificate(chain);
         CMSContentType contentType = new CMSContentType(ObjectID.cms_data);
         attributes[0] = new Attribute(contentType);
         attributes[1] = new Attribute(signingTime);
@@ -256,6 +260,17 @@ public class SigningUtil {
         Logger.trace("Really signed the thing");
         InputStream result = new ByteArrayInputStream(os.toByteArray());
         return new InputStreamDataSource(result);
+    }
+
+    private void addCertificates(SigningBean signingBean, X509Certificate[] chain, CertificateSet certSet) {
+        if (signingBean.getAttributeCertificate() != null) {
+            CertificateChoices choices = new CertificateChoices(signingBean.getAttributeCertificate());
+            certSet.addCertificateChoices(choices);
+        }
+        for(X509Certificate candidate: chain) {
+            CertificateChoices choices = new CertificateChoices(candidate);
+            certSet.addCertificateChoices(choices);
+        }
     }
 
     public DataSource unpackSignature(InputStream signature, InputStream data) throws IOException, CMSParsingException {

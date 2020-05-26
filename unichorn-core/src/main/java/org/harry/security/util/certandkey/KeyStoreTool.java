@@ -207,7 +207,7 @@ public class KeyStoreTool {
        }
     }
 
-    public static void addCertificate(KeyStore store, X509Certificate certificate, String alias) {
+    public static void addCertificate(KeyStore store, Certificate certificate, String alias) {
         try {
 
             if (store.containsAlias(alias)) {
@@ -250,7 +250,8 @@ public class KeyStoreTool {
     }
 
     public static enum StoreType {
-       PKCS12("pkcs12"),
+        PKCS12("pkcs12"),
+        IAIKKeyStore("IAIKKeyStore"),
         JKS("JKS");
 
        private String type;

@@ -25,6 +25,7 @@
             <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
             <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
             <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+            <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
         </rowConstraints>
          <children>
             <Label text="Signature Type" GridPane.rowIndex="1" />
@@ -35,20 +36,30 @@
             <ComboBox fx:id="sigAlg" prefWidth="150.0" GridPane.columnIndex="3" GridPane.rowIndex="2" />
             <ComboBox fx:id="sigType" prefWidth="150.0" GridPane.columnIndex="1" GridPane.rowIndex="1" />
             <ComboBox fx:id="mode" prefWidth="150.0" GridPane.columnIndex="1" GridPane.rowIndex="2" />
-            <Label text="The following settings are only valid for encryption" GridPane.columnSpan="2" GridPane.rowIndex="3" />
-            <Label text="Encryption lgorithm" GridPane.rowIndex="5" />
-            <ComboBox fx:id="encrAlg" prefWidth="150.0" GridPane.columnIndex="1" GridPane.rowIndex="5" />
-            <Button fx:id="signEncr" mnemonicParsing="false" onAction="#signEncr" text="Process" GridPane.rowIndex="8" />
-            <Button fx:id="cancelSigning" mnemonicParsing="false" onAction="#cancelSigning" text="Cancel" GridPane.columnIndex="1" GridPane.rowIndex="8" />
+            <Label text="The following settings are only valid for encryption" GridPane.columnSpan="2" GridPane.rowIndex="5" />
+            <Label text="Encryption lgorithm" GridPane.rowIndex="6" />
+            <ComboBox fx:id="encrAlg" prefWidth="150.0" GridPane.columnIndex="1" GridPane.rowIndex="6" />
+            <Button fx:id="signEncr" mnemonicParsing="false" onAction="#signEncr" text="Process" GridPane.rowIndex="9" />
+            <Button fx:id="cancelSigning" mnemonicParsing="false" onAction="#cancelSigning" text="Cancel" GridPane.columnIndex="1" GridPane.rowIndex="9" />
             <Label text="Card PIN" />
             <Label text="Optional Parameters" GridPane.columnIndex="2" />
-            <Label text="Encryption PW" GridPane.columnIndex="2" GridPane.rowIndex="5" />
-            <PasswordField fx:id="passwd" GridPane.columnIndex="3" GridPane.rowIndex="5" />
-            <Label text="Timestamp Authority" GridPane.rowIndex="7" />
-            <Label text="The following Values are CAdES only" GridPane.columnSpan="2" GridPane.rowIndex="6" />
-            <ComboBox fx:id="tspField" prefHeight="25.0" prefWidth="150.0" GridPane.columnIndex="1" GridPane.rowIndex="7" />
-            <CheckBox fx:id="archiveInfo" mnemonicParsing="false" text="Add Archive Info" GridPane.columnIndex="2" GridPane.rowIndex="7" />
+            <Label text="Encryption PW" GridPane.columnIndex="2" GridPane.rowIndex="6" />
+            <PasswordField fx:id="passwd" GridPane.columnIndex="3" GridPane.rowIndex="6" />
+            <Label text="Timestamp Authority" GridPane.rowIndex="8" />
+            <Label text="The following Values are CAdES only" GridPane.columnSpan="2" GridPane.rowIndex="7" />
+            <ComboBox fx:id="tspField" prefHeight="25.0" prefWidth="150.0" GridPane.columnIndex="1" GridPane.rowIndex="8" />
+            <CheckBox fx:id="archiveInfo" mnemonicParsing="false" text="Add Archive Info" GridPane.columnIndex="2" GridPane.rowIndex="8" />
             <PasswordField fx:id="pin" GridPane.columnIndex="1" />
+            <Label text="Attribute Cert Path" GridPane.rowIndex="3" />
+            <TextField fx:id="attrCert" GridPane.columnIndex="1" GridPane.rowIndex="3">
+               <contextMenu>
+                  <ContextMenu>
+                    <items>
+                        <MenuItem fx:id="certSel" mnemonicParsing="false" onAction="#certSel" text="Select Certificate" />
+                    </items>
+                  </ContextMenu>
+               </contextMenu>
+            </TextField>
          </children>
       </GridPane>
    </children>

@@ -66,8 +66,10 @@ public class CertToolCtrl implements ControllerInit {
                     .getKeyEntry(store, alias, passwd.getText().toCharArray());
             bean = new CertWriterReader.KeyStoreBean(keys.getSecond(), keys.getFirst());
         }
-        dataInputStream = new FileInputStream(dataInput);
-        outPathString = outFile.getAbsolutePath();
+        if (dataInput != null && outFile != null) {
+            dataInputStream = new FileInputStream(dataInput);
+            outPathString = outFile.getAbsolutePath();
+        }
         signingBean.setKeyStoreBean(bean)
                 .setAction(action)
                 .setDataINFile(dataInput)
@@ -138,6 +140,11 @@ public class CertToolCtrl implements ControllerInit {
     @FXML
     private void showStore(ActionEvent event) throws IOException {
         SecHarry.setRoot("certificates", SecHarry.CSS.ABBY);
+    }
+
+    @FXML
+    private void createAttrCert(ActionEvent event) throws IOException {
+        SecHarry.setRoot("attrCert", SecHarry.CSS.UNICHORN);
     }
 
 

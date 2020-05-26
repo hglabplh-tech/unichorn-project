@@ -1,6 +1,7 @@
 package org.harry.security.util.bean;
 
 import iaik.cms.SignedData;
+import iaik.x509.attr.AttributeCertificate;
 import org.harry.security.CMSSigner;
 import org.harry.security.util.algoritms.CryptoAlg;
 import org.harry.security.util.algoritms.DigestAlg;
@@ -57,6 +58,8 @@ public class SigningBean {
     private String tspURL;
     private File dataINPath;
 
+    private AttributeCertificate attributeCertificate;
+
     List<TrustListManager> walker = new ArrayList<>();
 
     public enum Mode {
@@ -80,6 +83,15 @@ public class SigningBean {
         Compress,
         Decompress,
         PKCS11
+    }
+
+    public AttributeCertificate getAttributeCertificate() {
+        return attributeCertificate;
+    }
+
+    public SigningBean setAttributeCertificate(AttributeCertificate attributeCertificate) {
+        this.attributeCertificate = attributeCertificate;
+        return this;
     }
 
     public String getKeyStoreType() {

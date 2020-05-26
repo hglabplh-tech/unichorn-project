@@ -95,7 +95,8 @@ public class CertActionCtrl implements ControllerInit {
                 typeBox.getSelectionModel().getSelectedItem();
         ConfigReader.MainProperties props = ConfigReader.loadStore();
         props.setKeystorePass(passwd.getText());
-            CertificateWizzard wizzard = new CertificateWizzard(ConfigReader.loadStore());
+        FileOutputStream stream = new FileOutputStream(props.getAttrCertPath());
+        CertificateWizzard wizzard = new CertificateWizzard(props, stream);
         KeyPair caKeys = wizzard.generateCA(props.getCommonName(), true);
         KeyPair interKeys = wizzard.generateIntermediate(caKeys, props.getCommonName(), true);
         wizzard.generateUser(interKeys, props.getCommonName(), true);

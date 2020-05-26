@@ -1,5 +1,7 @@
 package org.harald.security.fx;
 
+import iaik.utils.Util;
+import iaik.x509.attr.AttributeCertificate;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.Scene;
@@ -19,7 +21,9 @@ import org.harry.security.util.httpclient.HttpClientConnection;
 
 import javax.activation.DataSource;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.security.cert.CertificateException;
 import java.util.Arrays;
 import java.util.List;
 
@@ -52,6 +56,7 @@ public class SigningCtrl implements ControllerInit {
     File keyStoreStream = null;
     File dataInput = null;
     File outFile = null;
+    AttributeCertificate attributeCertificate;
 
 
 
@@ -79,6 +84,12 @@ public class SigningCtrl implements ControllerInit {
     @FXML
     public void cancelSigning(ActionEvent event) throws IOException {
         SecHarry.setRoot("main", SecHarry.CSS.ABBY);
+    }
+
+    @FXML
+    public void certSel(ActionEvent event) throws IOException, CertificateException {
+        File attrCertFile = showOpenDialog(event, "attrCert");
+        attributeCertificate = new AttributeCertificate(new FileInputStream(attrCertFile));
     }
 
     @FXML
@@ -110,6 +121,9 @@ public class SigningCtrl implements ControllerInit {
             }
             if (bean.getDigestAlgorithm() != null) {
                 params.signing.digestAlgorithm = bean.getDigestAlgorithm().getName();
+                if(attributeCertificate != null) {
+                    params.signing.attributeCert = Util.toBase64String(attributeCertificate.getEncoded());
+                }
             }
             if (bean.getSignatureType().equals(SigningBean.SigningType.CAdES)) {
                 GSON.SigningCAdES cades = new GSON.SigningCAdES();
