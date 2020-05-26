@@ -687,9 +687,9 @@ public class CertificateWizzard {
 
             // ServiceAuthenticationInfo
             GeneralName service = new GeneralName(GeneralName.uniformResourceIdentifier,
-                    "test.iaik.at");
+                    attrBean.getAccessIdentityService());
             GeneralName ident = new GeneralName(GeneralName.rfc822Name,
-                    "John.Doe@iaik.tugraz.at");
+                    attrBean.getAccessIdentityIdent());
             ServiceAuthenticationInfo serviceAuthInf = new ServiceAuthenticationInfo(service,
                     ident);
             byte[] authInfo = Util.toASCIIBytes("topSecret");
