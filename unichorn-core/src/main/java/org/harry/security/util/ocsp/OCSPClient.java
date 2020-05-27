@@ -11,6 +11,7 @@ import iaik.x509.X509Certificate;
 import iaik.x509.extensions.AuthorityInfoAccess;
 import iaik.x509.extensions.ExtendedKeyUsage;
 import iaik.x509.ocsp.*;
+import iaik.x509.ocsp.extensions.ArchiveCutoff;
 import iaik.x509.ocsp.extensions.CrlID;
 import iaik.x509.ocsp.extensions.PreferredSignatureAlgorithms;
 import iaik.x509.ocsp.extensions.ServiceLocator;
@@ -339,6 +340,12 @@ public class OCSPClient {
                 Date archiveCutoffDate = singleResponse.getArchiveCutoff();
                 if (archiveCutoffDate != null) {
                     System.out.println("archivCutoffDate: " + archiveCutoffDate);
+                } else {
+                    ArchiveCutoff cutoff = (ArchiveCutoff) basicOCSPResponse.getExtension(ObjectID.ocspExt_ArchiveCutoff);
+                    if (cutoff != null) {
+                        Date cutoffDate = cutoff.getCutoffTime();
+                        System.out.println("archivCutoffDate: " + cutoffDate);
+                    }
                 }
                 // crl id included?
                 CrlID crlID = singleResponse.getCrlID();

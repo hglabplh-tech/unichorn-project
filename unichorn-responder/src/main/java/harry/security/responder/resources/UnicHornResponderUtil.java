@@ -980,6 +980,12 @@ public class UnicHornResponderUtil {
 
     }
 
+    /**
+     * read extension for preferred signature algorithm and lookup algorithm
+     * @param request the ocsp-request
+     * @return the preferred algorithm or default
+     * @throws Exception error case
+     */
     public static AlgorithmID lookupPrefferedSigAlg(OCSPRequest request) throws Exception {
         AlgorithmID result = AlgorithmID.sha256;
         PreferredSignatureAlgorithms extension = (PreferredSignatureAlgorithms)request

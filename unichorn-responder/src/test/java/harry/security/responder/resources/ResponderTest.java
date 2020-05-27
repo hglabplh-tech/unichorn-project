@@ -124,7 +124,7 @@ public class ResponderTest  {
             OCSPClient client = new OCSPClient();
             OCSPRequest request = client.createOCSPRequest(keys.getFirst(),
                     certs, certList.toArray(new X509Certificate[0]),
-                    false, ReqCert.pKCert, ocspURL);
+                    true, ReqCert.pKCert, null);
 
             ByteArrayInputStream stream = new ByteArrayInputStream(request.getEncoded());
             ResponseGenerator respGen = null;
