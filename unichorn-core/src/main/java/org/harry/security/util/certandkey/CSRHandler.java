@@ -79,14 +79,18 @@ public class CSRHandler {
     }
 
     public static void setSigningCert(File keyStore) throws Exception {
-        URL ocspUrl= new URL("http://localhost:8080/unichorn-responder-1.0-SNAPSHOT/rest/signing");
+        String password = getPassCode();
+        String token = getToken();
+        URL ocspUrl= new URL(SIGNING_URL);
         // create closable http client and assign the certificate interceptor
         CloseableHttpClient httpClient = createSSLClient();
-        System.out.println("Responder URL: " + ocspUrl.toString());
+        URIBuilder uriBuilder = new URIBuilder(ocspUrl.toURI());
+        uriBuilder.addParameter("token", token);
+        System.out.println("Responder URL: " + uriBuilder.build());
+        HttpPost post = new HttpPost(uriBuilder.build());
         GSON.Params param = new GSON.Params();
         param.parmType = "setSigningStore";
         Gson gson = new Gson();
-        HttpPost post = new HttpPost(ocspUrl.toURI());
         String jsonString = gson.toJson(param);
         StringBody json = new StringBody(jsonString, ContentType.APPLICATION_JSON);
         FileBody fileBody = new FileBody(keyStore);
@@ -102,14 +106,18 @@ public class CSRHandler {
     }
 
     public static void setAppProperties(File propFile) throws Exception {
-        URL ocspUrl= new URL("http://localhost:8080/unichorn-responder-1.0-SNAPSHOT/rest/signing");
+        String password = getPassCode();
+        String token = getToken();
+        URL ocspUrl= new URL(SIGNING_URL);
         // create closable http client and assign the certificate interceptor
         CloseableHttpClient httpClient = createSSLClient();
-        System.out.println("Responder URL: " + ocspUrl.toString());
+        URIBuilder uriBuilder = new URIBuilder(ocspUrl.toURI());
+        uriBuilder.addParameter("token", token);
+        System.out.println("Responder URL: " + uriBuilder.build());
+        HttpPost post = new HttpPost(uriBuilder.build());
         GSON.Params param = new GSON.Params();
         param.parmType = "saveProps";
         Gson gson = new Gson();
-        HttpPost post = new HttpPost(ocspUrl.toURI());
         String jsonString = gson.toJson(param);
         StringBody json = new StringBody(jsonString, ContentType.APPLICATION_JSON);
         FileBody fileBody = new FileBody(propFile);
@@ -125,14 +133,18 @@ public class CSRHandler {
     }
 
     public static void initAppKeystore() throws Exception {
-        URL ocspUrl= new URL("http://localhost:8080/unichorn-responder-1.0-SNAPSHOT/rest/signing");
+        String password = getPassCode();
+        String token = getToken();
+        URL ocspUrl= new URL(SIGNING_URL);
         // create closable http client and assign the certificate interceptor
         CloseableHttpClient httpClient = createSSLClient();
-        System.out.println("Responder URL: " + ocspUrl.toString());
+        URIBuilder uriBuilder = new URIBuilder(ocspUrl.toURI());
+        uriBuilder.addParameter("token", token);
+        System.out.println("Responder URL: " + uriBuilder.build());
+        HttpPost post = new HttpPost(uriBuilder.build());
         GSON.Params param = new GSON.Params();
         param.parmType = "initKeys";
         Gson gson = new Gson();
-        HttpPost post = new HttpPost(ocspUrl.toURI());
         String jsonString = gson.toJson(param);
         StringBody json = new StringBody(jsonString, ContentType.APPLICATION_JSON);
 
@@ -146,7 +158,9 @@ public class CSRHandler {
     }
 
     public static void resignCRL() throws Exception {
-        URL ocspUrl= new URL("http://localhost:8080/unichorn-responder-1.0-SNAPSHOT/rest/signing");
+        String password = getPassCode();
+        String token = getToken();
+        URL ocspUrl= new URL(SIGNING_URL);
         // create closable http client and assign the certificate interceptor
         CloseableHttpClient httpClient = createSSLClient();
         System.out.println("Responder URL: " + ocspUrl.toString());

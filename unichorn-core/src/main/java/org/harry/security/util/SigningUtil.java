@@ -14,6 +14,7 @@ import iaik.pdf.parameters.CadesLTAParameters;
 import iaik.pdf.parameters.CadesTParameters;
 import iaik.smime.ess.SigningCertificate;
 import iaik.x509.X509Certificate;
+import iaik.x509.extensions.SubjectKeyIdentifier;
 import iaik.x509.ocsp.OCSPResponse;
 import iaik.x509.ocsp.ReqCert;
 import org.apache.commons.io.IOUtils;
@@ -24,6 +25,7 @@ import org.harry.security.util.certandkey.CertWriterReader;
 import org.harry.security.util.ocsp.HttpOCSPClient;
 import org.harry.security.util.trustlist.TrustListManager;
 import org.pmw.tinylog.Logger;
+import sun.security.x509.SubjectKeyIdentifierExtension;
 
 import javax.activation.DataSource;
 import java.io.*;
@@ -32,6 +34,8 @@ import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.security.spec.InvalidParameterSpecException;
 import java.util.List;
+
+import static org.harry.security.CommonConst.OCSP_URL;
 
 public class SigningUtil {
 
@@ -146,30 +150,40 @@ public class SigningUtil {
         archivedSignatureStream = new ByteArrayOutputStream();
         String archiveTimestampDigestAlgorithm =  ArchiveTimeStampv3.DEFAULTHASHALGORITHM.getJcaStandardName();
         try {
+            Logger.trace("upgrade with archTimeStamp Algorithm:" + archiveTimestampDigestAlgorithm);
             InputStream data = signingBean.getDataINFile();
             CadesSignatureStream cadesSig = new CadesSignatureStream(ds.getInputStream(), data,
             new String[] { archiveTimestampDigestAlgorithm }, archivedSignatureStream);
-
+            Logger.trace("Before verifying signature");
             cadesSig.verifySignatureValue(signingBean.getKeyStoreBean().getSelectedCert());
+            Logger.trace("Verifying signature succeded");
             CadesLTAParameters parameters = new CadesLTAParameters(signingBean.getTspURL(),
                     null, null);
 
             X509Certificate [] cert = signingBean.getKeyStoreBean().getChain();
             String url = HttpOCSPClient.getOCSPUrl(signingBean.getKeyStoreBean().getSelectedCert());
             if (url == null) {
-                url = "http://localhost:8080/unichorn-responder-1.0-SNAPSHOT/rest/ocsp";
+                url = OCSP_URL;
             }
+            Logger.trace("Get OCSP values from URL: " + url);
             OCSPResponse response = HttpOCSPClient.sendOCSPRequest(url, null, null,
                     cert, false, ReqCert.certID);
             OCSPResponse [] responses = new OCSPResponse[1];
             responses[0] = response;
             parameters.addArchiveDetails(cert, null, responses);
+            Logger.trace("Get OCSP values  succeded");
+            Logger.trace("add archive timestamp");
+            SubjectKeyID identifier = new SubjectKeyID(cert[0]);
             cadesSig.addArchiveTimeStamp(0, parameters);
+            Logger.trace("encode upgraded");
             cadesSig.encodeUpgradedSignature();
+            Logger.trace("encode upgraded succeded");
             ByteArrayInputStream  in = new ByteArrayInputStream(archivedSignatureStream.toByteArray());
             InputStreamDataSource dsResult = new InputStreamDataSource(in);
             return dsResult;
         } catch (Exception ex) {
+            Logger.trace("Error occurred: " + ex.getMessage() + " type: " + ex.getClass().getCanonicalName());
+            Logger.trace(ex);
             throw new IllegalStateException("signing failed", ex);
         }
     }

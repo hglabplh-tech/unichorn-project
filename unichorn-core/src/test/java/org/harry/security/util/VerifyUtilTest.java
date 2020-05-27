@@ -220,7 +220,7 @@ public class VerifyUtilTest extends TestBase {
                 .setDigestAlgorithm(DigestAlg.SHA3_512)
                 .setSignatureAlgorithm(SignatureAlg.SHA3_512_WITH_RSA)
                 .setSigningMode(signingMode);
-        DataSource ds = util.signCAdES(bean, false);
+        DataSource ds = util.signCAdES(bean, upgrade);
         util.writeToFile(ds, bean);
         return bean;
     }
