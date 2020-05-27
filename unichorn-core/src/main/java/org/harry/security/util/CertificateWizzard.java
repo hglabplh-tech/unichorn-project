@@ -434,6 +434,13 @@ public class CertificateWizzard {
         return kp;
     }
 
+
+    /**
+     * Generate a RSA_PSS keypair
+      * @param algorithm the algorithm
+     *  @param bits the bit-length
+     *  @return the key-pair
+     */
     public static KeyPair generateKeyPairRSAPSS(String algorithm, int bits) {
         try {
             KeyPairGenerator generator = KeyPairGenerator.getInstance(algorithm, "IAIK");
@@ -468,6 +475,14 @@ public class CertificateWizzard {
 
     }
 
+    /**
+     * Create a attribute certificate
+     * @param issuerthe issuer certificate
+     * @param user the user certificate
+     * @param issuerPK the user private key
+     * @param attrBean the bean holding the values for generation
+     * @return
+     */
     public static AttributeCertificate createAttributeCertificate(X509Certificate issuer,
                                                                   X509Certificate user,
                                                                   PrivateKey issuerPK,
@@ -704,9 +719,11 @@ public class CertificateWizzard {
     }
 
 
+    /**
+     * Initialize the application key-store and trust list to work with the responder
+     */
     public static void initThis() {
         File keystore = new File(APP_DIR, PROP_STORE_NAME);
-        File keystoreEC = new File(APP_DIR, PROP_STORE_NAME + "_EC");
         File trustFile = new File(APP_DIR_TRUST, PROP_TRUST_NAME);
         if (!keystore.exists() && !trustFile.exists()) {
             ConfigReader.MainProperties properties = ConfigReader.loadStore();
@@ -733,6 +750,10 @@ public class CertificateWizzard {
         generateThis(properties);
     }
 
+    /**
+     * Initialize a keystore used for signing e.g.
+     * @param properties the application properties
+     */
     public static void generateThis(ConfigReader.MainProperties properties) {
 
         if (properties == null) {

@@ -529,7 +529,7 @@ public class GenerateKeyStore implements CertGeneratorConstants {
    * Generates the certificates.
    */
   public void generateCertificates() throws IOException {
-
+  // 'TODO: next to look at
 
     FileOutputStream stream = new FileOutputStream(properties.getAttrCertPath());
     CertificateWizzard wizzard = new CertificateWizzard(properties, stream);

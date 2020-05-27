@@ -289,6 +289,7 @@ public class VerifyUtil {
                     results.addSignatureResult("digest algorithm",
                             new Tuple<>(digestAlg.getImplementationName(), Outcome.SUCCESS));
                     for (X509Certificate signCert : signCertList) {
+                        algPathChecker.checkSignatureAlgorithm(sigAlg, signCert.getPublicKey(), results);
                         if (info.isSignerCertificate(signCert)) {
                             vResult.addSignersInfo(signCert.getSubjectDN().getName(), results);
                             try {

@@ -97,7 +97,7 @@ public class VerifierCtrl implements ControllerInit {
                     verifyResults.setVisible(false);
                     data.addAll(entryList);
                     if (signerChain != null) {
-                        KeyStore store = KeyStoreTool.initStore("PKCS12", null);
+                        KeyStore store = KeyStoreTool.initStore("PKCS12", "geheim");
                         KeyStoreTool.addCertificateChain(store, signerChain);
                         ConfigReader.MainProperties props = ConfigReader.loadStore();
                         KeyStoreTool.storeKeyStore(store,new FileOutputStream(props.getKeystorePath()), "geheim".toCharArray());

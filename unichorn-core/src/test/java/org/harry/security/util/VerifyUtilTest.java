@@ -106,6 +106,26 @@ public class VerifyUtilTest extends TestBase {
     }
 
     @Test
+    public void checkCertOKCMSRSAPSS() throws Exception{
+        KeyStore store = KeyStoreTool.loadAppStore();
+        Tuple<PrivateKey, X509Certificate[]> keys = KeyStoreTool.getAppKeyEntry(store);
+        SigningUtil util = new SigningUtil();
+        URL url = this.getClass().getResource("/data/pom.xml");
+        URL sigURL = this.getClass().getResource("/data/pom.xml.pkcs7");
+        File urlFile = new File(url.toURI());
+        File urlFileIN = new File(sigURL.toURI());
+        InputStream in;
+        SigningBean bean = setBean(keys.getSecond(), keys.getFirst(), urlFileIN, urlFile, false);
+        InputStream input = new FileInputStream(urlFileIN);
+        assertNotNull(input);
+        List<TrustListManager> walkers = ConfigReader.loadAllTrusts();
+        in = this.getClass().getResourceAsStream("/data/pom.xml");
+        VerifyUtil vutil = new VerifyUtil(walkers, bean);
+        vutil.verifyCadesSignature(input, in);
+    }
+
+
+    @Test
     public void checkCertOKCAdESExplicit() throws Exception{
         KeyStore store = KeyStoreTool.loadAppStore();
         Tuple<PrivateKey, X509Certificate[]> keys = KeyStoreTool.getAppKeyEntry(store);

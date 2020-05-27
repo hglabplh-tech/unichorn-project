@@ -4,6 +4,7 @@ import iaik.asn1.ObjectID;
 import iaik.asn1.structures.AlgorithmID;
 import iaik.asn1.structures.Name;
 import iaik.asn1.structures.RDN;
+import iaik.cms.CMSAlgorithmID;
 import iaik.security.dsa.DSA;
 import iaik.security.dsa.DSAPublicKey;
 import iaik.security.ec.common.AbstractECPublicKey;
@@ -152,6 +153,7 @@ public class AlgorithmPathChecker {
         if (pubKey instanceof RSAPublicKey) {
             RSAPublicKey pubKeyRSA = (RSAPublicKey)pubKey;
             checkRSAKeyAlg(pubKeyRSA, results);
+            checkRSAPadding(sigAlg, results);
         } else if(pubKey instanceof DSAPublicKey) {
 
         } else if (pubKey instanceof AbstractECPublicKey) {
@@ -165,6 +167,14 @@ public class AlgorithmPathChecker {
             results.addSignatureResult("check signature algorithm", new Tuple<>("algorithm", VerifyUtil.Outcome.SUCCESS));
         } else {
             results.addSignatureResult("check signature algorithm", new Tuple<>("algorithm", VerifyUtil.Outcome.UNDETERMINED));
+        }
+    }
+
+    public void checkRSAPadding(AlgorithmID sigAlg, VerifyUtil.SignerInfoCheckResults results) {
+        if (sigAlg.equals(CMSAlgorithmID.rsassaPss)) {
+            results.addSignatureResult("check rsa padding", new Tuple<>("padding PSS 2.1", VerifyUtil.Outcome.SUCCESS));
+        } else {
+            results.addSignatureResult("check rsa padding", new Tuple<>("padding PSS 1.5", VerifyUtil.Outcome.UNDETERMINED));
         }
     }
 
