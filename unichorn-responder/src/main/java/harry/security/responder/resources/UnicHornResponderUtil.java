@@ -48,7 +48,7 @@ import iaik.x509.extensions.AuthorityKeyIdentifier;
 import iaik.x509.extensions.ReasonCode;
 import iaik.x509.extensions.SubjectKeyIdentifier;
 import iaik.x509.ocsp.*;
-import iaik.x509.ocsp.extensions.ServiceLocator;
+import iaik.x509.ocsp.extensions.*;
 import iaik.x509.ocsp.net.HttpOCSPRequest;
 import iaik.x509.ocsp.utils.ResponseGenerator;
 import org.harry.security.util.CertificateWizzard;
@@ -147,8 +147,12 @@ public class UnicHornResponderUtil {
         loadActualPrivStore();
        Logger.trace("before getting keys and certs");
         Tuple<PrivateKey, X509Certificate[]> keys = null;
+        Nonce nonceExt = null;
         try {
-            checkRequestSigning(ocspRequest);
+            nonceExt = checkRequestSigning(ocspRequest);
+            if (nonceExt == null) {
+                return new OCSPResponse(OCSPResponse.malformedRequest);
+            }
             Logger.trace( "after getting keys and certs");
             keys = getPrivateKeyX509CertificateTuple();
             X509Certificate[] certs = new X509Certificate[1];
@@ -192,7 +196,8 @@ public class UnicHornResponderUtil {
             if (response != null) {
                 return response;
             } else {
-                return getOcspResponse(ocspReqInput, responseGenerator, signatureAlgorithm, keys);
+                AlgorithmID preferred = lookupPrefferedSigAlg(ocspRequest);
+                return getOcspResponse(ocspReqInput, responseGenerator, preferred, keys, nonceExt);
             }
         } catch (Exception ex) {
             Logger.trace("Message is: try to output failed with: " + ex.getMessage());
@@ -208,10 +213,24 @@ public class UnicHornResponderUtil {
      * @param keys the private and public keys used for signing
      * @return the signed response
      */
-    private static OCSPResponse getOcspResponse(InputStream ocspReqInput, ResponseGenerator responseGenerator, AlgorithmID signatureAlgorithm, Tuple<PrivateKey, X509Certificate[]> keys) {
+    private static OCSPResponse getOcspResponse(InputStream ocspReqInput,
+                                                ResponseGenerator responseGenerator,
+                                                AlgorithmID signatureAlgorithm,
+                                                Tuple<PrivateKey,
+                                                        X509Certificate[]> keys,
+                                                Nonce nonce) {
         Logger.trace("before create response internal");// changed public key setting
+        Calendar cal = Calendar.getInstance();
+        cal.add(Calendar.YEAR, 1);
+        Date date = new Date();
+        date.setTime(cal.getTimeInMillis());
+        ArchiveCutoff archiveCutOff = new ArchiveCutoff();
+        archiveCutOff.setCutoffTime(date);
+        V3Extension[] extensions = new V3Extension[2];
+        extensions[0] = archiveCutOff;
+        extensions[1] = nonce;
         OCSPResponse response = responseGenerator.createOCSPResponse(ocspReqInput,
-                keys.getSecond()[0].getPublicKey(), signatureAlgorithm, null);
+                keys.getSecond()[0].getPublicKey(), signatureAlgorithm, extensions);
         Logger.trace("after create internal");
         Logger.trace("Message is: output ok");
         return response;
@@ -479,9 +498,9 @@ public class UnicHornResponderUtil {
     private static AlgorithmID getAlgorithmID(AlgorithmID signatureAlgorithm, PrivateKey responderKey) {
         if (!(responderKey instanceof java.security.interfaces.RSAPrivateKey)) {
             if (responderKey instanceof java.security.interfaces.DSAPrivateKey) {
-                signatureAlgorithm = AlgorithmID.dsaWithSHA1;
+                signatureAlgorithm = AlgorithmID.dsaWithSHA256;
             } else {
-                signatureAlgorithm = AlgorithmID.sha1WithRSAEncryption;
+                signatureAlgorithm = AlgorithmID.sha256WithRSAEncryption;
             }
         }
         try {
@@ -511,19 +530,56 @@ public class UnicHornResponderUtil {
      * @throws SignatureException error case
      * @throws OCSPException error case
      */
-    private static void checkRequestSigning(OCSPRequest ocspRequest) throws NoSuchAlgorithmException, InvalidKeyException, SignatureException, OCSPException {
+    private static Nonce checkRequestSigning(OCSPRequest ocspRequest)  {
         if (ocspRequest.containsSignature()) {
             Logger.trace("Request is signed.");
 
+            byte[] nonce;
+            Nonce nonceExt = null;
+
             boolean signatureOk = false;
+            X509Certificate signerCert = null;
             if (!signatureOk && ocspRequest.containsCertificates()) {
                 Logger.trace("Verifying signature with included signer cert...");
-
-                X509Certificate signerCert = ocspRequest.verify();
+                try {
+                    signerCert = ocspRequest.verify();
+                } catch (Exception ex) {
+                    Logger.trace("Signature not ok from request signer ");
+                    return nonceExt;
+                }
                 Logger.trace("Signature ok from request signer " + signerCert.getSubjectDN());
-                signatureOk = true;
+                try {
+                    nonce = ocspRequest.getNonce();
+                    if (nonce != null) {
+                        nonceExt = new Nonce();
+                        nonceExt.setValue(nonce);
+                        Logger.trace("Nonce is set to request");
+                    }
+                    ObjectID[] types = ocspRequest.getAccepatableResponseTypes();
+                    if (types != null) {
+                        boolean typeFound = false;
+                        for (ObjectID type : types) {
+                            if (type == ObjectID.basicOcspResponse) {
+                                typeFound = true;
+                            }
+                        }
+                        if (!typeFound) {
+                            Logger.trace("accepted type not set");
+                            return nonceExt;
+                        } else {
+                            Logger.trace("accepted type set");
+                            return nonceExt;
+                        }
+
+                    }
+                    return nonceExt;
+
+                } catch (Exception ex) {
+                    return nonceExt;
+                }
             }
         }
+        return null;
     }
 
     /**
@@ -922,5 +978,17 @@ public class UnicHornResponderUtil {
             throw new IllegalStateException("error reading encrypted pwd", ex);
         }
 
+    }
+
+    public static AlgorithmID lookupPrefferedSigAlg(OCSPRequest request) throws Exception {
+        AlgorithmID result = AlgorithmID.sha256;
+        PreferredSignatureAlgorithms extension = (PreferredSignatureAlgorithms)request
+                .getExtension(ObjectID.ocspExt_PreferredSignatureAlgorithms);
+        if (extension != null) {
+            PreferredSignatureAlgorithms.PreferredSignatureAlgorithm[] algArray =
+                    extension.getAlgorithms();
+            result = algArray[0].getSigIdentifier();
+        }
+        return result;
     }
 }

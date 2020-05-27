@@ -12,6 +12,7 @@ import iaik.x509.extensions.AuthorityInfoAccess;
 import iaik.x509.extensions.ExtendedKeyUsage;
 import iaik.x509.ocsp.*;
 import iaik.x509.ocsp.extensions.CrlID;
+import iaik.x509.ocsp.extensions.PreferredSignatureAlgorithms;
 import iaik.x509.ocsp.extensions.ServiceLocator;
 import iaik.x509.ocsp.utils.TrustedResponders;
 
@@ -113,6 +114,13 @@ public class OCSPClient {
                 random.nextBytes(nonce);
                 ocspRequest.setAcceptableResponseTypes(new ObjectID[]{BasicOCSPResponse.responseType});
                 ocspRequest.setNonce(nonce);
+                PreferredSignatureAlgorithms.PreferredSignatureAlgorithm [] algorithms = new PreferredSignatureAlgorithms.PreferredSignatureAlgorithm[4];
+                algorithms[0] = new PreferredSignatureAlgorithms.PreferredSignatureAlgorithm(AlgorithmID.sha3_256WithRSAEncryption);
+                algorithms[1] = new PreferredSignatureAlgorithms.PreferredSignatureAlgorithm(AlgorithmID.sha3_512WithRSAEncryption);
+                algorithms[2] = new PreferredSignatureAlgorithms.PreferredSignatureAlgorithm(AlgorithmID.sha256WithRSAEncryption);
+                algorithms[3] = new PreferredSignatureAlgorithms.PreferredSignatureAlgorithm(AlgorithmID.sha512WithRSAEncryption);
+                PreferredSignatureAlgorithms algorithmsExt = new PreferredSignatureAlgorithms(algorithms);
+                ocspRequest.addExtension(algorithmsExt);
 
             }
 
