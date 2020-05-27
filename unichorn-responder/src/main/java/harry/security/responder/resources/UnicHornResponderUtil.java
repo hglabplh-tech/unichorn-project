@@ -68,7 +68,6 @@ import java.math.BigInteger;
 import java.net.URL;
 import java.security.*;
 import java.security.cert.*;
-import java.sql.Time;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.*;
@@ -108,6 +107,8 @@ public class UnicHornResponderUtil {
 
     private static final SimpleChainVerifier verifier = new SimpleChainVerifier();
 
+    private static Map<BigInteger, OCSPRespToStore> preparedResponses = new HashMap<>();
+
     /**
      * Initialize neccessary directories
      */
@@ -145,7 +146,14 @@ public class UnicHornResponderUtil {
                                                 ResponseGenerator responseGenerator,
                                                 AlgorithmID signatureAlgorithm) {
         loadActualPrivStore();
-       Logger.trace("before getting keys and certs");
+        try {
+            initStorePreparedResponses();
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();
+        }
+        Logger.trace("before getting keys and certs");
         Tuple<PrivateKey, X509Certificate[]> keys = null;
         Nonce nonceExt = null;
         try {
@@ -189,15 +197,29 @@ public class UnicHornResponderUtil {
 
 
         Logger.trace( "Message is: before add resp entries");
+        Tuple<BigInteger, Optional<OCSPResponse>> responseOpt =
+                searchResponseINMap(ocspRequest.getRequestList()[0].getReqCert(), keys);
+        if (responseOpt.getSecond().isPresent()) {
+            return responseOpt.getSecond().get();
+        }
         OCSPResponse response = checkCertificateRevocation(ocspRequest, responseGenerator, crl);
 
 
         try {
             if (response != null) {
+                if (!responseOpt.getFirst().equals(BigInteger.valueOf(-1)) && !responseOpt.getSecond().isPresent()) {
+                    preparedResponses.put(responseOpt.getFirst(), new OCSPRespToStore(response, responseOpt.getFirst()));
+                }
+                writePreparedResponses();
                 return response;
             } else {
                 AlgorithmID preferred = lookupPrefferedSigAlg(ocspRequest);
-                return getOcspResponse(ocspReqInput, responseGenerator, preferred, keys, nonceExt);
+                response = getOcspResponse(ocspReqInput, responseGenerator, preferred, keys, nonceExt);
+                if (!responseOpt.getFirst().equals(BigInteger.valueOf(-1)) && !responseOpt.getSecond().isPresent()) {
+                    preparedResponses.put(responseOpt.getFirst(), new OCSPRespToStore(response, responseOpt.getFirst()));
+                }
+                writePreparedResponses();
+                return response;
             }
         } catch (Exception ex) {
             Logger.trace("Message is: try to output failed with: " + ex.getMessage());
@@ -996,5 +1018,152 @@ public class UnicHornResponderUtil {
             result = algArray[0].getSigIdentifier();
         }
         return result;
+    }
+
+    public static void initStorePreparedResponses() throws IOException, ClassNotFoundException {
+        try {
+            File hashMapFile = new File(APP_DIR_WORKING, "responses.ser");
+            if (hashMapFile.exists()) {
+                ObjectInputStream input = new ObjectInputStream(new FileInputStream(hashMapFile));
+                Object rawObj = input.readObject();
+                if (rawObj != null) {
+                    preparedResponses = (HashMap) rawObj;
+                }
+            }
+        } catch (Exception ex) {
+            Logger.trace("read HashTable failed: " +  ex.getMessage());
+            throw new IllegalStateException("read HashTable failed", ex);
+        }
+    }
+
+    public static void writePreparedResponses() throws IOException {
+        try {
+            File hashMapFile = new File(APP_DIR_WORKING, "responses.ser");
+            ObjectOutputStream output = new ObjectOutputStream(new FileOutputStream(hashMapFile));
+            output.writeObject(preparedResponses);
+            output.flush();
+            output.close();
+        } catch (Exception ex) {
+            Logger.trace("write HashTable failed: " +  ex.getMessage());
+            throw new IllegalStateException("write HashTable failed", ex);
+        }
+    }
+
+    public static Tuple<BigInteger, Optional<OCSPResponse>> searchResponseINMap(ReqCert req, Tuple<PrivateKey,
+            X509Certificate[]> keys) {
+        try {
+            BigInteger serial = null;
+            if (req.getType() == ReqCert.certID) {
+                CertID certID = (CertID) req.getReqCert();
+                serial = certID.getSerialNumber();
+            } else if (req.getType() == ReqCert.pKCert) {
+                X509Certificate cert = (X509Certificate) req.getReqCert();
+                serial = cert.getSerialNumber();
+            } else {
+                Logger.trace("Entry not found");
+                return new Tuple<>(BigInteger.valueOf(-1), Optional.empty());
+            }
+            if (serial != null) {
+                OCSPRespToStore respToStore = preparedResponses.get(serial);
+                OCSPResponse response = null;
+                if (respToStore != null) {
+                    response = transferToOCSPResponse(respToStore, keys);
+                }
+                if (response != null) {
+                    return new Tuple<>(serial, Optional.of(response));
+                } else {
+                    return new Tuple<>(serial, Optional.empty());
+                }
+            }
+            return new Tuple(serial, Optional.empty());
+        } catch (Exception ex) {
+            Logger.trace("Error during conversion: " + ex.getMessage() + " type " + ex.getClass().getCanonicalName());
+            throw new IllegalStateException("cannot convert to OCSPResponse", ex);
+        }
+
+    }
+
+    public static OCSPResponse transferToOCSPResponse(OCSPRespToStore source,
+    Tuple<PrivateKey,
+            X509Certificate[]> keys) throws Exception {
+        BasicOCSPResponse basicResp = new BasicOCSPResponse();
+        X509Certificate certificate = new X509Certificate(source.getCertEncoded());
+        CertID id = new CertID(AlgorithmID.sha256,
+                (Name) certificate.getIssuerDN(),
+                certificate.getPublicKey(),
+                certificate.getSerialNumber());
+        ReqCert reqCert = new ReqCert(ReqCert.certID, id);
+
+        CertStatus status = null;
+        if (source.getStatus().equals(RespStatus.GOOD)) {
+            status = new CertStatus();
+        } else if (source.getStatus().equals(RespStatus.REVOKED)) {
+            status = new CertStatus(new RevokedInfo(new Date()));
+        } else {
+            status = new CertStatus(new UnknownInfo());
+        }
+        SingleResponse single = new SingleResponse(reqCert, status, new Date());
+        SingleResponse[] responses = new SingleResponse[1];
+        responses[0] = single;
+        basicResp.setSingleResponses(responses);
+        ResponderID responderID = new ResponderID(certificate.getPublicKey());
+        basicResp.setResponderID(responderID);
+        basicResp.setProducedAt(new Date());
+        OCSPResponse response = new OCSPResponse(basicResp);
+        basicResp.sign(AlgorithmID.sha256WithRSAEncryption, keys.getFirst());
+
+        return response;
+    }
+    public static enum RespStatus implements Serializable {
+        GOOD(0),
+        REVOKED(1),
+        UNKNOWN(2);
+
+        final int status;
+
+        RespStatus(int status) {
+            this.status = status;
+        }
+
+        public static RespStatus getByStatus(int stat) {
+            for (RespStatus status:RespStatus.values()) {
+                if (status.status == stat) {
+                    return status;
+                }
+            }
+            return RespStatus.GOOD;
+        }
+    }
+
+    public static class OCSPRespToStore implements Serializable {
+        private RespStatus status;
+        private int respCode = 0;
+        private BigInteger serial;
+        private byte[] certEncoded;
+        public OCSPRespToStore(OCSPResponse response, BigInteger serial) throws Exception {
+            BasicOCSPResponse basicResp = new BasicOCSPResponse(response.getResponse().getEncoded());
+            SingleResponse singleResponse = basicResp.getSingleResponses()[0];
+            int status = singleResponse.getCertStatus().getCertStatus();
+            certEncoded = basicResp.getCertificates()[0].getEncoded();
+            this.status = RespStatus.getByStatus(status);
+            respCode = response.getResponseStatus();
+            this.serial = serial;
+        }
+
+        public RespStatus getStatus() {
+            return status;
+        }
+
+        public int getRespCode() {
+            return respCode;
+        }
+
+        public BigInteger getSerial() {
+            return serial;
+        }
+
+        public byte[] getCertEncoded() {
+            return certEncoded;
+        }
     }
 }
