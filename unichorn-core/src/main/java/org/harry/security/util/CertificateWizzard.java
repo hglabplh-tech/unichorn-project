@@ -477,7 +477,7 @@ public class CertificateWizzard {
 
     /**
      * Create a attribute certificate
-     * @param issuerthe issuer certificate
+     * @param issuer the issuer certificate
      * @param user the user certificate
      * @param issuerPK the user private key
      * @param attrBean the bean holding the values for generation
