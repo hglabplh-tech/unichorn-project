@@ -46,8 +46,8 @@ public class VerifyPDFUtil {
     /**
      * Verifies all signatures in the given PDF.
      *
-     * @param path
-     *          path to the PDF file, that shall be verified.
+     * @param in
+     *          input stream PDF file, that shall be verified.
      * @return true, if signatures are valid, throws an exception otherwise
      * @throws Exception
      *           if signatures are not valid or in case of errors during validation
@@ -116,16 +116,9 @@ public class VerifyPDFUtil {
      *
      * @param fileToBeVerified
      *          the signed or certified PDF document.
-     * @throws IOException
+     * @throws Exception
      *           if the signed document can't be read
-     * @throws PdfSignatureException
-     *           if errors during verification occur
-     * @throws CmsCadesException
-     *           if the signature is invalid or certificates are revoked or missing
-     * @throws TspVerificationException
-     *           if timestamp is invalid
-     * @throws CertificateException
-     *           if certificate already expired
+
      */
     public void verifySignedPdf(InputStream fileToBeVerified)
             throws Exception {
