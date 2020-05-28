@@ -155,7 +155,7 @@ public class HttpsChecker {
 
                         response = HttpOCSPClient.sendOCSPRequest(ocspUrl, bean.getFirst(),
                                 certs, certList.toArray(new X509Certificate[0]),
-                                true, ReqCert.certID);
+                                true, ReqCert.certID, true);
 
                     int oldStatus = responseStatus;
                     responseStatus = HttpOCSPClient.getClient().parseOCSPResponse(response, true);

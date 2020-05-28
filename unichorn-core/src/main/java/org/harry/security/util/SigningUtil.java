@@ -167,7 +167,7 @@ public class SigningUtil {
             }
             Logger.trace("Get OCSP values from URL: " + url);
             OCSPResponse response = HttpOCSPClient.sendOCSPRequest(url, null, null,
-                    cert, false, ReqCert.certID);
+                    cert, false, ReqCert.certID, false);
             OCSPResponse [] responses = new OCSPResponse[1];
             responses[0] = response;
             parameters.addArchiveDetails(cert, null, responses);

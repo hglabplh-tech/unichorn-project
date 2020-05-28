@@ -302,14 +302,9 @@ public class OCSPClient {
 
             // look if we got an answer for our request:
             SingleResponse singleResponse = null;
-            try {
-                singleResponse = basicOCSPResponse.getSingleResponse(this.reqCert);
-            } catch (OCSPException ex) {
-                System.out.println(ex.getMessage());
-                System.out.println("Try again...");
-                singleResponse = basicOCSPResponse.getSingleResponse(this.targetCerts[0],
-                        this.targetCerts[1], null);
-            }
+
+            singleResponse = basicOCSPResponse.getSingleResponses()[0];
+
 
             if (singleResponse != null) {
                 System.out.println("Status information got for cert: ");
@@ -385,6 +380,9 @@ public class OCSPClient {
         }
     }
 
+    /**
+     * Class representing a version of the status code
+     */
     public static enum CertStatusEnum {
         GOOD(0, "good"),
         REVOKED(1,"revoked"),

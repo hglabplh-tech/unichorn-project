@@ -125,10 +125,10 @@ public class AlgorithmPathChecker {
             OCSPResponse response = null;
             if (reqIsSigned == true && ocspUrl != null) {
                 response = HttpOCSPClient.sendOCSPRequest(ocspUrl, bean.getFirst(),
-                        certs, chain, false, ReqCert.certID);
+                        certs, chain, false, ReqCert.certID, false);
             } else if (ocspUrl != null){
                 response = HttpOCSPClient.sendOCSPRequest(ocspUrl, null,
-                        null, chain,false, ReqCert.certID);
+                        null, chain,false, ReqCert.certID, false);
             }
 
             if (response != null) {

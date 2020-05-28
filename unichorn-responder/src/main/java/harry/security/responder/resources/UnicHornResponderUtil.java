@@ -1020,6 +1020,11 @@ public class UnicHornResponderUtil {
         return result;
     }
 
+    /**
+     * Read the responses hash-table if available
+     * @throws IOException error case
+     * @throws ClassNotFoundException error case
+     */
     public static void initStorePreparedResponses() throws IOException, ClassNotFoundException {
         try {
             File hashMapFile = new File(APP_DIR_WORKING, "responses.ser");
@@ -1036,6 +1041,10 @@ public class UnicHornResponderUtil {
         }
     }
 
+    /**
+     * write the responses hash-table to disk
+     * @throws IOException error case
+     */
     public static void writePreparedResponses() throws IOException {
         try {
             File hashMapFile = new File(APP_DIR_WORKING, "responses.ser");
@@ -1049,6 +1058,12 @@ public class UnicHornResponderUtil {
         }
     }
 
+    /**
+     * Search response in hash-table
+     * @param req the cert-req of the actual request used to get the serial
+     * @param keys the information for response signing
+     * @return a tuple of the serial and th optional of the response
+     */
     public static Tuple<BigInteger, Optional<OCSPResponse>> searchResponseINMap(ReqCert req, Tuple<PrivateKey,
             X509Certificate[]> keys) {
         try {
@@ -1083,6 +1098,16 @@ public class UnicHornResponderUtil {
 
     }
 
+    /**
+     * Method to restore a OCSPResponse object from its serializable version
+     * @param source the storable response
+     * @param keys the information for signing
+     * @return the native response object
+     * @throws Exception error case
+     */
+
+
+
     public static OCSPResponse transferToOCSPResponse(OCSPRespToStore source,
     Tuple<PrivateKey,
             X509Certificate[]> keys) throws Exception {
@@ -1103,17 +1128,36 @@ public class UnicHornResponderUtil {
             status = new CertStatus(new UnknownInfo());
         }
         SingleResponse single = new SingleResponse(reqCert, status, new Date());
+        Calendar cal = Calendar.getInstance();
+        cal.add(Calendar.YEAR, 1);
+        Date date = new Date();
+        date.setTime(cal.getTimeInMillis());
+        single.setArchiveCutoff(date);
         SingleResponse[] responses = new SingleResponse[1];
         responses[0] = single;
         basicResp.setSingleResponses(responses);
         ResponderID responderID = new ResponderID(certificate.getPublicKey());
         basicResp.setResponderID(responderID);
         basicResp.setProducedAt(new Date());
+        X509Certificate[] certs = new X509Certificate[0];
+        if (source.getSignerCertEncoded() != null) {
+            certs = new X509Certificate[2];
+            certs[0] = new X509Certificate(source.getSignerCertEncoded());
+            certs[1] = certificate;
+        } else {
+            certs = new X509Certificate[1];
+            certs[0] = certificate;
+        }
+        basicResp.setCertificates(certs);
         OCSPResponse response = new OCSPResponse(basicResp);
         basicResp.sign(AlgorithmID.sha256WithRSAEncryption, keys.getFirst());
 
         return response;
     }
+
+    /**
+     * Class representing the response - status
+     */
     public static enum RespStatus implements Serializable {
         GOOD(0),
         REVOKED(1),
@@ -1135,19 +1179,33 @@ public class UnicHornResponderUtil {
         }
     }
 
+    /**
+     * Class representing a serializable version of a O'CSPResponse object
+     */
     public static class OCSPRespToStore implements Serializable {
         private RespStatus status;
         private int respCode = 0;
         private BigInteger serial;
         private byte[] certEncoded;
+        private byte[] signerCertEncoded;
         public OCSPRespToStore(OCSPResponse response, BigInteger serial) throws Exception {
-            BasicOCSPResponse basicResp = new BasicOCSPResponse(response.getResponse().getEncoded());
-            SingleResponse singleResponse = basicResp.getSingleResponses()[0];
-            int status = singleResponse.getCertStatus().getCertStatus();
-            certEncoded = basicResp.getCertificates()[0].getEncoded();
-            this.status = RespStatus.getByStatus(status);
-            respCode = response.getResponseStatus();
-            this.serial = serial;
+            try {
+                BasicOCSPResponse basicResp = new BasicOCSPResponse(response.getResponse().getEncoded());
+                SingleResponse singleResponse = basicResp.getSingleResponses()[0];
+                int status = singleResponse.getCertStatus().getCertStatus();
+                certEncoded = basicResp.getCertificates()[0].getEncoded();
+                this.status = RespStatus.getByStatus(status);
+                respCode = response.getResponseStatus();
+                if (basicResp.getCertificates() != null && basicResp.getCertificates().length >= 1) {
+                    signerCertEncoded = basicResp.getCertificates()[0].getEncoded();
+                }
+                this.serial = serial;
+            } catch(Exception ex) {
+                Logger.trace("Construction of serializable failed"
+                        + ex.getMessage() + " type "
+                        + ex.getClass().getCanonicalName());
+                throw new IllegalStateException("Construction of serializable failed", ex);
+            }
         }
 
         public RespStatus getStatus() {
@@ -1164,6 +1222,10 @@ public class UnicHornResponderUtil {
 
         public byte[] getCertEncoded() {
             return certEncoded;
+        }
+
+        public byte[] getSignerCertEncoded() {
+            return signerCertEncoded;
         }
     }
 }

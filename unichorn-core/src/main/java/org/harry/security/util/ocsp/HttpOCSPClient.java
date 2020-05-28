@@ -59,11 +59,14 @@ public class HttpOCSPClient {
             PrivateKey requestorKey,
                                         X509Certificate[] requestorCerts,
                                         X509Certificate[] targetCerts,
-                                        boolean includeExtensions, int type) {
+                                        boolean includeExtensions, int type, boolean isAltRespRequested) {
 
         client = new OCSPClient();
         try {
-            String altResponder = getOCSPUrl(targetCerts[0]);
+            String altResponder= null;
+            if (isAltRespRequested) {
+             altResponder = getOCSPUrl(targetCerts[0]);
+            }
             OCSPRequest request = client.createOCSPRequest(requestorKey, requestorCerts,
                     targetCerts, includeExtensions, type, altResponder);
             OCSPResponse response;
