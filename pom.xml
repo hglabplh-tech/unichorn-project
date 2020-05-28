@@ -49,8 +49,8 @@
 
       <dependency>
         <groupId>iaik</groupId>
-        <artifactId>iaik-pades-ima-license</artifactId>
-        <version>2.3-fix</version>
+        <artifactId>iaik-cpades-eval</artifactId>
+        <version>2.4</version>
         <scope>provided</scope>
       </dependency>
 
@@ -114,7 +114,7 @@
       <dependency>
         <groupId>com.itextpdf</groupId>
         <artifactId>itextpdf</artifactId>
-        <version>5.5.13.1</version>
+        <version>5.5.13</version>
       </dependency>
       <!-- https://mvnrepository.com/artifact/com.itextpdf/io -->
       <dependency>
@@ -126,6 +126,12 @@
       <dependency>
         <groupId>com.itextpdf</groupId>
         <artifactId>layout</artifactId>
+        <version>7.0.0</version>
+      </dependency>
+      <!-- https://mvnrepository.com/artifact/com.itextpdf/sign -->
+      <dependency>
+        <groupId>com.itextpdf</groupId>
+        <artifactId>sign</artifactId>
         <version>7.0.0</version>
       </dependency>
       <dependency>

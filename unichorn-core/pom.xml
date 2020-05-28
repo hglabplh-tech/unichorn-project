@@ -37,7 +37,7 @@
 
         <dependency>
             <groupId>iaik</groupId>
-            <artifactId>iaik-pades-ima-license</artifactId>
+            <artifactId>iaik-cpades-eval</artifactId>
         </dependency>
 
         <dependency>
@@ -83,6 +83,11 @@
         <dependency>
             <groupId>com.itextpdf</groupId>
             <artifactId>layout</artifactId>
+        </dependency>
+        <!-- https://mvnrepository.com/artifact/com.itextpdf/sign -->
+        <dependency>
+            <groupId>com.itextpdf</groupId>
+            <artifactId>sign</artifactId>
         </dependency>
         <!-- https://mvnrepository.com/artifact/org.bouncycastle/bcprov-jdk15on -->
         <dependency>
