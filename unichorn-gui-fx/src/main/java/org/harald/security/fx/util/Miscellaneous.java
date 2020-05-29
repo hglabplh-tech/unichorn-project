@@ -3,6 +3,7 @@ package org.harald.security.fx.util;
 import javafx.event.ActionEvent;
 import javafx.scene.Node;
 import javafx.scene.control.*;
+import javafx.scene.web.WebView;
 import javafx.stage.FileChooser;
 import javafx.stage.Window;
 import org.harald.security.fx.SecHarry;
@@ -38,6 +39,11 @@ public class Miscellaneous {
 
     public static TextArea getTextAreaByFXID(String fxId)  {
         TextArea choice = (TextArea) SecHarry.fxmlLoader.getNamespace().get(fxId);
+        return choice;
+    }
+
+    public static WebView getWebViewByFXID(String fxId)  {
+        WebView choice = (WebView) SecHarry.fxmlLoader.getNamespace().get(fxId);
         return choice;
     }
 

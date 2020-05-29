@@ -69,6 +69,16 @@
             <groupId>iaik</groupId>
             <artifactId>iaik-xades-ima-license</artifactId>
         </dependency>
+
+        <dependency>
+            <groupId>iaik</groupId>
+            <artifactId>iaik-ssl-eval</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>iaik</groupId>
+            <artifactId>iaik-w3c-http</artifactId>
+        </dependency>
         <!-- https://mvnrepository.com/artifact/com.itextpdf/itextpdf -->
         <dependency>
             <groupId>com.itextpdf</groupId>

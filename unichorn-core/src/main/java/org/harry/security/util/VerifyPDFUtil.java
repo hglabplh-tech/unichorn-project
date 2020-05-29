@@ -5,11 +5,17 @@ import com.itextpdf.text.pdf.PdfName;
 import com.itextpdf.text.pdf.PdfReader;
 import com.itextpdf.text.pdf.security.CertificateVerification;
 import com.itextpdf.text.pdf.security.PdfPKCS7;
+import iaik.asn1.structures.AlgorithmID;
+import iaik.asn1.structures.PolicyInformation;
+import iaik.asn1.structures.PolicyQualifierInfo;
+import iaik.cms.SignerInfo;
+import iaik.pdf.cmscades.CadesSignature;
 import iaik.pdf.itext.PdfSignatureInstanceItext;
 import iaik.pdf.signature.ApprovalSignature;
 import iaik.pdf.signature.DocumentTimestamp;
 import iaik.pdf.signature.PdfSignatureDetails;
 import iaik.pdf.signature.PdfSignatureInstance;
+import iaik.smime.ess.SigningCertificate;
 import iaik.x509.X509Certificate;
 import iaik.x509.ocsp.OCSPResponse;
 import iaik.x509.ocsp.ReqCert;
@@ -43,73 +49,6 @@ public class VerifyPDFUtil {
         this.bean = bean;
         this.algPathChecker = new AlgorithmPathChecker(walkers, bean);
     }
-    /**
-     * Verifies all signatures in the given PDF.
-     *
-     * @param in
-     *          input stream PDF file, that shall be verified.
-     * @return true, if signatures are valid, throws an exception otherwise
-     * @throws Exception
-     *           if signatures are not valid or in case of errors during validation
-     */
-    public VerifyUtil.SignerInfoCheckResults verifyPdf(InputStream in) throws Exception {
-        VerifyUtil.SignerInfoCheckResults results = new VerifyUtil.SignerInfoCheckResults();
-        PdfReader reader = new PdfReader(in);
-        AcroFields af = reader.getAcroFields();
-        ArrayList<?> names = af.getSignatureNames();
-        ArrayList<String> invalidSignatures = new ArrayList<String>();
-
-        for (int k = 0; k < names.size(); ++k) {
-            String name = (String) names.get(k);
-            PdfPKCS7 pk = af.verifySignature(name);
-            if (!pk.verify()) {
-
-                invalidSignatures.add(name);
-                continue;
-            }
-
-            Calendar cal = pk.getSignDate();
-            Certificate[] pkc = pk.getCertificates();
-            X509Certificate cert = new X509Certificate(pkc[0].getEncoded());
-            String fails = CertificateVerification.verifyCertificate(cert,
-                    pk.getCRLs(), cal);
-            if (fails != null) {
-                System.out.println("fails: " + fails);
-                invalidSignatures.add(name);
-                continue;
-            }
-            if (!pk.isRevocationValid()) {
-                invalidSignatures.add(name);
-            }
-            algPathChecker.detectChain(cert, results);
-            PdfName subfilter = pk.getFilterSubtype();
-            if (subfilter.equals(PdfName.ADBE_PKCS7_DETACHED)) {
-                results.addSignatureResult("subfilter type",
-                        new Tuple<>("basic signature type pkcs7.detached", VerifyUtil.Outcome.SUCCESS));
-            }
-            //algPathChecker.checkSignatureAlgorithm();
-
-        }
-
-        if (invalidSignatures.size() > 0) {
-            String separator = "";
-            StringBuffer namesString = new StringBuffer();
-            for (String signatureName : invalidSignatures) {
-                namesString.append(separator);
-                namesString.append(signatureName);
-                separator = ", ";
-            }
-            if (invalidSignatures.size() > 1) {
-                throw new GeneralSecurityException(
-                        "the signatures " + namesString.toString() + " are invalid!");
-            } else {
-                throw new GeneralSecurityException(
-                        "the signature " + namesString.toString() + " is invalid!");
-            }
-        }
-        return results;
-
-    }
 
     /**
      * Verify given signed PDF document.
@@ -122,6 +61,7 @@ public class VerifyPDFUtil {
      */
     public void verifySignedPdf(InputStream fileToBeVerified)
             throws Exception {
+        VerifyUtil.SignerInfoCheckResults results = new VerifyUtil.SignerInfoCheckResults();
         PdfSignatureInstance signatureInstance = new PdfSignatureInstanceItext();
         // initialize engine with path of signed pdf (to be verified)
         signatureInstance.initVerify(fileToBeVerified, null);
@@ -153,6 +93,8 @@ public class VerifyPDFUtil {
                 X509Certificate certificate = sigApp.getSignerCertificate();
                 Calendar signatureDate = sigApp.getSigningTime();
                 certificate.checkValidity(signatureDate.getTime());
+                checkSignerInfo(sigApp, results);
+                algPathChecker.detectChain(certificate, results);
                 System.out.println("certificate valid at signing time.");
                 if (sigApp.getSignatureTimeStampToken() != null) {
                     sigApp.verifySignatureTimestampImprint();
@@ -163,8 +105,31 @@ public class VerifyPDFUtil {
                 System.out.println("signature " + sig.getName() + " has been modified.");
             }
         }
+    }
+
+    public void checkSignerInfo(ApprovalSignature sigApp, VerifyUtil.SignerInfoCheckResults results) throws Exception {
+        CadesSignature signature = sigApp.getCMSSignature();
+        SignerInfo[] infos = signature.getSignerInfos();
+        sigApp.isWholeDocumentCoveredByByteRange();
+        X509Certificate signer = sigApp.getSignerCertificate();
+        for (SignerInfo info:infos) {
+            SigningCertificate certificate = info.getSigningCertificateAttribute();
+            PolicyInformation[] policyInformations = certificate.getPolicies();
+            for (PolicyInformation policyInfo: policyInformations) {
+                PolicyQualifierInfo[] qualifiers = policyInfo.getPolicyQualifiers();
+                for (PolicyQualifierInfo qualifierInfo: qualifiers) {
+                    results.addSignatureResult("qualifierInfo",
+                            new Tuple<>(qualifierInfo.toString(), VerifyUtil.Outcome.SUCCESS));
+                }
+            }
+            AlgorithmID signatureAlg = info.getSignatureAlgorithm();
+            algPathChecker.checkSignatureAlgorithm(signatureAlg, signer.getPublicKey(), results);
+            AlgorithmID digestAlg = info.getDigestAlgorithm();
+
+        }
 
     }
+
 
 
 

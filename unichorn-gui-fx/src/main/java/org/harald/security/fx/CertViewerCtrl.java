@@ -151,6 +151,11 @@ public class CertViewerCtrl implements ControllerInit {
     }
 
     @FXML
+    public void checker(ActionEvent event) throws IOException {
+        SecHarry.setRoot("certChecker", SecHarry.CSS.UNICHORN);
+    }
+
+    @FXML
     private void checkTrust(ActionEvent event) throws IOException {
         TextField url = Miscellaneous.getTextFieldByFXID("httpURL");
         ObservableList styleList = url.getStyleClass();

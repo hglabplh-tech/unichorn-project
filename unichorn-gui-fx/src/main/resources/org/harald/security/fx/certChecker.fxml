@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.web.*?>
+<?import javafx.scene.*?>
+<?import javafx.scene.control.*?>
+<?import java.lang.*?>
+<?import javafx.scene.layout.*?>
+
+<VBox xmlns:fx="http://javafx.com/fxml/1" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="440.0" prefWidth="840.0" styleClass="content-section" stylesheets="@unichorn.css" xmlns="http://javafx.com/javafx/8" fx:controller="org.harald.security.fx.CertCheckerCtrl">
+   <children>
+    <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="0.0" prefWidth="640.0" />
+      <GridPane prefHeight="356.0" prefWidth="742.0">
+        <columnConstraints>
+            <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0" />
+            <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0" />
+          <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0" />
+          <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0" />
+            <ColumnConstraints hgrow="SOMETIMES" maxWidth="105.0" minWidth="10.0" prefWidth="105.0" />
+            <ColumnConstraints hgrow="SOMETIMES" maxWidth="180.0" minWidth="10.0" prefWidth="121.0" />
+            <ColumnConstraints hgrow="SOMETIMES" maxWidth="142.0" minWidth="10.0" prefWidth="24.0" />
+        </columnConstraints>
+        <rowConstraints>
+          <RowConstraints maxHeight="64.0" minHeight="1.0" prefHeight="1.0" vgrow="SOMETIMES" />
+          <RowConstraints maxHeight="101.0" minHeight="10.0" prefHeight="61.0" vgrow="SOMETIMES" />
+          <RowConstraints maxHeight="111.0" minHeight="0.0" prefHeight="22.0" vgrow="SOMETIMES" />
+            <RowConstraints maxHeight="111.0" minHeight="0.0" prefHeight="22.0" vgrow="SOMETIMES" />
+            <RowConstraints maxHeight="111.0" minHeight="2.0" prefHeight="62.0" vgrow="SOMETIMES" />
+            <RowConstraints maxHeight="111.0" minHeight="0.0" prefHeight="0.0" vgrow="SOMETIMES" />
+            <RowConstraints maxHeight="152.0" minHeight="4.0" prefHeight="152.0" vgrow="SOMETIMES" />
+            <RowConstraints maxHeight="239.0" minHeight="0.0" prefHeight="0.0" vgrow="SOMETIMES" />
+            <RowConstraints fillHeight="false" maxHeight="126.0" minHeight="0.0" prefHeight="0.0" vgrow="SOMETIMES" />
+            <RowConstraints fillHeight="false" maxHeight="126.0" minHeight="0.0" prefHeight="0.0" vgrow="SOMETIMES" />
+        </rowConstraints>
+         <children>
+            <Button fx:id="goBack" mnemonicParsing="false" onAction="#goBack" text="Go Back" GridPane.columnIndex="5" GridPane.columnSpan="2" GridPane.rowIndex="6" />
+            <Button fx:id="checkTrust" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#checkTrust" prefHeight="25.0" prefWidth="106.0" text="Check URL Trust" GridPane.columnIndex="5" GridPane.rowIndex="5" />
+            <TextField fx:id="httpURL" GridPane.columnIndex="5" GridPane.rowIndex="2" />
+            <Label text="Host:" GridPane.columnIndex="4" GridPane.rowIndex="2" />
+            <CheckBox fx:id="ocspCheck" mnemonicParsing="false" text="Do OCSP Check" GridPane.columnIndex="5" GridPane.rowIndex="1" />
+            <CheckBox fx:id="altResp" mnemonicParsing="false" text="Alternative Responder" GridPane.columnIndex="4" GridPane.rowIndex="1" />
+            <Label text="Port:" GridPane.columnIndex="4" GridPane.rowIndex="4" />
+            <TextField fx:id="port" GridPane.columnIndex="5" GridPane.rowIndex="4" />
+            <TextArea fx:id="report" prefHeight="200.0" prefWidth="200.0" GridPane.columnSpan="4" GridPane.rowIndex="1" GridPane.rowSpan="4" />
+            <ListView fx:id="certList" prefHeight="200.0" prefWidth="200.0" GridPane.columnIndex="2" GridPane.columnSpan="2" GridPane.rowIndex="6" />
+            <TextArea fx:id="certArea" prefHeight="200.0" prefWidth="200.0" GridPane.columnSpan="2" GridPane.rowIndex="6" />
+         </children>
+      </GridPane>
+   </children>
+</VBox>

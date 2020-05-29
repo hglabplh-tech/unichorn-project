@@ -161,6 +161,10 @@ public class AlgorithmPathChecker {
         }
     }
 
+    public void checkDigestAlgorithm(AlgorithmID sigAlg, VerifyUtil.SignerInfoCheckResults results) {
+
+    }
+
     public void checkRSAKeyAlg(RSAPublicKey pubKey, VerifyUtil.SignerInfoCheckResults results) {
         int lenght = pubKey.getModulus().bitLength();
         if (lenght >= 4096) {
