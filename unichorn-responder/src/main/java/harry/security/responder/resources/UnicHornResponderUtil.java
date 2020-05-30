@@ -576,6 +576,8 @@ public class UnicHornResponderUtil {
                         nonceExt = new Nonce();
                         nonceExt.setValue(nonce);
                         Logger.trace("Nonce is set to request");
+                    } else {
+                        Logger.trace("Nonce is NOT set to request");
                     }
                     ObjectID[] types = ocspRequest.getAccepatableResponseTypes();
                     if (types != null) {

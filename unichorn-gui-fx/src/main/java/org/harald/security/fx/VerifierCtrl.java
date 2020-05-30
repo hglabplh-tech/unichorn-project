@@ -9,6 +9,7 @@ import javafx.scene.control.*;
 import org.etsi.uri._02231.v2_.TrustStatusListType;
 import org.harry.security.util.ConfigReader;
 import org.harry.security.util.Tuple;
+import org.harry.security.util.VerifyPDFUtil;
 import org.harry.security.util.VerifyUtil;
 import org.harry.security.util.bean.SigningBean;
 import org.harry.security.util.certandkey.KeyStoreTool;
@@ -103,9 +104,40 @@ public class VerifierCtrl implements ControllerInit {
                         KeyStoreTool.storeKeyStore(store,new FileOutputStream(props.getKeystorePath()), "geheim".toCharArray());
                     }
                 }
-            } else {
-
+            } else if (type.equals(SigningBean.SigningType.CAdES)){
                 VerifyUtil.VerifierResult result  = util.verifyCadesSignature(signatureIN, dataIN);
+                List<VerifyUtil.SignerInfoCheckResults> set = result.getSignersCheck();
+                List<ResultEntry> entryList = new ArrayList<>();
+                for (VerifyUtil.SignerInfoCheckResults entry : set) {
+                    X509Certificate[] signerChain = entry.getSignerChain();
+                    Map<String, Tuple<String, VerifyUtil.Outcome>> sigResult = entry.getSignatureResult();
+                    Map<String, Tuple<String, VerifyUtil.Outcome>> ocspResult = entry.getOcspResult();
+                    for (Map.Entry<String, Tuple<String, VerifyUtil.Outcome>> sigEntry : sigResult.entrySet()) {
+                        ResultEntry propEntry = new ResultEntry(sigEntry.getKey(), sigEntry.getValue().getFirst(),
+                                sigEntry.getValue().getSecond().name());
+                        entryList.add(propEntry);
+                    }
+
+                    for (Map.Entry<String, Tuple<String, VerifyUtil.Outcome>> ocspEntry : ocspResult.entrySet()) {
+                        ResultEntry propEntry = new ResultEntry(ocspEntry.getKey(), ocspEntry.getValue().getFirst(),
+                                ocspEntry.getValue().getSecond().name());
+                        entryList.add(propEntry);
+                    }
+                    ObservableList<ResultEntry> data = verifyResults.getItems();
+                    entry.getSignersChain();
+                    data.clear();
+                    verifyResults.setVisible(false);
+                    data.addAll(entryList);
+                    if (signerChain != null && signerChain.length == 3) {
+                        KeyStore store = KeyStoreTool.initStore("PKCS12", "geheim");
+                        KeyStoreTool.addCertificateChain(store, signerChain);
+                        ConfigReader.MainProperties props = ConfigReader.loadStore();
+                        KeyStoreTool.storeKeyStore(store,new FileOutputStream(props.getKeystorePath()), "geheim".toCharArray());
+                    }
+                }
+            } else if (type.equals(SigningBean.SigningType.PAdES)) {
+                VerifyPDFUtil pdfUtil = new VerifyPDFUtil(bean.getWalker(), bean);
+                VerifyUtil.VerifierResult result  = pdfUtil.verifySignedPdf(signatureIN);
                 List<VerifyUtil.SignerInfoCheckResults> set = result.getSignersCheck();
                 List<ResultEntry> entryList = new ArrayList<>();
                 for (VerifyUtil.SignerInfoCheckResults entry : set) {
