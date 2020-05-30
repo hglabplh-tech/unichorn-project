@@ -49,6 +49,7 @@ public class VerifyPDFUtilTest extends TestBase {
                 .setDataIN(input);
         List<TrustListManager> walkers = ConfigReader.loadAllTrusts();
         VerifyPDFUtil vutil = new VerifyPDFUtil(walkers, bean);
+
         vutil.verifySignedPdf(input);
     }
 

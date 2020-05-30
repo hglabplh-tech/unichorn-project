@@ -116,26 +116,13 @@ public class SigningResponder extends HttpServlet {
            docSigning(servletRequest, servletResponse, jInput);
        } else if (jInput.parmType.equals("certSign")) {
            certSigning(servletRequest, servletResponse, jInput);
-       } else if (jInput.parmType.equals("saveProps")) {
-           saveAppProperties(servletRequest, servletResponse, jInput);
-       } else if(jInput.parmType.equals("initKeys")) {
-           File keystore = new File(APP_DIR, PROP_STORE_NAME);
-           File keystoreEC = new File(APP_DIR, PROP_STORE_NAME + "_EC");
-           File trustFile = new File(APP_DIR_TRUST, PROP_TRUST_NAME);
-           keystore.delete();
-           keystoreEC.delete();
-           trustFile.delete();
-           CertificateWizzard.initThis();
-       } else if(jInput.parmType.equals("setSigningStore")) {
-           saveSignKeyStore(servletRequest, servletResponse, jInput);
-        } else if(jInput.parmType.equals("resignCRL")) {
-           resignCRL(servletResponse);
        }
-        } catch (Exception ex) {
-            servletResponse.setStatus(Response.Status.INTERNAL_SERVER_ERROR.getStatusCode());
-            Logger.trace("Error Message is:" + ex.getMessage());
-           Logger.trace(ex);
-        }
+
+   } catch (Exception ex) {
+       servletResponse.setStatus(Response.Status.INTERNAL_SERVER_ERROR.getStatusCode());
+       Logger.trace("Error Message is:" + ex.getMessage());
+       Logger.trace(ex);
+   }
 
 
 
@@ -195,9 +182,11 @@ public class SigningResponder extends HttpServlet {
                 ByteArrayInputStream input = new ByteArrayInputStream(token.getBytes());
                 IOUtils.copy(input, servletResponse.getOutputStream());
                 servletResponse.setStatus(Response.Status.CREATED.getStatusCode());
+                Logger.trace("Written Token file Signing");
             } else{
                 IOUtils.copy(new FileInputStream(tokFile),servletResponse.getOutputStream());
                 servletResponse.setStatus(Response.Status.CREATED.getStatusCode());
+                Logger.trace("Read Token file Signing");
             }
         }
     }
@@ -501,50 +490,6 @@ public class SigningResponder extends HttpServlet {
         } catch (Exception ex) {
             Logger.trace("error during document signing " + ex.getMessage());
             Logger.trace(ex);
-        }
-    }
-
-
-    public static void saveAppProperties(HttpServletRequest servletRequest,
-                                         HttpServletResponse servletResponse, GSON.Params jInput) {
-       try {
-           Part part = servletRequest.getPart("data_to_sign");
-           FileOutputStream propFile = new FileOutputStream(new File(APP_DIR, PROP_FNAME));
-           IOUtils.copy(part.getInputStream(), propFile);
-           propFile.close();
-           servletResponse.setStatus(Response.Status.CREATED.getStatusCode());
-       } catch (Exception ex) {
-           Logger.trace("Application properties saving failed with" +ex.getMessage());
-           throw new IllegalStateException("properties file storing failed", ex);
-       }
-    }
-
-    public static void saveSignKeyStore(HttpServletRequest servletRequest,
-                                         HttpServletResponse servletResponse, GSON.Params jInput) {
-        try {
-            Part part = servletRequest.getPart("data_to_sign");
-            FileOutputStream keyFile = new FileOutputStream(new File(APP_DIR, PROP_SIGNSTORE));
-            IOUtils.copy(part.getInputStream(), keyFile);
-            keyFile.close();
-            servletResponse.setStatus(Response.Status.CREATED.getStatusCode());
-        } catch (Exception ex) {
-            Logger.trace("Application properties saving failed with" +ex.getMessage());
-            throw new IllegalStateException("properties file storing failed", ex);
-        }
-    }
-    public static void resignCRL(HttpServletResponse servletResponse) {
-        try {
-            InputStream crlIN = loadActualCRL();
-            X509CRL crl = readCrl(crlIN);
-            KeyStore store =
-                     KeyStoreTool.loadAppStore();
-            Tuple<PrivateKey, X509Certificate[]> keys = KeyStoreTool.getAppKeyEntry(store);
-            crl.setIssuerDN(keys.getSecond()[1].getSubjectDN());
-            crl.sign(keys.getFirst());
-            servletResponse.setStatus(Response.Status.OK.getStatusCode());
-        } catch (Exception ex) {
-            Logger.trace("Application properties saving failed with" +ex.getMessage());
-            throw new IllegalStateException("properties file storing failed", ex);
         }
     }
 

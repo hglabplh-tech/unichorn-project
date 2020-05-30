@@ -54,7 +54,7 @@ public class VerifierCtrl implements ControllerInit {
     }
 
     @FXML
-    public void verify(ActionEvent event) throws IOException {
+    public void verify(ActionEvent event) throws Exception {
         verifyResults.getSelectionModel().setCellSelectionEnabled(true);
         verifyResults.setEditable(false);
         verifyResults.getSelectionModel().getSelectedItem();

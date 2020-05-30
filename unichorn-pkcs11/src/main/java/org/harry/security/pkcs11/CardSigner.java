@@ -37,7 +37,12 @@ public class CardSigner {
     /**
      * The PKCS#11 JCE provider.
      */
-    protected IAIKPkcs11 pkcs11Provider_;
+    protected static IAIKPkcs11 pkcs11Provider_;
+
+    /**
+     * The PKCS#11 JCE provider.
+     */
+    protected static boolean initialized = false;
 
     /**
      * The IAIK JCE software provider.
@@ -79,13 +84,16 @@ public class CardSigner {
      */
     public CardSigner() {
 
-        // special care is required during the registration of the providers
-        Properties props= new Properties();
-        File wrapperDll = new File(APP_DIR_DLL, "pkcs11wrapper.dll");
-        File nativeDll = new File(APP_DIR_DLL, "P11TCOS3NetKey64.dll");
-        props.setProperty("PKCS11_NATIVE_MODULE", nativeDll.getAbsolutePath());
-        props.setProperty("PKCS11_WRAPPER_PATH", wrapperDll.getAbsolutePath());
-        pkcs11Provider_ = new IAIKPkcs11(props);
+        if (!initialized) {
+            // special care is required during the registration of the providers
+            Properties props = new Properties();
+            File wrapperDll = new File(APP_DIR_DLL, "pkcs11wrapper.dll");
+            File nativeDll = new File(APP_DIR_DLL, "P11TCOS3NetKey64.dll");
+            props.setProperty("PKCS11_NATIVE_MODULE", nativeDll.getAbsolutePath());
+            props.setProperty("PKCS11_WRAPPER_PATH", wrapperDll.getAbsolutePath());
+            pkcs11Provider_ = new IAIKPkcs11(props);
+            initialized = true;
+        }
         // IAIKPkcs11.insertProviderAtForJDK14(pkcs11Provider_, 1); // add IAIK PKCS#11 JCE provider as
         // first, use JDK 1.4 bug workaround
 

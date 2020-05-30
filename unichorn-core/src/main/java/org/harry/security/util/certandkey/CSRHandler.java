@@ -33,6 +33,7 @@ import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.util.Base64;
 
+import static org.harry.security.CommonConst.ADMIN_URL;
 import static org.harry.security.CommonConst.SIGNING_URL;
 import static org.harry.security.util.httpclient.ClientFactory.createSSLClient;
 
@@ -106,9 +107,8 @@ public class CSRHandler {
     }
 
     public static void setAppProperties(File propFile) throws Exception {
-        String password = getPassCode();
-        String token = getToken();
-        URL ocspUrl= new URL(SIGNING_URL);
+        String token = getTokenAdmin();
+        URL ocspUrl= new URL(ADMIN_URL);
         // create closable http client and assign the certificate interceptor
         CloseableHttpClient httpClient = createSSLClient();
         URIBuilder uriBuilder = new URIBuilder(ocspUrl.toURI());
@@ -133,9 +133,8 @@ public class CSRHandler {
     }
 
     public static void initAppKeystore() throws Exception {
-        String password = getPassCode();
-        String token = getToken();
-        URL ocspUrl= new URL(SIGNING_URL);
+        String token = getTokenAdmin();
+        URL ocspUrl= new URL(ADMIN_URL);
         // create closable http client and assign the certificate interceptor
         CloseableHttpClient httpClient = createSSLClient();
         URIBuilder uriBuilder = new URIBuilder(ocspUrl.toURI());
@@ -158,16 +157,17 @@ public class CSRHandler {
     }
 
     public static void resignCRL() throws Exception {
-        String password = getPassCode();
-        String token = getToken();
-        URL ocspUrl= new URL(SIGNING_URL);
+        String token = getTokenAdmin();
+        URL ocspUrl= new URL(ADMIN_URL);
         // create closable http client and assign the certificate interceptor
         CloseableHttpClient httpClient = createSSLClient();
-        System.out.println("Responder URL: " + ocspUrl.toString());
+        URIBuilder uriBuilder = new URIBuilder(ocspUrl.toURI());
+        uriBuilder.addParameter("token", token);
+        System.out.println("Responder URL: " + uriBuilder.build());
+        HttpPost post = new HttpPost(uriBuilder.build());
         GSON.Params param = new GSON.Params();
         param.parmType = "resignCRL";
         Gson gson = new Gson();
-        HttpPost post = new HttpPost(ocspUrl.toURI());
         String jsonString = gson.toJson(param);
         StringBody json = new StringBody(jsonString, ContentType.APPLICATION_JSON);
 
@@ -179,6 +179,31 @@ public class CSRHandler {
         post.setEntity(builder.build());
         CloseableHttpResponse response = httpClient.execute(post);
     }
+
+    public static void cleanupPreparedResp() throws Exception {
+        String token = getTokenAdmin();
+        URL ocspUrl= new URL(ADMIN_URL);
+        // create closable http client and assign the certificate interceptor
+        CloseableHttpClient httpClient = createSSLClient();
+        URIBuilder uriBuilder = new URIBuilder(ocspUrl.toURI());
+        uriBuilder.addParameter("token", token);
+        System.out.println("Responder URL: " + uriBuilder.build());
+        HttpPost post = new HttpPost(uriBuilder.build());
+        GSON.Params param = new GSON.Params();
+        param.parmType = "cleanupPreparedResp";
+        Gson gson = new Gson();
+        String jsonString = gson.toJson(param);
+        StringBody json = new StringBody(jsonString, ContentType.APPLICATION_JSON);
+
+
+        MultipartEntityBuilder builder = MultipartEntityBuilder.create()
+                .addPart("params",
+                        json);
+        System.err.println(jsonString);
+        post.setEntity(builder.build());
+        CloseableHttpResponse response = httpClient.execute(post);
+    }
+
 
 
 
@@ -225,7 +250,7 @@ public class CSRHandler {
     }
 
     public static String getPassCode() throws Exception {
-        URL ocspUrl= new URL("http://localhost:8080/unichorn-responder-1.0-SNAPSHOT/rest/signing");
+        URL ocspUrl= new URL(SIGNING_URL);
         // create closable http client and assign the certificate interceptor
         CloseableHttpClient httpClient = createSSLClient();
         URIBuilder builder = new URIBuilder(ocspUrl.toURI());
@@ -240,6 +265,23 @@ public class CSRHandler {
 
     public static String getToken() throws Exception {
         URL ocspUrl= new URL(SIGNING_URL);
+        // create closable http client and assign the certificate interceptor
+        CloseableHttpClient httpClient = createSSLClient();
+        URIBuilder builder = new URIBuilder(ocspUrl.toURI());
+        builder.addParameter("action", "token");
+        System.out.println("Responder URL: " + builder.build().toString());
+        HttpGet get = new HttpGet(builder.build());
+        byte [] encoded = Base64.getEncoder().encode("geheim".getBytes());
+        String encodeString = new String(encoded);
+        get.setHeader("passwd", encodeString);
+        CloseableHttpResponse response = httpClient.execute(get);
+        InputStream result = response.getEntity().getContent();
+        String text = IOUtils.toString(result, StandardCharsets.UTF_8.name());
+        return text;
+    }
+
+    public static String getTokenAdmin() throws Exception {
+        URL ocspUrl= new URL(ADMIN_URL);
         // create closable http client and assign the certificate interceptor
         CloseableHttpClient httpClient = createSSLClient();
         URIBuilder builder = new URIBuilder(ocspUrl.toURI());

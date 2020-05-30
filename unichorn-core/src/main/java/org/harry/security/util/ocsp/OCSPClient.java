@@ -47,9 +47,6 @@ public class OCSPClient {
      *          certs shall be included
      * @param targetCerts
      *          the certs for which status information shall be included
-     * @param includeExtensions
-     *          if extensions shall be included
-     *
      * @return the OCSPRequest created
      *
      * @exception OCSPException
@@ -58,7 +55,7 @@ public class OCSPClient {
     public OCSPRequest createOCSPRequest(PrivateKey requestorKey,
                                          X509Certificate[] requestorCerts,
                                          X509Certificate[] targetCerts,
-                                         boolean includeExtensions, int type,
+                                         int type,
                                          String altResponder)
             throws OCSPException
 
@@ -82,21 +79,21 @@ public class OCSPClient {
             // create a single request for the target cert identified by the reqCert
             Request request = new Request(reqCert);
 
-            if (includeExtensions) {
-                if (requestorCerts != null && altResponder != null) {
-                    // include service locator
-                    ObjectID accessMethod = ObjectID.caIssuers;
-                    GeneralName accessLocation = new GeneralName(
-                            GeneralName.uniformResourceIdentifier, altResponder);
-                    AccessDescription accessDescription = new AccessDescription(accessMethod,
-                            accessLocation);
-                    AuthorityInfoAccess locator = new AuthorityInfoAccess(accessDescription);
-                    ServiceLocator serviceLocator = new ServiceLocator(
-                            (Name) requestorCerts[0].getSubjectDN());
-                    serviceLocator.setLocator(locator);
-                    request.setServiceLocator(serviceLocator);
-                }
+
+            if (requestorCerts != null && altResponder != null) {
+                // include service locator
+                ObjectID accessMethod = ObjectID.caIssuers;
+                GeneralName accessLocation = new GeneralName(
+                        GeneralName.uniformResourceIdentifier, altResponder);
+                AccessDescription accessDescription = new AccessDescription(accessMethod,
+                        accessLocation);
+                AuthorityInfoAccess locator = new AuthorityInfoAccess(accessDescription);
+                ServiceLocator serviceLocator = new ServiceLocator(
+                        (Name) requestorCerts[0].getSubjectDN());
+                serviceLocator.setLocator(locator);
+                request.setServiceLocator(serviceLocator);
             }
+
 
             // create the OCSPRequest
             OCSPRequest ocspRequest = new OCSPRequest();
@@ -104,26 +101,25 @@ public class OCSPClient {
             // set the requestList
             ocspRequest.setRequestList(new Request[] { request });
 
-            if (includeExtensions) {
-                // we only accept basic OCSP responses
-                ocspRequest
-                        .setAcceptableResponseTypes(new ObjectID[] { BasicOCSPResponse.responseType });
+          // we only accept basic OCSP responses
+            ocspRequest
+                    .setAcceptableResponseTypes(new ObjectID[] { BasicOCSPResponse.responseType });
 
-                // set a nonce value
-                nonce = new byte[16];
-                SecureRandom random = new SecureRandom();
-                random.nextBytes(nonce);
-                ocspRequest.setAcceptableResponseTypes(new ObjectID[]{BasicOCSPResponse.responseType});
-                ocspRequest.setNonce(nonce);
-                PreferredSignatureAlgorithms.PreferredSignatureAlgorithm [] algorithms = new PreferredSignatureAlgorithms.PreferredSignatureAlgorithm[4];
-                algorithms[0] = new PreferredSignatureAlgorithms.PreferredSignatureAlgorithm(AlgorithmID.sha3_256WithRSAEncryption);
-                algorithms[1] = new PreferredSignatureAlgorithms.PreferredSignatureAlgorithm(AlgorithmID.sha3_512WithRSAEncryption);
-                algorithms[2] = new PreferredSignatureAlgorithms.PreferredSignatureAlgorithm(AlgorithmID.sha256WithRSAEncryption);
-                algorithms[3] = new PreferredSignatureAlgorithms.PreferredSignatureAlgorithm(AlgorithmID.sha512WithRSAEncryption);
-                PreferredSignatureAlgorithms algorithmsExt = new PreferredSignatureAlgorithms(algorithms);
-                ocspRequest.addExtension(algorithmsExt);
+            // set a nonce value
+            nonce = new byte[16];
+            SecureRandom random = new SecureRandom();
+            random.nextBytes(nonce);
+            ocspRequest.setAcceptableResponseTypes(new ObjectID[]{BasicOCSPResponse.responseType});
+            ocspRequest.setNonce(nonce);
+            PreferredSignatureAlgorithms.PreferredSignatureAlgorithm [] algorithms = new PreferredSignatureAlgorithms.PreferredSignatureAlgorithm[4];
+            algorithms[0] = new PreferredSignatureAlgorithms.PreferredSignatureAlgorithm(AlgorithmID.sha3_256WithRSAEncryption);
+            algorithms[1] = new PreferredSignatureAlgorithms.PreferredSignatureAlgorithm(AlgorithmID.sha3_512WithRSAEncryption);
+            algorithms[2] = new PreferredSignatureAlgorithms.PreferredSignatureAlgorithm(AlgorithmID.sha256WithRSAEncryption);
+            algorithms[3] = new PreferredSignatureAlgorithms.PreferredSignatureAlgorithm(AlgorithmID.sha512WithRSAEncryption);
+            PreferredSignatureAlgorithms algorithmsExt = new PreferredSignatureAlgorithms(algorithms);
+            ocspRequest.addExtension(algorithmsExt);
 
-            }
+
 
 
             if (requestorKey != null) {

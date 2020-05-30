@@ -18,6 +18,14 @@
     </servlet>
 
     <servlet>
+        <servlet-name>Admin REST Service</servlet-name>
+        <servlet-class>
+            harry.security.responder.resources.AdminResponder
+        </servlet-class>
+        <load-on-startup>1</load-on-startup>
+    </servlet>
+
+    <servlet>
         <servlet-name>Timestamp REST Service</servlet-name>
         <servlet-class>
             harry.security.responder.resources.TspHttpServerServlet
@@ -36,6 +44,10 @@
         <url-pattern>/rest/signing</url-pattern>
     </servlet-mapping>
     <servlet-mapping>
+        <servlet-name>Admin REST Service</servlet-name>
+        <url-pattern>/rest/admin</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
         <servlet-name>Timestamp REST Service</servlet-name>
         <url-pattern>/rest/tsp</url-pattern>
     </servlet-mapping>
@@ -52,6 +64,10 @@
     <security-constraint>
         <web-resource-collection>
             <web-resource-name>Signing REST Service</web-resource-name>
+            <url-pattern>/*</url-pattern>
+        </web-resource-collection>
+        <web-resource-collection>
+            <web-resource-name>Admin REST Service</web-resource-name>
             <url-pattern>/*</url-pattern>
         </web-resource-collection>
         <web-resource-collection>

@@ -14,7 +14,6 @@ import iaik.pdf.parameters.CadesLTAParameters;
 import iaik.pdf.parameters.CadesTParameters;
 import iaik.smime.ess.SigningCertificate;
 import iaik.x509.X509Certificate;
-import iaik.x509.extensions.SubjectKeyIdentifier;
 import iaik.x509.ocsp.OCSPResponse;
 import iaik.x509.ocsp.ReqCert;
 import org.apache.commons.io.IOUtils;
@@ -23,17 +22,13 @@ import org.harry.security.util.algoritms.SignatureAlg;
 import org.harry.security.util.bean.SigningBean;
 import org.harry.security.util.certandkey.CertWriterReader;
 import org.harry.security.util.ocsp.HttpOCSPClient;
-import org.harry.security.util.trustlist.TrustListManager;
 import org.pmw.tinylog.Logger;
-import sun.security.x509.SubjectKeyIdentifierExtension;
 
 import javax.activation.DataSource;
 import java.io.*;
 import java.security.*;
-import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.security.spec.InvalidParameterSpecException;
-import java.util.List;
 
 import static org.harry.security.CommonConst.OCSP_URL;
 
@@ -167,7 +162,7 @@ public class SigningUtil {
             }
             Logger.trace("Get OCSP values from URL: " + url);
             OCSPResponse response = HttpOCSPClient.sendOCSPRequest(url, null, null,
-                    cert, false, ReqCert.certID, false);
+                    cert, ReqCert.certID, false);
             OCSPResponse [] responses = new OCSPResponse[1];
             responses[0] = response;
             parameters.addArchiveDetails(cert, null, responses);

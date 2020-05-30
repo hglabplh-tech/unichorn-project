@@ -5,10 +5,8 @@ import iaik.asn1.structures.AlgorithmID;
 import iaik.asn1.structures.Name;
 import iaik.asn1.structures.RDN;
 import iaik.cms.CMSAlgorithmID;
-import iaik.security.dsa.DSA;
 import iaik.security.dsa.DSAPublicKey;
 import iaik.security.ec.common.AbstractECPublicKey;
-import iaik.security.rsa.RSAPssPublicKey;
 import iaik.security.rsa.RSAPublicKey;
 import iaik.x509.X509Certificate;
 import iaik.x509.ocsp.OCSPResponse;
@@ -125,10 +123,10 @@ public class AlgorithmPathChecker {
             OCSPResponse response = null;
             if (reqIsSigned == true && ocspUrl != null) {
                 response = HttpOCSPClient.sendOCSPRequest(ocspUrl, bean.getFirst(),
-                        certs, chain, true, ReqCert.certID, false);
+                        certs, chain, ReqCert.certID, false);
             } else if (ocspUrl != null){
-                response = HttpOCSPClient.sendOCSPRequest(ocspUrl, null,
-                        null, chain,true, ReqCert.certID, false);
+                response = HttpOCSPClient.sendOCSPRequest(ocspUrl, bean.getFirst(),
+                        certs, chain, ReqCert.certID, false);
             }
 
             if (response != null) {

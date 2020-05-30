@@ -37,6 +37,7 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.harry.security.util.HttpsChecker.loadKey;
+import static org.harry.security.util.certandkey.CSRHandler.cleanupPreparedResp;
 
 public class VerifyPDFUtil {
 
@@ -59,11 +60,10 @@ public class VerifyPDFUtil {
      *
      * @param fileToBeVerified
      *          the signed or certified PDF document.
-     * @throws Exception
-     *           if the signed document can't be read
-
+     *
      */
-    public VerifyUtil.VerifierResult verifySignedPdf(InputStream fileToBeVerified) {
+    public VerifyUtil.VerifierResult verifySignedPdf(InputStream fileToBeVerified) throws Exception {
+        cleanupPreparedResp();
         VerifyUtil.VerifierResult result = null;
         result = new VerifyUtil.VerifierResult();
         VerifyUtil.SignerInfoCheckResults results = new VerifyUtil.SignerInfoCheckResults();

@@ -731,9 +731,9 @@ public class CertificateWizzard {
             try {
                 FileOutputStream stream = new FileOutputStream(properties.getAttrCertPath());
                 CertificateWizzard wizzard = new CertificateWizzard(properties, stream);
-                KeyPair caKeys = wizzard.generateCA(properties.getCommonName(), true);
-                KeyPair interKeys = wizzard.generateIntermediate(caKeys, properties.getCommonName(), true);
-                wizzard.generateUser(interKeys, properties.getCommonName(), true);
+                KeyPair caKeys = wizzard.generateCA(properties.getCommonName(), false);
+                KeyPair interKeys = wizzard.generateIntermediate(caKeys, properties.getCommonName(), false);
+                wizzard.generateUser(interKeys, properties.getCommonName(), false);
                 KeyStoreTool.storeKeyStore(wizzard.getStore(),
                         new FileOutputStream(keystore),
                         properties.getKeystorePass().toCharArray());
@@ -765,9 +765,9 @@ public class CertificateWizzard {
         try {
             FileOutputStream stream = new FileOutputStream(properties.getAttrCertPath());
             CertificateWizzard wizzard = new CertificateWizzard(properties, stream);
-            KeyPair caKeys = wizzard.generateCA(properties.getCommonName(), true);
-            KeyPair interKeys = wizzard.generateIntermediate(caKeys, properties.getCommonName(), true);
-            wizzard.generateUser(interKeys, properties.getCommonName(), true);
+            KeyPair caKeys = wizzard.generateCA(properties.getCommonName(), false);
+            KeyPair interKeys = wizzard.generateIntermediate(caKeys, properties.getCommonName(), false);
+            wizzard.generateUser(interKeys, properties.getCommonName(), false);
 
             KeyStoreTool.storeKeyStore(wizzard.getStore(),
                     new FileOutputStream(keystore),

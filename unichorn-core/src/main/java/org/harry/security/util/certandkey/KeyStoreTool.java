@@ -129,7 +129,7 @@ public class KeyStoreTool {
             Enumeration<String> aliases = store.aliases();
             while (aliases.hasMoreElements() && !found) {
                 String alias = aliases.nextElement();
-                if (alias.contains("User")) {
+                if (alias.contains("User")  && !alias.contains("EC")) {
                     Logger.trace("Alias found is:" + alias);
                     found = true;
                     foundID = alias;
