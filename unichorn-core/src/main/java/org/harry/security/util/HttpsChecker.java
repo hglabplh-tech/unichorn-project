@@ -28,6 +28,11 @@ public class HttpsChecker {
     public static final String ALIAS = "Common T-Systems ImageMasterUserRSA";
 
 
+    /**
+     * Get a SSL certificate from a HttpClient Connection
+     * @param urlString the URL as string
+     * @return return the list of certificates
+     */
     public static List<X509Certificate> getCertFromHttps(String urlString) {
         List<X509Certificate> certList = new ArrayList<>();
         CloseableHttpClient httpClient = null;
@@ -85,6 +90,12 @@ public class HttpsChecker {
     }
     // create http response certificate interceptor
 
+    /**
+     *
+     * @param certList the retrieved certificate list
+     * @param certMap the MAp containing the issuers
+     * @return the check was positive
+     */
     public static boolean checkCertChain(List<X509Certificate> certList, Map<String, X509Certificate> certMap
     ) {
         int counter = 0;
@@ -119,6 +130,14 @@ public class HttpsChecker {
          return false;
     }
 
+    /**
+     * This method is the one we call from outside to do a certificate check for
+     * a given URL
+     * @param checkURL the URL to check as string
+     * @param ocspCheck do a check via OCSP
+     * @param altResponder use our responder
+     * @return a Tuple with the check rersult
+     */
     public static Tuple<Integer, List<X509Certificate>> checkHttpsCertValidity(String checkURL,
                                                                                boolean ocspCheck,
                                                                                boolean altResponder

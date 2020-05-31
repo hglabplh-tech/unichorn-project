@@ -2,7 +2,6 @@ package org.harald.security.fx;
 
 
 import iaik.x509.X509Certificate;
-import iaik.x509.ocsp.OCSPResponse;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.ObservableList;
@@ -13,19 +12,13 @@ import javafx.scene.control.CheckBox;
 import javafx.scene.control.ListView;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
-import javafx.scene.web.WebView;
 import org.harald.security.fx.util.Miscellaneous;
-import org.harry.security.util.CertLoader;
-import org.harry.security.util.HttpsChecker;
 import org.harry.security.util.ServerInfoGetter;
-import org.harry.security.util.Tuple;
 
 import java.io.IOException;
 import java.io.StringWriter;
 import java.io.Writer;
 import java.math.BigInteger;
-import java.security.NoSuchAlgorithmException;
-import java.security.Principal;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.CertificateException;
 import java.text.DateFormat;
@@ -93,7 +86,7 @@ public class CertCheckerCtrl implements ControllerInit {
         CheckBox altResponder = Miscellaneous.getCheckBoxByFXID("altResp");
         Writer writer = new StringWriter();
         ServerInfoGetter getter = new ServerInfoGetter(url.getText(), Integer.parseInt(port.getText()), writer, "");
-        Hashtable<java.security.cert.X509Certificate, java.security.cert.X509Certificate[]> serverCerts = getter.showInfo();
+        Hashtable<java.security.cert.X509Certificate, java.security.cert.X509Certificate[]> serverCerts = getter.getInformation();
         Enumeration<java.security.cert.X509Certificate[]> values = serverCerts.elements();
         if(values.hasMoreElements()) {
             java.security.cert.X509Certificate[] array = values.nextElement();

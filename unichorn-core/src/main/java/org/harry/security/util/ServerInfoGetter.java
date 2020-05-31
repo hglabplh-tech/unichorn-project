@@ -88,7 +88,11 @@ public class ServerInfoGetter {
 
     }
 
-    public Hashtable<java.security.cert.X509Certificate, java.security.cert.X509Certificate[]>  showInfo() {
+    /**
+     * Get the SSL information of a given host
+     * @return the SSL certificates HashTable
+     */
+    public Hashtable<java.security.cert.X509Certificate, java.security.cert.X509Certificate[]> getInformation() {
 
         if (hostname.indexOf("<") != -1) {
             // do not echo hostname (XSS)
@@ -381,6 +385,11 @@ public class ServerInfoGetter {
         return serverCerts;
     }
 
+    /**
+     * add the server certificates to the hash-table
+     * @param certs certificates to add
+     * @throws CertificateException
+     */
     private void addCertificates(java.security.cert.X509Certificate[] certs) throws CertificateException {
         if( certs == null ) {
             return;
@@ -392,6 +401,11 @@ public class ServerInfoGetter {
         serverCerts.put(certs[0], certs);
     }
 
+    /**
+     * connect to a socket and gedt the protocol version
+     * @param socket the socket
+     * @return
+     */
     private boolean tryConnect(SSLSocket socket) {
         try {
 
@@ -435,6 +449,10 @@ public class ServerInfoGetter {
         }
     }
 
+    /**
+     * retrieve the server's id from a socket
+     * @param socket the socket
+     */
     private void getServerId(Socket socket) {
         if( (serverId != null) || (socket == null) ) {
             return;
@@ -468,6 +486,9 @@ public class ServerInfoGetter {
         }
     }
 
+    /**
+     * Write a html footer sequence
+     */
     private void writeFooter() {
         writer.println("<P>Back to the <A HREF=\"" + backUrl + "\">server selection page</A>.<BR>");
         writer.println("<HR>");        

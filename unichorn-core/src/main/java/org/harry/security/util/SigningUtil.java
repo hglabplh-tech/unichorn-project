@@ -21,6 +21,7 @@ import org.harry.security.util.algoritms.DigestAlg;
 import org.harry.security.util.algoritms.SignatureAlg;
 import org.harry.security.util.bean.SigningBean;
 import org.harry.security.util.certandkey.CertWriterReader;
+import org.harry.security.util.certandkey.KeyStoreTool;
 import org.harry.security.util.ocsp.HttpOCSPClient;
 import org.pmw.tinylog.Logger;
 
@@ -142,6 +143,13 @@ public class SigningUtil {
         }
     }
 
+    /**
+     * Upgrade the signature with LTV data OCSP responses and timestamps for archiving
+     * @param signingBean the signing bean
+     * @param ds the input data-source
+     * @return the updated PDF
+     * @throws NoSuchAlgorithmException error case
+     */
     public DataSource upgradeSignature(SigningBean signingBean, DataSource ds) throws NoSuchAlgorithmException {
         ByteArrayOutputStream archivedSignatureStream;
         archivedSignatureStream = new ByteArrayOutputStream();
@@ -185,6 +193,11 @@ public class SigningUtil {
         }
     }
 
+    /**
+     * Encrypt data and sign it immediately afterwards
+     * @param bean the signing bean with the input data
+     * @return the data sources from encryption and signing
+     */
     public Tuple<DataSource, DataSource> encryptAndSign(SigningBean bean) {
         try {
             CopyInputStreamDataSource copySource = new CopyInputStreamDataSource(bean.getDataIN());
@@ -274,6 +287,12 @@ public class SigningUtil {
         return new InputStreamDataSource(result);
     }
 
+    /**
+     * Initialize the certificate set for a signature
+     * @param signingBean the signingbean
+     * @param chain the certificate chain
+     * @param certSet the certificate set
+     */
     private void addCertificates(SigningBean signingBean, X509Certificate[] chain, CertificateSet certSet) {
         if (signingBean.getAttributeCertificate() != null) {
             CertificateChoices choices = new CertificateChoices(signingBean.getAttributeCertificate());
@@ -285,6 +304,14 @@ public class SigningUtil {
         }
     }
 
+    /**
+     * check na signature for correctness and give back the signed data
+     * @param signature the signature containing the data if IMPLICIT
+     * @param data the data given for EXPLICIT mode
+     * @return the data as data-source
+     * @throws IOException error case
+     * @throws CMSParsingException error case
+     */
     public DataSource unpackSignature(InputStream signature, InputStream data) throws IOException, CMSParsingException {
         boolean success = false;
         ContentInfoStream cis = new ContentInfoStream(signature);
@@ -421,7 +448,7 @@ public class SigningUtil {
     /**
      * Writes the datasource to a file
      * @param ds the datasource which is written
-     * @param bean
+     * @param bean the signing bean
      */
      public void writeToFile(DataSource ds, SigningBean bean) {
         try {
@@ -441,11 +468,16 @@ public class SigningUtil {
         }
      }
 
+    /**
+     * sign a certificate
+     * @param signingBean the signing bean
+     * @return the signed data
+     */
     public DataSource signEncrCMS(SigningBean signingBean) {
         try {
             SignedData signedData = new SignedData(signingBean.getCertIN());
             if (signedData.getMode() == SignedData.EXPLICIT) {
-                throw new IllegalStateException("cannit handle explicit stream");
+                throw new IllegalStateException("cannot handle explicit stream");
             }
 
             PrivateKey privKey = null;
@@ -455,8 +487,12 @@ public class SigningUtil {
                 signerCert = new X509Certificate(certData);
                 if (signerCert != null) {
                     System.out.println("cert found: " + signerCert.toString());
-                    PrivateKeyStore store = new PrivateKeyStore(properties,true);
-                    privKey = store.getPrivateKey(signingBean.getSignedWithAlias());
+                    KeyStore store = KeyStoreTool.loadStore(
+                            new FileInputStream(properties.getKeystorePath()),
+                            properties.getKeystorePass().toCharArray(), "PKCS12");
+                    privKey = (PrivateKey)store.
+                            getKey(signingBean.getSignedWithAlias(),
+                                    properties.getKeystorePass().toCharArray());
                 } else {
                     throw new IllegalStateException("no input data found");
                 }
@@ -584,7 +620,9 @@ public class SigningUtil {
      }
 
 
-
+    /**
+     * The builder for the classes possible parameters
+     */
     public static class Builder {
 
         private SigningUtil myInstance = null;
@@ -617,6 +655,9 @@ public class SigningUtil {
         }
     }
 
+    /**
+     * A datasource reflecting a pure java.io.InputStream
+     */
     public static class InputStreamDataSource implements DataSource {
 
         private final InputStream myStream;
@@ -642,6 +683,9 @@ public class SigningUtil {
         }
     }
 
+    /**
+     * A datasource which can be read multiple
+     */
     public static class CopyInputStreamDataSource implements DataSource {
 
         private final byte [] content;

@@ -1,14 +1,7 @@
 package org.harry.security.util;
 
-
-
-
-import com.itextpdf.io.image.ImageData;
-import com.itextpdf.io.image.JpegImageData;
-import com.itextpdf.kernel.pdf.StampingProperties;
 import com.itextpdf.signatures.*;
 import com.itextpdf.signatures.BouncyCastleDigest;
-import com.itextpdf.text.BadElementException;
 import com.itextpdf.text.DocumentException;
 import com.itextpdf.text.Jpeg;
 import com.itextpdf.text.Rectangle;
@@ -18,53 +11,50 @@ import com.itextpdf.text.pdf.security.*;
 import com.itextpdf.text.pdf.security.DigestAlgorithms;
 import com.itextpdf.text.pdf.security.PrivateKeySignature;
 import com.itextpdf.text.pdf.security.ProviderDigest;
-import iaik.pdf.cmscades.CadesSignature;
-import iaik.pdf.cmscades.CmsCadesException;
-import iaik.pdf.cmscades.OcspResponseUtil;
 import iaik.pdf.itext.OcspClientIAIK;
 import iaik.pdf.itext.TSAClientIAIK;
 import iaik.pdf.parameters.PadesBESParameters;
-import iaik.pdf.parameters.PadesLTVParameters;
-import iaik.pdf.pdfbox.PdfSignatureInstancePdfbox;
-import iaik.pdf.signature.PdfSignatureEngine;
-import iaik.pdf.signature.PdfSignatureException;
-import iaik.pdf.signature.PdfSignatureInstance;
-import iaik.tsp.transport.http.TspHttpClient;
-import iaik.x509.X509Certificate;
-import org.harry.security.util.algoritms.DigestAlg;
 import org.harry.security.util.bean.SigningBean;
-import org.pmw.tinylog.Logger;
 
 import javax.activation.DataSource;
 import java.io.*;
 import java.net.URL;
 import java.security.GeneralSecurityException;
 import java.security.PrivateKey;
-import java.security.cert.CRL;
 import java.security.cert.Certificate;
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 
 public class SignPDFUtil {
 
-
-
+    /**
+     * the private key
+     */
     private PrivateKey privKey;
-    private Certificate[] certChain;
-    private PdfSignatureInstance pdfSignatureInstance;
 
+    /**
+     * The certificate chain
+     */
+    private Certificate[] certChain;
+
+
+    /**
+     * CTOr for getting the private key and the certificate chain
+     * @param privKey the private key
+     * @param chain the certificate chain
+     */
     public SignPDFUtil(PrivateKey privKey, Certificate[] chain) {
-        pdfSignatureInstance = PdfSignatureEngine.getInstance();
         this.privKey = privKey;
         certChain = chain;
-        // you can add the ECCelerate provider, if you use EC keys
-        // Security.addProvider(new ECCelerate());
     }
 
 
-
+    /**
+     * create the BES parameters from the input of the signing bean
+     * @param bean the signing bean with the data needed
+     * @return the BES parameter object
+     * @throws Exception error case
+     */
     public PadesBESParameters createParameters(SigningBean bean) throws Exception {
         PadesBESParameters params = new PadesBESParameters();
         if (bean.getDigestAlgorithm() != null) {
@@ -84,10 +74,12 @@ public class SignPDFUtil {
     }
 
     /**
-     * Sign PDF document with a key from a pkcs12-keystore using the given provider.
+     * Sign PDF document with an native Approval Signature
      *
      * @param bean
      *          data for signing
+     * @param params the BES parameters
+     * @param providerName the provider to use in our case either IAIK or Pkcs11 Provider
      * @throws Exception
      *           in case of any exceptions
      */
@@ -112,10 +104,6 @@ public class SignPDFUtil {
             estimation = tsaClient.getTokenSizeEstimate() * 10;
         }
 
-        // include CRLs in signature - let iText extract the CRLs
-       // List<CrlClient> crlList = new ArrayList<CrlClient>();
-        //crlList.add(new CrlClientOnline(chain));
-
         // sign <pdfToSign>, save signed PDF to <signedPdf>
         SignWithProvider app = new SignWithProvider();
         DataSource ds = app.sign(bean.getDataIN(),  chain, pk, DigestAlgorithms.SHA256, providerName,
@@ -131,11 +119,13 @@ public class SignPDFUtil {
     }
 
     /**
-     * Sign PDF document with a key from a pkcs12-keystore using the given provider.
-     *
+     * Sign PDF document with a certify code telling the possibilty of changing the PDF after
+     *signing
      * @param bean
      *          data for signing
-     * @throws Exception
+     * @param params the BES parameters
+     * @param providerName the provider to use in our case either IAIK or Pkcs11 Provider
+     * @throws Exception error case
      *           in case of any exceptions
      */
     public DataSource certifyPDF(SigningBean bean, PadesBESParameters params, String providerName)
@@ -162,6 +152,13 @@ public class SignPDFUtil {
 
     }
 
+    /**
+     * Method to place a document LTV timestamp in PDF
+     * @param bean the bean with the data for signing
+     * @param params the BES parameters
+     * @return the datasource containing the updated PDF
+     * @throws Exception error case
+     */
     public DataSource timeStampPDF(SigningBean bean, PadesBESParameters params) throws Exception {
         // sign <pdfToSign>, save signed PDF to <signedPdf>
         SignWithProvider app = new SignWithProvider();
