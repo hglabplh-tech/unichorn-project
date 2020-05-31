@@ -20,9 +20,9 @@ public class CMSCompressUtil {
     /**
      * Creates a CMS <code>CompressedData</code> object.
      * <p>
-     * @param signingBean the data to compress
+     * @param signingBean the bean holding the data and parameters to compress
      *
-     * @return the BER encoding of the <code>CompressedData</code> object just created
+     * @return the BER encoding of the <code>CompressedData</code> object just created as data-source
      *
      * @exception CMSException if the <code>CompressedData</code> object cannot
      *                          be created
@@ -53,9 +53,9 @@ public class CMSCompressUtil {
     /**
      * Parses a CMS <code>CompressedData</code> object.
      *
-     * @param signingBean  the <code>CompressedData</code> object as BER encoded byte array
+     * @param signingBean  the bean containing all the values neccessary for compression
      *
-     * @return the decompressed message as byte array
+     * @return the decompressed message as data-source
      *
      * @exception CMSException if the CompressedData cannot be parsed
      * @exception IOException if an I/O error occurs

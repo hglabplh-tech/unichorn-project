@@ -214,6 +214,16 @@ public class VerifyUtil {
                 return vResult;
     }
 
+    /**
+     * Check the existence and validity of a attribute certificate this is optional
+     * @param certificateSet the certificate set in which we search
+     * @param results the check results container
+     * @throws CertificateException error case
+     * @throws NoSuchAlgorithmException error case
+     * @throws InvalidKeyException error case
+     * @throws NoSuchProviderException error case
+     * @throws SignatureException error case
+     */
     private void checkAttributeCertIfThere(CertificateSet certificateSet,SignerInfoCheckResults results) throws
             CertificateException, NoSuchAlgorithmException, InvalidKeyException,
             NoSuchProviderException, SignatureException {
@@ -529,18 +539,6 @@ public class VerifyUtil {
             }
         }
     }
-
-    private Certificate[] allocSetChain(Certificate [] chain, Certificate newCert) {
-        Certificate[] temp = new Certificate[chain.length + 1];
-        int index = 0;
-        for (Certificate element: chain) {
-            temp[index] = element;
-            index++;
-        }
-        temp[index] = newCert;
-        return temp;
-    }
-
 
     /**
      * The class holding the verification result overall

@@ -140,6 +140,13 @@ public class VerifyPDFUtil {
         return result;
     }
 
+    /**
+     * check the signer info values of a given Approval Signature.
+     * Here also a ByteRange check is done
+     * @param sigApp the approval signature
+     * @param results the results container
+     * @throws Exception error case
+     */
     public void checkSignerInfo(ApprovalSignature sigApp, VerifyUtil.SignerInfoCheckResults results) throws Exception {
         CadesSignature signature = sigApp.getCMSSignature();
         SignerInfo[] infos = signature.getSignerInfos();
@@ -199,6 +206,14 @@ public class VerifyPDFUtil {
         return success;
     }
 
+    /**
+     * Here the timestamps for content signature and archive are checked as well as their signers certificates
+     * @param token the time-stamp-token
+     * @param tokenType the token type for string output
+     * @param results the check result container
+     * @throws CertificateException error case
+     * @throws NoSuchAlgorithmException error case
+     */
     public void checkAnyTimestamp(TimeStampToken token, String tokenType, VerifyUtil.SignerInfoCheckResults results) throws CertificateException, NoSuchAlgorithmException {
         if (token != null) {
             try {
@@ -208,10 +223,10 @@ public class VerifyPDFUtil {
             }
             SignerInfo info = token.getSignerInfo();
             AlgorithmID signatureAlg = info.getSignatureAlgorithm();
-            results.addSignatureResult("timestamp signatureAlgorithmInfo",
+            results.addSignatureResult("timestamp signatureAlgorithmInfo " + tokenType,
                     new Tuple<>(signatureAlg.getImplementationName(), VerifyUtil.Outcome.SUCCESS));
             AlgorithmID digestAlg = info.getDigestAlgorithm();
-            results.addSignatureResult("timestamp digestAlgorithmInfo",
+            results.addSignatureResult("timestamp digestAlgorithmInfo " + tokenType,
                     new Tuple<>(digestAlg.getImplementationName(), VerifyUtil.Outcome.SUCCESS));
             java.security.cert.X509Certificate signingCert = token.getSigningCertificate();
             X509Certificate iaikVersion = Util.convertCertificate(signingCert);

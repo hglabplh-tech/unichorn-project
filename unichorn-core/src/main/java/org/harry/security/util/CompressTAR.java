@@ -14,6 +14,13 @@ import java.io.*;
 
 public class
 CompressTAR {
+
+    /**
+     *
+     * @param compData the data to compress either file or directory
+     * @param fos the output stream for the result of compression
+     * @throws Exception error case
+     */
     public static void compress(File compData, OutputStream fos) throws Exception {
 
 
@@ -47,14 +54,21 @@ CompressTAR {
             System.out.println(file.getName() + " is not supported");
         }
     }
-    public static void decompress(File zipFile) throws IOException, ArchiveException {
+
+    /**
+     * read the ZIP file and decompress the files
+     * @param tarFile the TAR file
+     * @throws IOException error case
+     * @throws ArchiveException error case
+     */
+    public static void decompress(File tarFile) throws IOException, ArchiveException {
         // Read zip
 
         File target = new File(System.getProperty("user.dir"), "tempTAR").getAbsoluteFile();
         target.mkdirs();
 
         System.out.println("Target is: " + target.getAbsolutePath());
-        FileInputStream fis = new FileInputStream(zipFile);
+        FileInputStream fis = new FileInputStream(tarFile);
         ArchiveInputStream ais = new ArchiveStreamFactory().createArchiveInputStream("tar", fis);
         TarArchiveEntry zae = (TarArchiveEntry) ais.getNextEntry();
         while (zae != null) {

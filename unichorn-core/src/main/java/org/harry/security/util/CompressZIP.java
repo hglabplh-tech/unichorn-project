@@ -11,6 +11,12 @@ import java.util.zip.ZipEntry;
 
 public class CompressZIP {
 
+    /**
+     *
+     * @param compData the data to compress either file or directory
+     * @param fos the output stream for the result of compression
+     * @throws Exception error case
+     */
     public static void compress(File compData, OutputStream fos) throws Exception {
 
 
@@ -22,6 +28,14 @@ public class CompressZIP {
         addToArchiveCompression(compData, aos, "");
         aos.close();
     }
+
+    /**
+     * private helper for compression which is called by the main method and does the work
+     * @param file the input file/ directory
+     * @param out the outpot data stream
+     * @param dir the parent directory string
+     * @throws IOException error case
+     */
     private static void addToArchiveCompression(File file, ArchiveOutputStream out, String dir) throws IOException {
         String name = dir + File.separator + file.getName();
         if (file.isFile()){
@@ -41,6 +55,13 @@ public class CompressZIP {
             System.out.println(file.getName() + " is not supported");
         }
     }
+
+    /**
+     * read the ZIP file and decompress the files
+     * @param zipFile the ZIP file
+     * @throws IOException error case
+     * @throws ArchiveException error case
+     */
     public static void decompress(File zipFile) throws IOException, ArchiveException {
         // Read zip
 

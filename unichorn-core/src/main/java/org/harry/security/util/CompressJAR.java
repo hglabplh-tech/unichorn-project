@@ -13,6 +13,12 @@ import java.io.*;
 
 public class CompressJAR {
 
+    /**
+     *
+     * @param compData the data to compress either file or directory
+     * @param fos the output stream for the result of compression
+     * @throws Exception error case
+     */
     public static void compress(File compData, OutputStream fos) throws Exception {
 
 
@@ -24,6 +30,14 @@ public class CompressJAR {
         addToArchiveCompression(compData, aos, "");
         aos.close();
     }
+
+    /**
+     * private helper for compression which is called by the main method and does the work
+     * @param file the input file/ directory
+     * @param out the outpot data stream
+     * @param dir the parent directory string
+     * @throws IOException error case
+     */
     private static void addToArchiveCompression(File file, ArchiveOutputStream out, String dir) throws IOException {
         String name = dir + File.separator + file.getName();
         if (file.isFile()){
@@ -43,14 +57,21 @@ public class CompressJAR {
             System.out.println(file.getName() + " is not supported");
         }
     }
-    public static void decompress(File zipFile) throws IOException, ArchiveException {
+
+    /**
+     * read the JAR file and decompress the files
+     * @param jarFile the JAR file
+     * @throws IOException error case
+     * @throws ArchiveException error case
+     */
+    public static void decompress(File jarFile) throws IOException, ArchiveException {
         // Read zip
 
         File target = new File(System.getProperty("user.dir"), "temp").getAbsoluteFile();
         target.mkdirs();
 
         System.out.println("Target is: " + target.getAbsolutePath());
-        FileInputStream fis = new FileInputStream(zipFile);
+        FileInputStream fis = new FileInputStream(jarFile);
         ArchiveInputStream ais = new ArchiveStreamFactory().createArchiveInputStream("jar", fis);
         JarArchiveEntry zae = (JarArchiveEntry) ais.getNextEntry();
         while (zae != null) {

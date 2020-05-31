@@ -147,6 +147,12 @@ public class AlgorithmPathChecker {
         }
     }
 
+    /**
+     * Method to check the validity of a signature algorithm
+     * @param sigAlg the signature algorithm
+     * @param pubKey the public key
+     * @param results the check result container
+     */
     public void checkSignatureAlgorithm(AlgorithmID sigAlg, PublicKey pubKey, VerifyUtil.SignerInfoCheckResults results) {
         if (pubKey instanceof RSAPublicKey) {
             RSAPublicKey pubKeyRSA = (RSAPublicKey)pubKey;
@@ -159,7 +165,12 @@ public class AlgorithmPathChecker {
         }
     }
 
-    public void checkDigestAlgorithm(AlgorithmID sigAlg, VerifyUtil.SignerInfoCheckResults results) {
+    /**
+     * TODO: for future
+     * @param digestAlg the digest algorithm
+     * @param results the check result container
+     */
+    public void checkDigestAlgorithm(AlgorithmID digestAlg, VerifyUtil.SignerInfoCheckResults results) {
 
     }
 
@@ -172,6 +183,11 @@ public class AlgorithmPathChecker {
         }
     }
 
+    /**
+     * check method for RSA> Padding Version
+     * @param sigAlg the signature algorithm
+     * @param results the check result container
+     */
     public void checkRSAPadding(AlgorithmID sigAlg, VerifyUtil.SignerInfoCheckResults results) {
         if (sigAlg.equals(CMSAlgorithmID.rsassaPss)) {
             results.addSignatureResult("check rsa padding", new Tuple<>("padding PSS 2.1", VerifyUtil.Outcome.SUCCESS));

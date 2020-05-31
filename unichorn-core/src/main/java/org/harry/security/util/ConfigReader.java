@@ -21,40 +21,89 @@ import java.util.Scanner;
 import static org.harry.security.CommonConst.*;
 
 public class ConfigReader {
+
+    /**
+     * The key store path
+     */
     public static final String PROP_KEYSTORE_PATH = "harry.signer.keystore";
 
+    /**
+     * Path to a attribute-certificate
+     */
     public static final String PROP_ATTR_CERT_PATH = "harry.signer.attributeCert";
 
+    /**
+     * The KeyStore Type
+     */
     public static final String PROP_KEYSTORE_TYPE = "harry.signer.storeType";
 
+    /**
+     * The keystore password
+     */
     public static final String PROP_KEYSTORE_PASS = "harry.signer.storePass";
 
+    /**
+     * The keystore alias
+     */
     public static final String PROP_KEYSTORE_ALIAS = "harry.signer.storeAlias";
 
+    /**
+     * the encrypt / decrypt password
+     */
     public  final static String PROP_DECR_PASSWORD = "harry.encrdecr.password";
+
+    /**
+     * algorithm for decryption / encryption
+     */
     public final static String PROP_DECR_PEBALG = "harry.encrdecr.pbeAlg";
 
+    /**
+     * The algorithm for envelöoping data
+     */
     public final static String PROP_DECR_ENVALG = "harry.encrdecr.envelopAlg";
 
+    /**
+     * The country attribute for a certificate
+     */
     public static final String PROP_CERT_COUNTRY = "harry.cert.country";
 
+    /**
+     * The organization attribute for a certificate
+     */
     public static final String PROP_CERT_ORG = "harry.cert.organization";
 
+    /**
+     * The organization unit attribute for a certificate
+     */
     public static final String PROP_CERT_ORG_UNIT = "harry.cert.organizationalUnit";
 
+    /**
+     * The common name attribute for a certificate
+     */
     public static final String PROP_CERT_COMMON_NAME = "harry.cert.cName";
 
+    /**
+     * The pin for pkcs11 card processing attribute for a certificate
+     */
     public static final String PROP_PKCS11_PIN = "harry.pkcs11.pin";
 
 
+    /**
+     * A HttpClient for accept all input
+     */
     static final HttpClient httpClient = ClientFactory.getAcceptAllHttpClient();
 
 
-
-
+    /**
+     * The protecting CTOr
+     */
     private ConfigReader() {
     }
 
+    /**
+     * Initialize a new properties object
+     * @return
+     */
     public static Properties init() {
         File propFile = new File(APP_DIR, PROP_FNAME);
         Properties props = new Properties();
@@ -83,6 +132,11 @@ public class ConfigReader {
         return  props;
     }
 
+
+    /**
+     * Save the application properties to a given file
+     * @param properties
+     */
     public static void saveProperties(Properties properties) {
         FileOutputStream propFile = null;
         try {
@@ -96,6 +150,10 @@ public class ConfigReader {
         }
     }
 
+    /**
+     * load the applications properties store
+     * @return return the MainProperties object
+     */
     public static MainProperties loadStore() {
         try {
             Properties props = new Properties();
@@ -139,6 +197,11 @@ public class ConfigReader {
         }
     }
 
+    /**
+     * Load a specific trust list
+     * @param trustName the trust-list name searched in the directory for trust-files
+     * @return the list
+     */
     public static TrustStatusListType loadSpecificTrust(String trustName) {
         File trustFile = new File(APP_DIR_TRUST, trustName +  ".xml").getAbsoluteFile();
         FileInputStream in;
@@ -151,6 +214,10 @@ public class ConfigReader {
 
     }
 
+    /**
+     * Load all trust - lists in the directory for trust-lists and give back the list of the TrustListManager objects
+     * @return return the managers list
+     */
     public static List<TrustListManager> loadAllTrusts()  {
         List<TrustListManager> theTrusts = new ArrayList<>();
         FileInputStream in;
@@ -171,6 +238,10 @@ public class ConfigReader {
         }
     }
 
+    /**
+     * download several trust-list from a given url and store it in the trust - list- directory
+     * @param urlList the List of URL Strings of the lists
+     */
     public static void downloadTrusts(List<String> urlList) {
         try {
             for (String url : urlList) {
@@ -181,6 +252,11 @@ public class ConfigReader {
         }
     }
 
+    /**
+     * really download the list
+     * @param url the download url
+     * @throws IOException error case
+     */
     public static void downloadWriteOneTrust(String url) throws IOException {
 
         try {
@@ -213,6 +289,11 @@ public class ConfigReader {
         }
     }
 
+    /**
+     * read the password from console or line in
+     * @param text the prompt- text
+     * @return the passwd-string
+     */
     private static String readPassWD(String text) {
         Console console = System.console();
         char[] passwordChars = null;
@@ -236,6 +317,11 @@ public class ConfigReader {
 
     }
 
+    /**
+     * read a line given in with the Scanner
+     * @return the string
+     * @throws IOException error case
+     */
     private static String readLineIDE() throws IOException {
         String character;
         Scanner scanner = new Scanner(System.in);
@@ -243,6 +329,10 @@ public class ConfigReader {
         return character;
     }
 
+    /**
+     * Main Properties for the application properties this is the
+     * real application configuration object
+     */
     public static class MainProperties {
         private  String keystorePath;
         private  String attrCertPath;
