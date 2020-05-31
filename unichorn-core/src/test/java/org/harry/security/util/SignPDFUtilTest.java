@@ -67,13 +67,13 @@ public class SignPDFUtilTest extends TestBase {
                 .setTspURL("http://zeitstempel.dfn.de")
                 .setDataIN(input);
         PadesBESParameters params = util.createParameters(bean);
-        DataSource ds = util.signPDF(bean, params);
+        DataSource ds = util.signPDF(bean, params, "IAIK");
         SigningUtil writer = new SigningUtil();
         writer.writeToFile(ds, bean);
 
         FileInputStream fin = new FileInputStream(out);
         bean = bean.setDataIN(fin);
-        DataSource certified = util.certifyPDF(bean, params);
+        DataSource certified = util.certifyPDF(bean, params, "IAIK");
         writer.writeToFile(certified, bean);
 
         fin = new FileInputStream(out);

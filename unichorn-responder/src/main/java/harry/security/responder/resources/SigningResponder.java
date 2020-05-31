@@ -401,7 +401,7 @@ public class SigningResponder extends HttpServlet {
                    PadesBESParameters params = pdfutil.createParameters(signingBean);
                    Logger.trace("Prepare signing");
                    Logger.trace("Really sign");
-                   pdfutil.signPDF(signingBean,  params);
+                   pdfutil.signPDF(signingBean,  params, "IAIK");
                    IOUtils.copy(new FileInputStream(tempData), servletResponse.getOutputStream());
                    Logger.trace("Signed PAdES");
                    servletResponse.setStatus(Response.Status.CREATED.getStatusCode());

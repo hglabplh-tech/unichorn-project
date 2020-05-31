@@ -3,9 +3,12 @@ package org.harry.security.util;
 
 
 
+import com.itextpdf.io.image.ImageData;
+import com.itextpdf.io.image.JpegImageData;
 import com.itextpdf.kernel.pdf.StampingProperties;
 import com.itextpdf.signatures.*;
 import com.itextpdf.signatures.BouncyCastleDigest;
+import com.itextpdf.text.BadElementException;
 import com.itextpdf.text.DocumentException;
 import com.itextpdf.text.Jpeg;
 import com.itextpdf.text.Rectangle;
@@ -88,14 +91,11 @@ public class SignPDFUtil {
      * @throws Exception
      *           in case of any exceptions
      */
-    public DataSource signPDF(SigningBean bean, PadesBESParameters params)
+    public DataSource signPDF(SigningBean bean, PadesBESParameters params, String providerName)
             throws Exception {
 
         PrivateKey pk = privKey;
         Certificate[] chain = certChain;
-        String providerName = "IAIK";
-
-
 
 
         // include OCSP response
@@ -119,7 +119,7 @@ public class SignPDFUtil {
         // sign <pdfToSign>, save signed PDF to <signedPdf>
         SignWithProvider app = new SignWithProvider();
         DataSource ds = app.sign(bean.getDataIN(),  chain, pk, DigestAlgorithms.SHA256, providerName,
-                "IAIK", MakeSignature.CryptoStandard.CADES,
+                providerName, MakeSignature.CryptoStandard.CADES,
                 params.getSignatureReason(),
                 params.getSignatureLocation(),
                 params.getSignatureContactInfo(),
@@ -138,12 +138,12 @@ public class SignPDFUtil {
      * @throws Exception
      *           in case of any exceptions
      */
-    public DataSource certifyPDF(SigningBean bean, PadesBESParameters params)
+    public DataSource certifyPDF(SigningBean bean, PadesBESParameters params, String providerName)
             throws Exception {
 
         PrivateKey pk = privKey;
         Certificate[] chain = certChain;
-        String providerName = "IAIK";
+
 
 
 
@@ -157,7 +157,8 @@ public class SignPDFUtil {
         SignWithProvider app = new SignWithProvider();
         return app.certify(bean.getDataIN(), chain, pk,
                 DigestAlgorithms.SHA256, providerName, PdfSigner.CryptoStandard.CMS,
-                "Test", "Ghent", null, null, null, 0);
+                params.getSignatureReason(), params.getSignatureLocation(), params.getSignatureContactInfo(),
+                null, null, null, 0);
 
     }
 
@@ -168,7 +169,7 @@ public class SignPDFUtil {
         TSAClient tsaClient = null;
         int estimation = 0;
         // or use preferred timestamp server
-        if (tsaClient == null) {
+        if (tsaClient == null && bean.getTspURL() != null && !bean.getTspURL().isEmpty()) {
             String tsaUrl = bean.getTspURL();
             tsaClient = new TSAClientIAIK(tsaUrl);
             int estimate = tsaClient.getTokenSizeEstimate();
@@ -220,7 +221,7 @@ public class SignPDFUtil {
             appearance.setContact(contact);
             appearance.setReason(reason);
             appearance.setLocation(location);
-            appearance.setVisibleSignature(new Rectangle(36, 748, 144, 780), 1, "sig");
+            appearance.setVisibleSignature(new Rectangle(144, 50), 1, "sig");
             // Creating the signature
             ExternalSignature pks = new PrivateKeySignature(pk, digestAlgorithm,
                     signatureProvider);
@@ -250,27 +251,19 @@ public class SignPDFUtil {
          */
         public DataSource certify(InputStream src, Certificate[] chain, PrivateKey pk,
                          String digestAlgorithm, String provider, PdfSigner.CryptoStandard subfilter,
-                         String reason, String location, Collection<ICrlClient> crlList,
+                         String reason, String location, String contact, Collection<ICrlClient> crlList,
                          IOcspClient ocspClient, ITSAClient tsaClient, int estimatedSize)
-                throws GeneralSecurityException, IOException {
+                throws Exception {
             com.itextpdf.kernel.pdf.PdfReader reader = new com.itextpdf.kernel.pdf.PdfReader(src);
             ByteArrayOutputStream os = new ByteArrayOutputStream();
             PdfSigner signer = new PdfSigner(reader, os, true);
             signer.setCertificationLevel(PdfSigner.CERTIFIED_FORM_FILLING);
 
             // Create the signature appearance
-            com.itextpdf.kernel.geom.Rectangle rect = new com.itextpdf.kernel.geom.Rectangle(36, 648, 200, 100);
+            com.itextpdf.kernel.geom.Rectangle rect = new com.itextpdf.kernel.geom.Rectangle(145L, 0L,144, 50);
             com.itextpdf.signatures.PdfSignatureAppearance appearance = signer.getSignatureAppearance();
-            appearance
-                    .setReason(reason)
-                    .setLocation(location)
-
-                    // Specify if the appearance before field is signed will be used
-                    // as a background for the signed field. The "false" value is the default value.
-                    .setReuseAppearance(false)
-                    .setPageRect(rect)
-                    .setPageNumber(1);
-
+            URL imageURL = SignPDFUtil.class.getResource("/graphic/cert.jpg");
+            appearance.setReason(reason).setLocation(location).setContact(contact).setPageRect(rect);
 
             IExternalSignature pks = new com.itextpdf.signatures.PrivateKeySignature(pk, digestAlgorithm, provider);
             IExternalDigest digest = new BouncyCastleDigest();

@@ -44,6 +44,8 @@ public class ConfigReader {
 
     public static final String PROP_CERT_COMMON_NAME = "harry.cert.cName";
 
+    public static final String PROP_PKCS11_PIN = "harry.pkcs11.pin";
+
 
     static final HttpClient httpClient = ClientFactory.getAcceptAllHttpClient();
 
@@ -111,6 +113,7 @@ public class ConfigReader {
             String pbeAlg = props.getProperty(PROP_DECR_PEBALG, "");
             String envelopAlg = props.getProperty(PROP_DECR_ENVALG, "");
             String trustLists = props.getProperty(PROP_TLS, "");
+            String pin = props.getProperty(PROP_PKCS11_PIN, null);
 
             String [] array = trustLists.split(";");
             List<String> trusts = new ArrayList<>();
@@ -128,7 +131,9 @@ public class ConfigReader {
                     decrPasswd,
                     pbeAlg,
                     envelopAlg).setTrustLists(trusts)
-                    .setAttrCertPath(attrCertPath);
+                    .setAttrCertPath(attrCertPath)
+                    .setPkcs11Pin(pin);
+
         } catch (IOException e) {
             throw new IllegalStateException("properties not loaded", e);
         }
@@ -254,6 +259,7 @@ public class ConfigReader {
         private  String  unit;
         private  String commonName;
         private  List<String> trustLists;
+        private String pkcs11Pin;
 
         public MainProperties(String keystorePath, String keystoreType,
                               String keystorePass, String alias, String country,
@@ -398,6 +404,15 @@ public class ConfigReader {
 
         public MainProperties setAttrCertPath(String attrCertPath) {
             this.attrCertPath = attrCertPath;
+            return this;
+        }
+
+        public String getPkcs11Pin() {
+            return pkcs11Pin;
+        }
+
+        public MainProperties setPkcs11Pin(String pkcs11Pin) {
+            this.pkcs11Pin = pkcs11Pin;
             return this;
         }
     }

@@ -82,7 +82,6 @@ public class SigningBean {
         PAdES,
         Compress,
         Decompress,
-        PKCS11
     }
 
     public AttributeCertificate getAttributeCertificate() {

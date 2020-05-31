@@ -60,6 +60,7 @@
                   </ContextMenu>
                </contextMenu>
             </TextField>
+            <CheckBox fx:id="cardsigning" mnemonicParsing="false" text="Sign with card" GridPane.rowIndex="4" />
          </children>
       </GridPane>
    </children>

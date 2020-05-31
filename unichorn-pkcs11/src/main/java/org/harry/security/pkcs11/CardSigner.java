@@ -4,6 +4,7 @@ import iaik.asn1.ObjectID;
 import iaik.asn1.structures.AlgorithmID;
 import iaik.cms.*;
 import iaik.cms.pkcs11.IaikPkcs11SecurityProvider;
+import iaik.pdf.parameters.PadesBESParameters;
 import iaik.pkcs.pkcs11.Session;
 import iaik.pkcs.pkcs11.SessionInfo;
 import iaik.pkcs.pkcs11.Token;
@@ -18,8 +19,14 @@ import iaik.security.rsa.RSAPrivateKey;
 import iaik.security.rsa.RSAPublicKey;
 import iaik.x509.X509Certificate;
 import iaik.x509.extensions.ExtendedKeyUsage;
+import org.harry.security.util.AlgorithmPathChecker;
+import org.harry.security.util.SignPDFUtil;
 import org.harry.security.util.SigningUtil;
+import org.harry.security.util.VerifyUtil;
 import org.harry.security.util.bean.SigningBean;
+import org.harry.security.util.certandkey.CertWriterReader;
+import org.harry.security.util.certandkey.GSON;
+import org.harry.security.util.trustlist.TrustListManager;
 
 import javax.activation.DataSource;
 import java.io.*;
@@ -29,6 +36,7 @@ import java.security.cert.CertificateFactory;
 import java.security.interfaces.RSAPrivateCrtKey;
 import java.util.Arrays;
 import java.util.Enumeration;
+import java.util.List;
 import java.util.Properties;
 
 import static org.harry.security.CommonConst.APP_DIR_DLL;
@@ -62,7 +70,7 @@ public class CardSigner {
     /**
      * The key store that represents the token (smart card) contents.
      */
-    protected KeyStore tokenKeyStore_;
+    protected TokenKeyStore tokenKeyStore_;
 
     /**
      * The signature key. In this case only a proxy object, but the application cannot see this.
@@ -108,12 +116,18 @@ public class CardSigner {
 
     }
 
+    public void setPIN(String cardPINOld, String cardPINNew) throws Exception{
+        TokenManager manager = pkcs11Provider_.getTokenManager();
+        Session session = manager.getToken().openSession(Token.SessionType.SERIAL_SESSION,
+                Token.SessionReadWriteBehavior.RW_SESSION, null, null);
+        session.setPIN(cardPINOld.toCharArray(), cardPINNew.toCharArray());
+    }
+
     public void readCardData() throws Exception {
         TokenManager manager = pkcs11Provider_.getTokenManager();
 
         Session session = manager.getToken().openSession(Token.SessionType.SERIAL_SESSION,
                 Token.SessionReadWriteBehavior.RO_SESSION, null, null);
-       // session.login(Session.UserType.USER, "315631".toCharArray());
         SessionInfo sessionInfo = session.getSessionInfo();
         System.out.println(" using session:");
         System.out.println(sessionInfo);
@@ -146,8 +160,8 @@ public class CardSigner {
      *              If loading the key store fails.
      */
     public void getKeyStore(String pin) throws GeneralSecurityException, IOException {
-        KeyStore tokenKeyStore = null;
-        tokenKeyStore = KeyStore.getInstance("PKCS11KeyStore", pkcs11Provider_.getName());
+        TokenKeyStore tokenKeyStore = null;
+        tokenKeyStore = pkcs11Provider_.getTokenManager().getKeyStore();
 
         tokenKeyStore_ = tokenKeyStore;
         if (tokenKeyStore == null) {
@@ -253,49 +267,32 @@ public class CardSigner {
     }
 
 
-    public DataSource sign(SigningBean signingBean) throws GeneralSecurityException, IOException,
-            CMSException {
+    public DataSource sign(SigningBean signingBean, boolean upgrade, List<TrustListManager> walkers) throws Exception {
         System.out.println("##########");
         System.out.print("Signing data... ");
-
-
-        // input stream
-        int mode = signingBean.getSigningMode().getMode();
-        SignedDataStream signedData = new SignedDataStream(signingBean.getDataIN(), mode);
-        iaik.x509.X509Certificate iaikSignerCertificate = (signerCertificate_ instanceof iaik.x509.X509Certificate) ?
+        iaik.x509.X509Certificate iaikSignerCertificate =  (signerCertificate_ instanceof iaik.x509.X509Certificate) ?
                 (iaik.x509.X509Certificate) signerCertificate_
                 : new iaik.x509.X509Certificate(signerCertificate_.getEncoded());
-        signedData.setCertificates(new iaik.x509.X509Certificate[] { iaikSignerCertificate });
-        IssuerAndSerialNumber issuerAndSerialNumber = new IssuerAndSerialNumber(
-                iaikSignerCertificate);
-        SignerInfo signerInfo = new SignerInfo(issuerAndSerialNumber,
-                (AlgorithmID) AlgorithmID.sha1.clone(), signatureKey_);
-        try {
-            signedData.addSignerInfo(signerInfo);
-        } catch (NoSuchAlgorithmException ex) {
-            throw new GeneralSecurityException(ex.toString());
+        iaik.x509.X509Certificate[] chain;
+        AlgorithmPathChecker checker = new AlgorithmPathChecker(walkers, signingBean);
+        VerifyUtil.SignerInfoCheckResults results = new VerifyUtil.SignerInfoCheckResults();
+        chain = checker.detectChain(iaikSignerCertificate, results);
+        CertWriterReader.KeyStoreBean bean = new CertWriterReader.KeyStoreBean(chain, signatureKey_);
+        signingBean = signingBean.setKeyStoreBean(bean);
+
+        if (signingBean.getSignatureType().equals(SigningBean.SigningType.CMS)) {
+            SigningUtil util = new SigningUtil();
+            return util.signCMS(signingBean);
+        } else if (signingBean.getSignatureType().equals(SigningBean.SigningType.CAdES)) {
+            SigningUtil util = new SigningUtil();
+            return util.signCAdES(signingBean, upgrade);
+        } else if (signingBean.getSignatureType().equals(SigningBean.SigningType.PAdES)) {
+            SignPDFUtil util = new SignPDFUtil(signatureKey_, chain);
+            PadesBESParameters params = util.createParameters(signingBean);
+            return util.signPDF(signingBean, params, pkcs11Provider_.getName());
+        }  else {
+            return null;
         }
-
-        if (mode == SignedDataStream.EXPLICIT)
-        {
-            // in explicit mode read "away" content data (to be transmitted out-of-band)
-            InputStream contentIs = signedData.getInputStream();
-            byte[] buffer = new byte[2048];
-            int bytesRead;
-            while ((bytesRead = contentIs.read(buffer)) >= 0) {
-                ; // skip data
-            }
-        }
-
-       ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-        signedData.writeTo(outputStream);
-        ByteArrayInputStream result = new ByteArrayInputStream(outputStream.toByteArray());
-        SigningUtil.InputStreamDataSource ds = new SigningUtil.InputStreamDataSource(result);
-        outputStream.flush();
-        outputStream.close();
-
-        System.out.println("##########");
-        return ds;
     }
 
 
@@ -417,11 +414,8 @@ public class CardSigner {
     /**
      * Print information how to use this demo class.
      */
-    public static void printUsage() {
-        System.out
-                .println("Usage: SignedDataStreamDemo <file to sign> <output file> <implicit|explicit> [<keyAlias>]");
-        System.out
-                .println(" e.g.: SignedDataStreamDemo contract.rtf signedContract.p7 explicit MaxMustermann");
+    public void releaseResource() {
+        tokenKeyStore_.logout();
     }
 
 }

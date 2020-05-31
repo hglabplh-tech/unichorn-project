@@ -10,6 +10,7 @@ import javafx.scene.control.ComboBox;
 import javafx.scene.control.TextField;
 import org.harry.security.CMSSigner;
 import org.harry.security.pkcs11.CardSigner;
+import org.harry.security.util.ConfigReader;
 import org.harry.security.util.SigningUtil;
 import org.harry.security.util.Tuple;
 import org.harry.security.util.algoritms.CryptoAlg;
@@ -104,51 +105,52 @@ public class SigningCtrl implements ControllerInit {
 
     private void sign() throws Exception {
         CheckBox archiveInfo = getCheckBoxByFXID("archiveInfo");
-        TextField pin = getTextFieldByFXID("pin");
+        CheckBox cardSigning = getCheckBoxByFXID("cardsigning");
         boolean addArchiveInfo = archiveInfo.isSelected();
         SigningBean bean = SecHarry.contexts.get();
         bean = filloutBean(bean);
         SigningUtil util = new SigningUtil();
         if(bean.getAction().equals(CMSSigner.Commands.SIGN)) {
-            GSON.Params params = new GSON.Params();
-            GSON.Signing signing = new GSON.Signing();
-            params.signing = signing;
-            params.parmType = "docSign";
-            params.signing.signatureType = bean.getSignatureType().name();
-            params.signing.mode = bean.getSigningMode().getMode();
-            if ( bean.getSignatureAlgorithm() != null) {
-                params.signing.signatureAlgorithm = bean.getSignatureAlgorithm().getName();
-            }
-            if (bean.getDigestAlgorithm() != null) {
-                params.signing.digestAlgorithm = bean.getDigestAlgorithm().getName();
-                if(attributeCertificate != null) {
-                    params.signing.attributeCert = Util.toBase64String(attributeCertificate.getEncoded());
-                }
-            }
-            if (bean.getSignatureType().equals(SigningBean.SigningType.CAdES)) {
-                GSON.SigningCAdES cades = new GSON.SigningCAdES();
-                params.signing.cadesParams = cades;
-                params.signing.cadesParams.TSAURL = bean.getTspURL();
-                params.signing.cadesParams.addArchiveinfo = addArchiveInfo;
-            }
-            if (bean.getSignatureType().equals(SigningBean.SigningType.PKCS11)) {
-                String cardPin = pin.getText();
+            if (cardSigning.isSelected()) {
+                String cardPin = getSmartCardPIN();
                 boolean reallySign = (cardPin != null && cardPin.length() == 6);
                 CardSigner signer = new CardSigner();
                 signer.readCardData();
                 if (reallySign) {
                     signer.getKeyStore(cardPin);
-                    DataSource signed = signer.sign(bean);
+                    DataSource signed = signer.sign(bean, addArchiveInfo, bean.getWalker());
                     util.writeToFile(signed, bean);
                 }
-            } else {
+            } else if (!cardSigning.isSelected()){
+                GSON.Params params = new GSON.Params();
+                GSON.Signing signing = new GSON.Signing();
+                params.signing = signing;
+                params.parmType = "docSign";
+                params.signing.signatureType = bean.getSignatureType().name();
+                params.signing.mode = bean.getSigningMode().getMode();
+                if (bean.getSignatureAlgorithm() != null) {
+                    params.signing.signatureAlgorithm = bean.getSignatureAlgorithm().getName();
+                }
+                if (bean.getDigestAlgorithm() != null) {
+                    params.signing.digestAlgorithm = bean.getDigestAlgorithm().getName();
+                    if (attributeCertificate != null) {
+                        params.signing.attributeCert = Util.toBase64String(attributeCertificate.getEncoded());
+                    }
+                }
+                if (bean.getSignatureType().equals(SigningBean.SigningType.CAdES)) {
+                    GSON.SigningCAdES cades = new GSON.SigningCAdES();
+                    params.signing.cadesParams = cades;
+                    params.signing.cadesParams.TSAURL = bean.getTspURL();
+                    params.signing.cadesParams.addArchiveinfo = addArchiveInfo;
+                }
                 HttpClientConnection
                         .sendDocSigningRequest(bean.getDataIN(),
                                 params, new File(bean.getOutputPath()));
+
+            } else if (bean.getAction().equals(CMSSigner.Commands.ENCRYPT_SIGN)) {
+                Tuple<DataSource, DataSource> outCome = util.encryptAndSign(bean);
+                util.writeToFile(outCome.getSecond(), bean);
             }
-        } else if (bean.getAction().equals(CMSSigner.Commands.ENCRYPT_SIGN)) {
-            Tuple<DataSource, DataSource> outCome = util.encryptAndSign(bean);
-            util.writeToFile(outCome.getSecond(), bean);
         }
 
     }
@@ -180,5 +182,20 @@ public class SigningCtrl implements ControllerInit {
         encrAlg.getSelectionModel().clearSelection();
         tspField.getSelectionModel().clearSelection();
         return bean;
+    }
+
+    private String getSmartCardPIN() {
+        TextField pin = getTextFieldByFXID("pin");
+        String pkcs11Pin = System.getenv("PKCS11PIN");
+        ConfigReader.MainProperties props = ConfigReader.loadStore();
+        String cardPIN;
+        if (pkcs11Pin != null) {
+            cardPIN = pkcs11Pin;
+        } else if (props.getPkcs11Pin() != null && !props.getPkcs11Pin().isEmpty()) {
+            cardPIN = props.getPkcs11Pin();
+        } else {
+            cardPIN = pin.getText();
+        }
+        return cardPIN.trim();
     }
 }
