@@ -10,10 +10,12 @@ import iaik.x509.ocsp.BasicOCSPResponse;
 import iaik.x509.ocsp.OCSPResponse;
 import iaik.x509.ocsp.ReqCert;
 import iaik.x509.ocsp.SingleResponse;
+import org.bouncycastle.asn1.isismtt.ocsp.RequestedCertificate;
 import org.harry.security.util.bean.SigningBean;
 import org.harry.security.util.certandkey.CertificateChainUtil;
 import org.harry.security.util.ocsp.HttpOCSPClient;
 import org.harry.security.util.trustlist.TrustListManager;
+
 
 import java.security.PrivateKey;
 import java.security.PublicKey;

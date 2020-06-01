@@ -25,19 +25,19 @@
         </dependency>
         <dependency>
             <groupId>iaik</groupId>
-            <artifactId>iaik-jce-full-ima-license-trustedlib-unlimited</artifactId>
+            <artifactId>iaik-jce-full-license-trustedlib-unlimited</artifactId>
             <scope>compile</scope>
         </dependency>
 
         <dependency>
             <groupId>iaik</groupId>
-            <artifactId>iaik-cms-ima-license</artifactId>
+            <artifactId>iaik-cms-license</artifactId>
             <scope>compile</scope>
         </dependency>
 
         <dependency>
             <groupId>iaik</groupId>
-            <artifactId>iaik-tsp-ima-license</artifactId>
+            <artifactId>iaik-tsp-license</artifactId>
             <scope>compile</scope>
         </dependency>
 
@@ -49,37 +49,37 @@
 
         <dependency>
             <groupId>iaik</groupId>
-            <artifactId>iaik-eccelerate-ima-license</artifactId>
+            <artifactId>iaik-eccelerate-license</artifactId>
             <scope>compile</scope>
         </dependency>
 
         <dependency>
             <groupId>iaik</groupId>
-            <artifactId>iaik-eccelerate-addon-ima-license</artifactId>
+            <artifactId>iaik-eccelerate-addon-license</artifactId>
             <scope>compile</scope>
         </dependency>
 
         <dependency>
             <groupId>iaik</groupId>
-            <artifactId>iaik-eccelerate-cms-ima-license</artifactId>
+            <artifactId>iaik-eccelerate-cms-license</artifactId>
             <scope>compile</scope>
         </dependency>
 
         <dependency>
             <groupId>iaik</groupId>
-            <artifactId>iaik-eccelerate-ssl-ima-license</artifactId>
+            <artifactId>iaik-eccelerate-ssl-license</artifactId>
             <scope>compile</scope>
         </dependency>
 
         <dependency>
             <groupId>iaik</groupId>
-            <artifactId>iaik-xsect-ima-license</artifactId>
+            <artifactId>iaik-xsect-license</artifactId>
             <scope>compile</scope>
         </dependency>
 
         <dependency>
             <groupId>iaik</groupId>
-            <artifactId>iaik-xades-ima-license</artifactId>
+            <artifactId>iaik-xades-license</artifactId>
             <scope>compile</scope>
         </dependency>
 

@@ -22,17 +22,17 @@
         </dependency>
         <dependency>
             <groupId>iaik</groupId>
-            <artifactId>iaik-jce-full-ima-license-trustedlib-unlimited</artifactId>
+            <artifactId>iaik-jce-full-license-trustedlib-unlimited</artifactId>
         </dependency>
 
         <dependency>
             <groupId>iaik</groupId>
-            <artifactId>iaik-cms-ima-license</artifactId>
+            <artifactId>iaik-cms-license</artifactId>
         </dependency>
 
         <dependency>
             <groupId>iaik</groupId>
-            <artifactId>iaik-tsp-ima-license</artifactId>
+            <artifactId>iaik-tsp-license</artifactId>
         </dependency>
 
         <dependency>
@@ -42,32 +42,32 @@
 
         <dependency>
             <groupId>iaik</groupId>
-            <artifactId>iaik-eccelerate-ima-license</artifactId>
+            <artifactId>iaik-eccelerate-license</artifactId>
         </dependency>
 
         <dependency>
             <groupId>iaik</groupId>
-            <artifactId>iaik-eccelerate-addon-ima-license</artifactId>
+            <artifactId>iaik-eccelerate-addon-license</artifactId>
         </dependency>
 
         <dependency>
             <groupId>iaik</groupId>
-            <artifactId>iaik-eccelerate-cms-ima-license</artifactId>
+            <artifactId>iaik-eccelerate-cms-license</artifactId>
         </dependency>
 
         <dependency>
             <groupId>iaik</groupId>
-            <artifactId>iaik-eccelerate-ssl-ima-license</artifactId>
+            <artifactId>iaik-eccelerate-ssl-license</artifactId>
         </dependency>
 
         <dependency>
             <groupId>iaik</groupId>
-            <artifactId>iaik-xsect-ima-license</artifactId>
+            <artifactId>iaik-xsect-license</artifactId>
         </dependency>
 
         <dependency>
             <groupId>iaik</groupId>
-            <artifactId>iaik-xades-ima-license</artifactId>
+            <artifactId>iaik-xades-license</artifactId>
         </dependency>
 
         <dependency>
@@ -119,12 +119,6 @@
 
         </dependency>
 
-        <!-- https://mvnrepository.com/artifact/org.apache.httpcomponents/httpmime -->
-        <dependency>
-            <groupId>org.apache.httpcomponents</groupId>
-            <artifactId>httpmime</artifactId>
-
-        </dependency>
         <!-- https://mvnrepository.com/artifact/org.apache.commons/commons-compress -->
         <dependency>
             <groupId>org.apache.commons</groupId>
