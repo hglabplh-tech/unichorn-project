@@ -17,10 +17,13 @@ import org.apache.http.entity.InputStreamEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.harry.security.util.*;
+import org.harry.security.util.bean.SigningBean;
 import org.harry.security.util.certandkey.CertWriterReader;
+import org.harry.security.util.certandkey.CertificateChainUtil;
 import org.harry.security.util.certandkey.KeyStoreTool;
 import org.harry.security.util.ocsp.HttpOCSPClient;
 import org.harry.security.util.ocsp.OCSPClient;
+import org.harry.security.util.trustlist.TrustListManager;
 import org.junit.Before;
 import org.junit.Test;
 import org.pmw.tinylog.Configurator;
@@ -28,6 +31,7 @@ import org.pmw.tinylog.Level;
 import org.pmw.tinylog.Logger;
 import org.pmw.tinylog.writers.ConsoleWriter;
 
+import javax.net.ssl.TrustManager;
 import javax.ws.rs.core.Response;
 import java.io.*;
 import java.net.URL;
@@ -102,9 +106,12 @@ public class ResponderTest  {
     @Test
     public void nativeCallerSigned() throws Exception {
         List<X509Certificate> certList= new ArrayList<>();
-        certList.add(new CertWriterReader().readFromFilePEM(
-                ResponderTest.class.getResourceAsStream("/DeutscheTelekomAGIssuingCA01.crt")));
-        certList.add(new X509Certificate(ResponderTest.class.getResourceAsStream("/hglabplh.cer")));
+        X509Certificate certificate = new X509Certificate(ResponderTest.class.getResourceAsStream("/hglabplh.cer"));
+        List<TrustListManager> walkers = ConfigReader.loadAllTrusts();
+        X509Certificate [] chain = CertificateChainUtil.resolveTrustedChain(certificate, null, walkers, null);
+        for (X509Certificate actual: chain) {
+            certList.add(actual);
+        }
         Tuple<PrivateKey, X509Certificate[]> keys = null;
 
         InputStream

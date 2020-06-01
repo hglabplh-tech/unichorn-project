@@ -42,6 +42,14 @@ public class VerifyPDFUtilTest extends TestBase {
 
     @Test
     public void verifyPDFSSimple() throws Exception {
+        KeyStore trustStore = KeyStoreTool.loadTrustStore();
+        Enumeration<String> aliases = trustStore.aliases();
+        while(aliases.hasMoreElements()) {
+            String alias = aliases.nextElement();
+            X509Certificate cert = KeyStoreTool.getCertificateEntry(trustStore, alias);
+            assertThat(cert, notNullValue());
+            System.out.println("Certificate value of : " + alias + "is\n" + cert.toString(true));
+        }
         InputStream input = VerifyPDFUtilTest.class.getResourceAsStream("/data/simpleCertifiedSigned.pdf");
         SigningBean bean = new SigningBean()
                 .setTspURL("http://zeitstempel.dfn.de")
@@ -52,6 +60,28 @@ public class VerifyPDFUtilTest extends TestBase {
 
         vutil.verifySignedPdf(input);
     }
+
+    @Test
+    public void verifyPDFCardSigned() throws Exception {
+        KeyStore trustStore = KeyStoreTool.loadTrustStore();
+        Enumeration<String> aliases = trustStore.aliases();
+        while(aliases.hasMoreElements()) {
+            String alias = aliases.nextElement();
+            X509Certificate cert = KeyStoreTool.getCertificateEntry(trustStore, alias);
+            assertThat(cert, notNullValue());
+            System.out.println("Certificate value of : " + alias + "is\n" + cert.toString(true));
+        }
+        InputStream input = VerifyPDFUtilTest.class.getResourceAsStream("/data/card-signed-01.pdf");
+        SigningBean bean = new SigningBean()
+                .setTspURL("http://zeitstempel.dfn.de")
+                .setCheckPathOcsp(true)
+                .setDataIN(input);
+        List<TrustListManager> walkers = ConfigReader.loadAllTrusts();
+        VerifyPDFUtil vutil = new VerifyPDFUtil(walkers, bean);
+
+        vutil.verifySignedPdf(input);
+    }
+
 
 
 

@@ -66,8 +66,10 @@ public class CertToolCtrl implements ControllerInit {
                     .getKeyEntry(store, alias, passwd.getText().toCharArray());
             bean = new CertWriterReader.KeyStoreBean(keys.getSecond(), keys.getFirst());
         }
-        if (dataInput != null && outFile != null) {
+        if (dataInput != null) {
             dataInputStream = new FileInputStream(dataInput);
+        }
+        if (outFile != null) {
             outPathString = outFile.getAbsolutePath();
         }
         signingBean.setKeyStoreBean(bean)

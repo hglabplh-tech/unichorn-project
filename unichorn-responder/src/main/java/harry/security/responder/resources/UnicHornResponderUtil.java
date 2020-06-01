@@ -44,18 +44,16 @@ import iaik.x509.*;
 import iaik.x509.X509CRL;
 import iaik.x509.X509Certificate;
 import iaik.x509.extensions.AuthorityInfoAccess;
-import iaik.x509.extensions.AuthorityKeyIdentifier;
 import iaik.x509.extensions.ReasonCode;
-import iaik.x509.extensions.SubjectKeyIdentifier;
 import iaik.x509.ocsp.*;
 import iaik.x509.ocsp.extensions.*;
 import iaik.x509.ocsp.net.HttpOCSPRequest;
 import iaik.x509.ocsp.utils.ResponseGenerator;
-import org.harry.security.util.CertificateWizzard;
 import org.harry.security.util.SigningUtil;
 import org.harry.security.util.Tuple;
 import org.harry.security.util.algoritms.CryptoAlg;
 import org.harry.security.util.bean.SigningBean;
+import org.harry.security.util.certandkey.CertificateChainUtil;
 import org.harry.security.util.certandkey.KeyStoreTool;
 import org.harry.security.util.ocsp.HttpOCSPClient;
 import org.harry.security.util.trustlist.TrustListLoader;
@@ -71,7 +69,6 @@ import java.security.cert.*;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicReference;
 
 import static org.harry.security.util.CertificateWizzard.isCertificateSelfSigned;
 import static org.harry.security.util.ocsp.HttpOCSPClient.getCRLOfCert;
@@ -146,6 +143,7 @@ public class UnicHornResponderUtil {
                                                 AlgorithmID signatureAlgorithm) {
         workingData.set(new LocalCache());
         loadActualPrivStore();
+        CertificateChainUtil.loadTrustCerts(workingData.get().getCertificateList());
         try {
             initStorePreparedResponses();
         } catch (IOException e) {
@@ -390,7 +388,7 @@ public class UnicHornResponderUtil {
         Date actualDate = new Date(instance.getTimeInMillis());
         instance.add(Calendar.WEEK_OF_YEAR, 1);
         Date nextWeek = new Date(instance.getTimeInMillis());
-        Optional<X509Certificate> issuer = findIssuer(actualCert);
+        Optional<X509Certificate> issuer = CertificateChainUtil.findIssuer(actualCert, workingData.get().getCertificateList());
         boolean matches = false;
         boolean error = false;
         try {
@@ -453,17 +451,12 @@ public class UnicHornResponderUtil {
      * @return the found certificate
      */
     private static X509Certificate getX509Certificate(BigInteger serial) {
-        Optional<X509Certificate[]> found = findSerialINPositiveList(serial);
-        X509Certificate actualCert = null;
-        if (found.isPresent()) {
-            for (X509Certificate cert : found.get()) {
-                if (cert.getSerialNumber().equals(serial)) {
-                    actualCert = cert;
-                }
-            }
-
+        Optional<X509Certificate> certOpt = findSerialINPositiveList(serial);
+        if (certOpt.isPresent()) {
+            return certOpt.get();
+        } else {
+            return null;
         }
-        return actualCert;
     }
 
     /**
@@ -731,7 +724,7 @@ public class UnicHornResponderUtil {
                 String alias = aliasEnum.nextElement();
                 Logger.trace("Try to read alias: " + alias);
                 X509Certificate[] chain = KeyStoreTool.getCertChainEntry(storeApp, alias);
-                workingData.get().getChainList().add(chain);
+                CertificateChainUtil.addToCertificateList(chain, workingData.get().getCertificateList());
             }
         } catch (Exception ex) {
             Logger.trace("not loaded cause is: " + ex.getMessage());
@@ -750,7 +743,7 @@ public class UnicHornResponderUtil {
                 TrustListManager manager = loader.getManager(trustFile);
                 X509Certificate[] array = manager.getAllCerts()
                         .toArray(new X509Certificate[manager.getAllCerts().size()]);
-                workingData.get().getChainList().add(array);
+                CertificateChainUtil.addToCertificateList(array, workingData.get().getCertificateList());
             }
         } catch (Exception ex) {
             Logger.trace("not loaded cause is: " + ex.getMessage());
@@ -817,69 +810,15 @@ public class UnicHornResponderUtil {
      * @param serial the certificates serial
      * @return the certificate chain in a optional or empty if there is none.
      */
-    private static Optional<X509Certificate[]> findSerialINPositiveList(BigInteger serial) {
-        Optional<X509Certificate[]> opt = workingData.get().getChainList().stream().filter(e -> {
-            for (X509Certificate cert : e) {
-                if (cert.getSerialNumber().equals(serial)) {
-                    return true;
-                }
+    private static Optional<X509Certificate> findSerialINPositiveList(BigInteger serial) {
+        Optional<X509Certificate> opt = workingData.get().getCertificateList().stream().filter(e -> {
+            X509Certificate cert = e;
+            if (cert.getSerialNumber().equals(serial)) {
+                return true;
             }
             return false;
         }).findFirst();
         return opt;
-    }
-
-    /**
-     * Search the issuer of a certificate in the complete certificates list.
-     * This is done by comparing the issuer dn and the subject and authority keys of the cedrtificates
-     * @param actualCert the certificate for which we like to lookup the issuer
-     * @return the optional holding the issuer
-     */
-    private static Optional<X509Certificate> findIssuer(X509Certificate actualCert) {
-        AtomicReference<Optional<X509Certificate>> optIssuer = new AtomicReference<>(Optional.empty());
-        Optional<X509Certificate[]> opt = workingData.get().getChainList().stream().filter(e -> {
-            for (X509Certificate cert : e) {
-                if (actualCert.getIssuerDN().getName().equals(cert.getSubjectDN().getName())) {
-                    AuthorityKeyIdentifier authID = null;
-                    try {
-                        authID = (AuthorityKeyIdentifier)
-                                actualCert.getExtension(AuthorityKeyIdentifier.oid);
-                    } catch (X509ExtensionInitException x509ExtensionInitException) {
-                        return false;
-                    }
-                    if ( authID != null) {
-                        SubjectKeyIdentifier skeyid = null;
-                        try {
-                            skeyid = (SubjectKeyIdentifier)cert.getExtension(SubjectKeyIdentifier.oid);
-                        } catch (X509ExtensionInitException x509ExtensionInitException) {
-                           return false;
-                        }
-                        Logger.trace("Compare Subject Key : "
-                                + Arrays.toString(skeyid.get()));
-                        Logger.trace("to Authentication Key: "
-                                + Arrays.toString(authID.getKeyIdentifier()));
-                        if (Arrays.equals(authID.getKeyIdentifier(), skeyid.get())) {
-                            if (!optIssuer.get().isPresent()) {
-                                Logger.trace("Issuer found: " + cert.getSubjectDN().getName()
-                                + " Serial: " + cert.getSerialNumber());
-                                optIssuer.set(Optional.of(cert));
-                                return true;
-                            }
-                        }
-                    } else {
-                        if (CertificateWizzard.isCertificateSelfSigned(actualCert)) {
-                            if (!optIssuer.get().isPresent()) {
-                                optIssuer.set(Optional.of(cert));
-                                return true;
-                            }
-                        }
-                    }
-                    return false;
-                }
-            }
-            return false;
-        }).findFirst();
-        return optIssuer.get();
     }
 
     /**
@@ -1241,20 +1180,20 @@ public class UnicHornResponderUtil {
     }
 
     public static class LocalCache {
-        private List<X509Certificate[]> chainList = new ArrayList<>();
+        private List<X509Certificate> certificateList = new ArrayList<>();
 
         private Map<BigInteger, OCSPRespToStore> preparedResponses = new HashMap<>();
 
         public LocalCache() {
-            chainList =  new ArrayList<>();
+            certificateList =  new ArrayList<>();
             preparedResponses = new HashMap<>();
         }
-        public List<X509Certificate[]> getChainList() {
-            return chainList;
+        public List<X509Certificate> getCertificateList() {
+            return certificateList;
         }
 
-        public LocalCache setChainList(List<X509Certificate[]> chainList) {
-            this.chainList = chainList;
+        public LocalCache setCertificateList(List<X509Certificate> chainList) {
+            this.certificateList = chainList;
             return this;
         }
 
@@ -1267,4 +1206,5 @@ public class UnicHornResponderUtil {
             return this;
         }
     }
+
 }

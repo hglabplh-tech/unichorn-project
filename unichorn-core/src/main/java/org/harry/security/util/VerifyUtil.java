@@ -8,8 +8,6 @@ import iaik.cms.*;
 import iaik.pdf.asn1objects.*;
 import iaik.pdf.cmscades.CadesSignatureStream;
 import iaik.pdf.cmscades.CmsCadesException;
-import iaik.security.rsa.RSAPssPublicKey;
-import iaik.security.rsa.RSAPublicKey;
 import iaik.smime.attributes.SignatureTimeStampToken;
 import iaik.tsp.TimeStampToken;
 import iaik.tsp.TspVerificationException;
@@ -19,18 +17,14 @@ import iaik.x509.X509Certificate;
 import iaik.x509.attr.AttributeCertificate;
 import iaik.x509.ocsp.*;
 import org.harry.security.util.bean.SigningBean;
-import org.harry.security.util.ocsp.HttpOCSPClient;
 import org.harry.security.util.certandkey.CertWriterReader;
 import org.harry.security.util.trustlist.TrustListManager;
 
 import java.io.*;
-import java.net.URL;
 import java.security.*;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.util.*;
-
-import static org.harry.security.util.HttpsChecker.loadKey;
 
 /**
  * This class is designed to verify CMS signatures checking their mathematical and other validity
@@ -186,7 +180,7 @@ public class VerifyUtil {
                         System.out.println("Signer " + (j + 1) + " signature value is valid.");
                         vResult.addSignersInfo(signCert.getSubjectDN().getName(), results);
                         algPathChecker.checkSignatureAlgorithm(sigAlg, signCert.getPublicKey(), results);
-                        algPathChecker.detectChain(signCert, results);
+                        algPathChecker.detectChain(signCert, null, results);
                         // tsp verification
                         SignatureTimeStamp[] timestamps = cadesSig.getSignatureTimeStamps(j);
                         for (SignatureTimeStamp tst : timestamps) {
@@ -307,7 +301,7 @@ public class VerifyUtil {
                                     results.addSignatureResult(signCert.getSubjectDN().getName(),
                                             new Tuple<>("signature base check succeded", Outcome.SUCCESS));
 
-                                    algPathChecker.detectChain(signCert, results);
+                                    algPathChecker.detectChain(signCert, null, results);
 
                                 } else {
                                     results.addSignatureResult(signCert.getSubjectDN().getName(),
@@ -474,7 +468,7 @@ public class VerifyUtil {
 
                 // verify archived signature - only exemplary verification
 
-                X509Certificate[] signerCertChain = algPathChecker.detectChain(signerCert, results);
+                X509Certificate[] signerCertChain = algPathChecker.detectChain(signerCert, null, results);
 
                 if (signerCertChain.length > 1) {
                     CertID certID = new CertID(AlgorithmID.sha1,

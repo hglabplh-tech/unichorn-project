@@ -1,14 +1,11 @@
 package org.harry.security.util;
 
-import com.itextpdf.text.pdf.AcroFields;
-import com.itextpdf.text.pdf.PdfName;
-import com.itextpdf.text.pdf.PdfReader;
-import com.itextpdf.text.pdf.security.CertificateVerification;
-import com.itextpdf.text.pdf.security.PdfPKCS7;
 import iaik.asn1.structures.AlgorithmID;
 import iaik.asn1.structures.PolicyInformation;
 import iaik.asn1.structures.PolicyQualifierInfo;
 import iaik.cms.SignerInfo;
+import iaik.pdf.asn1objects.ContentTimeStamp;
+import iaik.pdf.asn1objects.SignatureTimeStamp;
 import iaik.pdf.cmscades.CadesSignature;
 import iaik.pdf.itext.PdfSignatureInstanceItext;
 import iaik.pdf.signature.ApprovalSignature;
@@ -19,24 +16,15 @@ import iaik.smime.ess.SigningCertificate;
 import iaik.tsp.TimeStampToken;
 import iaik.utils.Util;
 import iaik.x509.X509Certificate;
-import iaik.x509.ocsp.OCSPResponse;
-import iaik.x509.ocsp.ReqCert;
 import org.harry.security.util.bean.SigningBean;
-import org.harry.security.util.ocsp.HttpOCSPClient;
 import org.harry.security.util.trustlist.TrustListManager;
 
 import java.io.InputStream;
-import java.security.GeneralSecurityException;
 import java.security.NoSuchAlgorithmException;
-import java.security.PrivateKey;
-import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
-import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
-import java.util.Optional;
 
-import static org.harry.security.util.HttpsChecker.loadKey;
 import static org.harry.security.util.certandkey.CSRHandler.cleanupPreparedResp;
 
 public class VerifyPDFUtil {
@@ -122,10 +110,10 @@ public class VerifyPDFUtil {
                                 new Tuple<>("date range ok", VerifyUtil.Outcome.FAILED));
                     }
                     checkSignerInfo(sigApp, results);
-                    algPathChecker.detectChain(certificate, results);
+                    algPathChecker.detectChain(certificate, null, results);
                     System.out.println("certificate valid at signing time.");
                     if (sigApp.getSignatureTimeStampToken() != null) {
-                        sigApp.verifySignatureTimestampImprint();
+                        checkAnyTimestamp(sigApp.getSignatureTimeStampToken(), "signature timestamp", results);
                         System.out.println("timestamp signature valid.");
                     }
                 }
@@ -181,6 +169,17 @@ public class VerifyPDFUtil {
 
         }
 
+        for (int index = 0; index< infos.length; index++) {
+            ContentTimeStamp[] cTimeStamps = signature.getContentTimeStamps(index);
+            SignatureTimeStamp[] sTimeStamps = signature.getSignatureTimeStamps(index);
+            for (ContentTimeStamp tsp: cTimeStamps) {
+                checkAnyTimestamp(tsp.getTimeStampToken(), "content timestamp", results);
+            }
+            for (SignatureTimeStamp tsp:sTimeStamps) {
+                checkAnyTimestamp(tsp.getTimeStampToken(), "signature timestamp", results);
+            }
+        }
+
     }
 
     private boolean checkByteRange(int[] byteRange) {
@@ -221,6 +220,7 @@ public class VerifyPDFUtil {
             } catch(Exception ex) {
                 return;
             }
+
             SignerInfo info = token.getSignerInfo();
             AlgorithmID signatureAlg = info.getSignatureAlgorithm();
             results.addSignatureResult("timestamp signatureAlgorithmInfo " + tokenType,
@@ -228,11 +228,18 @@ public class VerifyPDFUtil {
             AlgorithmID digestAlg = info.getDigestAlgorithm();
             results.addSignatureResult("timestamp digestAlgorithmInfo " + tokenType,
                     new Tuple<>(digestAlg.getImplementationName(), VerifyUtil.Outcome.SUCCESS));
-            java.security.cert.X509Certificate signingCert = token.getSigningCertificate();
-            X509Certificate iaikVersion = Util.convertCertificate(signingCert);
-            algPathChecker.detectChain(iaikVersion, results);
+            X509Certificate signingCert = Util.convertCertificate(token.getSigningCertificate());
+            System.out.println(signingCert.toString(true));
+            X509Certificate[] certs = Util.convertCertificateChain(token.getCertificates());
+            X509Certificate[] result = Util.arrangeCertificateChain(certs, false);
+            boolean ocspCheck = bean.isCheckPathOcsp();
+            bean.setCheckPathOcsp(false);
+            AlgorithmPathChecker checker  = new AlgorithmPathChecker(walkers, bean);
+            checker.detectChain(signingCert, result, results);
+            bean.setCheckPathOcsp(ocspCheck);
         }
     }
+
 
 
 }

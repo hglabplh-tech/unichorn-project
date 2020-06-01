@@ -129,18 +129,10 @@ public class CertActionCtrl implements ControllerInit {
                 CertWriterReader reader = new CertWriterReader(actualCert);
                 reader.writeX509(targetStream);
             } else if (certType.equals(CertWriterReader.CertType.P12)) {
-                KeyStore store = null;
-                if (storeFile !=null) {
-                   store = KeyStoreTool.loadStore(new FileInputStream(storeFile),
-                           passwd.getText().toCharArray(),
-                           storeType.getType());
-                } else {
-                   store =  KeyStoreTool.initStore(storeType.getType(), passwd.getText());
-                }
+                KeyStore store =  KeyStoreTool.initStore(storeType.getType(), passwd.getText());
                 File outFile = showSaveDialogFromButton(event, "expTarget");
                 targetStream = new FileOutputStream(outFile);
-                String alias =
-                        (String)aliases.getSelectionModel().getSelectedItem();
+                String alias = actualCert.getSubjectDN().getName();
                 KeyStoreTool.addCertificate(store, actualCert, alias);
                 KeyStoreTool.storeKeyStore(store, targetStream, passwd.getText().toCharArray());
             }

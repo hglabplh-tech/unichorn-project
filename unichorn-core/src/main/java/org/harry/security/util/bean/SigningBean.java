@@ -28,6 +28,8 @@ public class SigningBean {
 
     private boolean checkPathOcsp = false;
 
+    private boolean checkOcspUseAltResponder = false;
+
     private String decryptPWD;
 
     private CertWriterReader.KeyStoreBean keyStoreBean;
@@ -279,6 +281,15 @@ public class SigningBean {
 
     public SigningBean setWalker(List<TrustListManager> walker) {
         this.walker = walker;
+        return this;
+    }
+
+    public boolean isCheckOcspUseAltResponder() {
+        return checkOcspUseAltResponder;
+    }
+
+    public SigningBean setCheckOcspUseAltResponder(boolean checkOcspUseAltResponder) {
+        this.checkOcspUseAltResponder = checkOcspUseAltResponder;
         return this;
     }
 }

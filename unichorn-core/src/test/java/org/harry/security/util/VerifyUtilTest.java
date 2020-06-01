@@ -27,7 +27,6 @@ import static junit.framework.TestCase.assertNull;
 import static junit.framework.TestCase.assertTrue;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.harry.security.CommonConst.TSP_URL;
 
 
 public class VerifyUtilTest extends TestBase {
@@ -175,7 +174,7 @@ public class VerifyUtilTest extends TestBase {
         VerifyUtil vutil = new VerifyUtil(walkers, bean);
         AlgorithmPathChecker pathChecker = new AlgorithmPathChecker(walkers, bean);
         VerifyUtil.SignerInfoCheckResults results = new VerifyUtil.SignerInfoCheckResults();
-        X509Certificate[] chain = pathChecker.detectChain(keys.getSecond()[0], results);
+        X509Certificate[] chain = pathChecker.detectChain(keys.getSecond()[0], null, results);
         int index = 0;
         for (X509Certificate cert: chain) {
             X509Certificate other = keys.getSecond()[index];

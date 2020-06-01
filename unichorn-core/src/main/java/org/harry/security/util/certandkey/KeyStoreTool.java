@@ -28,6 +28,7 @@ public class KeyStoreTool {
 
     public static final String KEYSTORE_FNAME = "application.p12";
 
+    public static final String TRUSTSTORE_LOC = System.getProperty("java.home") + "/lib/security/cacerts";
 
     static {
         String userDir = System.getProperty("user.home");
@@ -54,6 +55,19 @@ public class KeyStoreTool {
             KeyStore store = KeyStore.getInstance("PKCS12", IAIK.getInstance());
             FileInputStream resource = new FileInputStream(new File(APP_DIR, KEYSTORE_FNAME));
             store.load(resource, "geheim".toCharArray());
+            resource.close();
+
+            return store;
+        } catch (Exception ex) {
+            throw new IllegalStateException("cannot load keystore", ex);
+        }
+    }
+
+    public static KeyStore loadTrustStore() {
+        try {
+            KeyStore store = KeyStore.getInstance("JKS");
+            FileInputStream resource = new FileInputStream(new File(TRUSTSTORE_LOC));
+            store.load(resource, "changeit".toCharArray());
             resource.close();
 
             return store;
@@ -218,7 +232,8 @@ public class KeyStoreTool {
             }
 
         } catch (Exception ex) {
-            throw new IllegalStateException("delete entry failed", ex);
+            Logger.trace(" Error occurred: " + ex.getMessage());
+            throw new IllegalStateException("add certificate entry failed", ex);
         }
     }
 

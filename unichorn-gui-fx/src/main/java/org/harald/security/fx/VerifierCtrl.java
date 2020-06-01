@@ -60,11 +60,14 @@ public class VerifierCtrl implements ControllerInit {
         verifyResults.getSelectionModel().getSelectedItem();
         SigningBean bean = SecHarry.contexts.get();
         CheckBox check = getCheckBoxByFXID("ocspPathCheck");
+        CheckBox altResponder = getCheckBoxByFXID("altResponder");
         Label status = getLabelByFXID("status");
 
         ComboBox sigType = getComboBoxByFXID("sigType");
         SigningBean.SigningType type = (SigningBean.SigningType) sigType.getSelectionModel().getSelectedItem();
         boolean ocspPathCheck = check.isSelected();
+        boolean altResp = altResponder.isSelected();
+        bean = bean.setCheckOcspUseAltResponder(altResp);
         bean.setCheckPathOcsp(ocspPathCheck);
         VerifyUtil util = new VerifyUtil(bean.getWalker(), bean);
         InputStream dataIN = null;
@@ -72,7 +75,7 @@ public class VerifierCtrl implements ControllerInit {
         if (inputPath != null && signatureInput != null) {
             signatureIN = new FileInputStream(signatureInput);
             dataIN = new FileInputStream(inputPath);
-            if(type.equals(SigningBean.SigningType.CMS)) {
+            if (type.equals(SigningBean.SigningType.CMS)) {
 
                 VerifyUtil.VerifierResult result = util.verifyCMSSignature(signatureIN, dataIN);
                 List<VerifyUtil.SignerInfoCheckResults> set = result.getSignersCheck();
@@ -101,11 +104,11 @@ public class VerifierCtrl implements ControllerInit {
                         KeyStore store = KeyStoreTool.initStore("PKCS12", "geheim");
                         KeyStoreTool.addCertificateChain(store, signerChain);
                         ConfigReader.MainProperties props = ConfigReader.loadStore();
-                        KeyStoreTool.storeKeyStore(store,new FileOutputStream(props.getKeystorePath()), "geheim".toCharArray());
+                        KeyStoreTool.storeKeyStore(store, new FileOutputStream(props.getKeystorePath()), "geheim".toCharArray());
                     }
                 }
-            } else if (type.equals(SigningBean.SigningType.CAdES)){
-                VerifyUtil.VerifierResult result  = util.verifyCadesSignature(signatureIN, dataIN);
+            } else if (type.equals(SigningBean.SigningType.CAdES)) {
+                VerifyUtil.VerifierResult result = util.verifyCadesSignature(signatureIN, dataIN);
                 List<VerifyUtil.SignerInfoCheckResults> set = result.getSignersCheck();
                 List<ResultEntry> entryList = new ArrayList<>();
                 for (VerifyUtil.SignerInfoCheckResults entry : set) {
@@ -132,12 +135,15 @@ public class VerifierCtrl implements ControllerInit {
                         KeyStore store = KeyStoreTool.initStore("PKCS12", "geheim");
                         KeyStoreTool.addCertificateChain(store, signerChain);
                         ConfigReader.MainProperties props = ConfigReader.loadStore();
-                        KeyStoreTool.storeKeyStore(store,new FileOutputStream(props.getKeystorePath()), "geheim".toCharArray());
+                        KeyStoreTool.storeKeyStore(store, new FileOutputStream(props.getKeystorePath()), "geheim".toCharArray());
                     }
                 }
-            } else if (type.equals(SigningBean.SigningType.PAdES)) {
+            }
+        } else if (signatureInput != null) {
+            signatureIN = new FileInputStream(signatureInput);
+            if (type.equals(SigningBean.SigningType.PAdES)) {
                 VerifyPDFUtil pdfUtil = new VerifyPDFUtil(bean.getWalker(), bean);
-                VerifyUtil.VerifierResult result  = pdfUtil.verifySignedPdf(signatureIN);
+                VerifyUtil.VerifierResult result = pdfUtil.verifySignedPdf(signatureIN);
                 List<VerifyUtil.SignerInfoCheckResults> set = result.getSignersCheck();
                 List<ResultEntry> entryList = new ArrayList<>();
                 for (VerifyUtil.SignerInfoCheckResults entry : set) {
@@ -164,14 +170,16 @@ public class VerifierCtrl implements ControllerInit {
                         KeyStore store = KeyStoreTool.initStore("PKCS12", "geheim");
                         KeyStoreTool.addCertificateChain(store, signerChain);
                         ConfigReader.MainProperties props = ConfigReader.loadStore();
-                        KeyStoreTool.storeKeyStore(store,new FileOutputStream(props.getKeystorePath()), "geheim".toCharArray());
+                        KeyStoreTool.storeKeyStore(store, new FileOutputStream(props.getKeystorePath()), "geheim".toCharArray());
                     }
                 }
             }
             status.setText("File checked with: " + type.name());
             verifyResults.refresh();
             verifyResults.setVisible(true);
+
         }
+
     }
 
     @FXML

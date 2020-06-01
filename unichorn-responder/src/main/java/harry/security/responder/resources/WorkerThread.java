@@ -37,11 +37,19 @@ public class WorkerThread implements Runnable {
             Enumeration<String> aliases = storeToApply.aliases();
             while (aliases.hasMoreElements()) {
                 String alias = aliases.nextElement();
-                Tuple<PrivateKey, X509Certificate[]> tuple = KeyStoreTool.
-                        getKeyEntry(storeToApply, alias, passwd.toCharArray());
-                Logger.trace("collect key with alias :" + alias);
-                KeyStoreTool.addKey(privStore, tuple.getFirst(),
-                        passwd.toCharArray(), tuple.getSecond(), alias);
+                try {
+                    Tuple<PrivateKey, X509Certificate[]> tuple = KeyStoreTool.
+                            getKeyEntry(storeToApply, alias, passwd.toCharArray());
+                    Logger.trace("collect key with alias :" + alias);
+                    KeyStoreTool.addKey(privStore, tuple.getFirst(),
+                            passwd.toCharArray(), tuple.getSecond(), alias);
+                } catch (Exception ex) {
+                    X509Certificate cert = KeyStoreTool.getCertificateEntry(storeToApply, alias);
+                    if (cert != null) {
+                        Logger.trace("collect certificate with subject DN: "+ cert.getSubjectDN().getName());
+                        KeyStoreTool.addCertificate(privStore, cert, alias);
+                    }
+                }
                 Logger.trace("add key with alias :" + alias);
             }
             Logger.trace("Before storing.... :" + keyFile.getAbsolutePath());

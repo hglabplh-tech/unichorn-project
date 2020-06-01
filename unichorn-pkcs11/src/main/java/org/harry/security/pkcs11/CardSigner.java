@@ -1,22 +1,18 @@
 package org.harry.security.pkcs11;
 
 import iaik.asn1.ObjectID;
-import iaik.asn1.structures.AlgorithmID;
 import iaik.cms.*;
 import iaik.cms.pkcs11.IaikPkcs11SecurityProvider;
 import iaik.pdf.parameters.PadesBESParameters;
 import iaik.pkcs.pkcs11.Session;
 import iaik.pkcs.pkcs11.SessionInfo;
 import iaik.pkcs.pkcs11.Token;
-import iaik.pkcs.pkcs11.TokenException;
 import iaik.pkcs.pkcs11.objects.Object;
 import iaik.pkcs.pkcs11.objects.X509PublicKeyCertificate;
 import iaik.pkcs.pkcs11.provider.IAIKPkcs11;
 import iaik.pkcs.pkcs11.provider.TokenKeyStore;
 import iaik.pkcs.pkcs11.provider.TokenManager;
 import iaik.security.provider.IAIK;
-import iaik.security.rsa.RSAPrivateKey;
-import iaik.security.rsa.RSAPublicKey;
 import iaik.x509.X509Certificate;
 import iaik.x509.extensions.ExtendedKeyUsage;
 import org.harry.security.util.AlgorithmPathChecker;
@@ -25,7 +21,6 @@ import org.harry.security.util.SigningUtil;
 import org.harry.security.util.VerifyUtil;
 import org.harry.security.util.bean.SigningBean;
 import org.harry.security.util.certandkey.CertWriterReader;
-import org.harry.security.util.certandkey.GSON;
 import org.harry.security.util.trustlist.TrustListManager;
 
 import javax.activation.DataSource;
@@ -276,7 +271,7 @@ public class CardSigner {
         iaik.x509.X509Certificate[] chain;
         AlgorithmPathChecker checker = new AlgorithmPathChecker(walkers, signingBean);
         VerifyUtil.SignerInfoCheckResults results = new VerifyUtil.SignerInfoCheckResults();
-        chain = checker.detectChain(iaikSignerCertificate, results);
+        chain = checker.detectChain(iaikSignerCertificate, null, results);
         CertWriterReader.KeyStoreBean bean = new CertWriterReader.KeyStoreBean(chain, signatureKey_);
         signingBean = signingBean.setKeyStoreBean(bean);
 

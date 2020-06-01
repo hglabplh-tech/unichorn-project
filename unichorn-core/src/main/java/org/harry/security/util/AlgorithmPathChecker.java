@@ -1,26 +1,25 @@
 package org.harry.security.util;
 
-import iaik.asn1.ObjectID;
 import iaik.asn1.structures.AlgorithmID;
-import iaik.asn1.structures.Name;
-import iaik.asn1.structures.RDN;
 import iaik.cms.CMSAlgorithmID;
 import iaik.security.dsa.DSAPublicKey;
 import iaik.security.ec.common.AbstractECPublicKey;
 import iaik.security.rsa.RSAPublicKey;
 import iaik.x509.X509Certificate;
+import iaik.x509.ocsp.BasicOCSPResponse;
 import iaik.x509.ocsp.OCSPResponse;
 import iaik.x509.ocsp.ReqCert;
+import iaik.x509.ocsp.SingleResponse;
 import org.harry.security.util.bean.SigningBean;
+import org.harry.security.util.certandkey.CertificateChainUtil;
 import org.harry.security.util.ocsp.HttpOCSPClient;
 import org.harry.security.util.trustlist.TrustListManager;
 
 import java.security.PrivateKey;
 import java.security.PublicKey;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
+import static org.harry.security.CommonConst.OCSP_URL;
 import static org.harry.security.util.HttpsChecker.loadKey;
 
 public class AlgorithmPathChecker {
@@ -30,8 +29,16 @@ public class AlgorithmPathChecker {
      */
     private final List<TrustListManager> walkers;
 
+    /**
+     * The signing bean
+     */
     private final SigningBean bean;
 
+    /**
+     * CTOr to create this utility
+     * @param walkers the trust lists
+     * @param bean the signing bean
+     */
     public AlgorithmPathChecker(List<TrustListManager> walkers, SigningBean bean) {
         this.walkers = walkers;
         this.bean = bean;
@@ -40,35 +47,25 @@ public class AlgorithmPathChecker {
     /**
      * Here the chain is checked for validity and consistency
      * @param signCert the signers certificate
+     * @param chainIN
      * @param results the check results object
      */
-    public X509Certificate[] detectChain(X509Certificate signCert, VerifyUtil.SignerInfoCheckResults results) {
-        X509Certificate[] certArray;
+    public X509Certificate[] detectChain(X509Certificate signCert, X509Certificate[] chainIN, VerifyUtil.SignerInfoCheckResults results) {
+        X509Certificate[] certArray; // change to method call
         certArray = new X509Certificate[3];
-        X509Certificate actualCert = signCert;
         int index = 0;
-        while (!CertificateWizzard.isCertificateSelfSigned(actualCert)) {
+        certArray = CertificateChainUtil.resolveTrustedChain(signCert, chainIN, walkers, null);
+        if (certArray.length > 0) {
             results.addSignatureResult(
-                    actualCert.getSubjectDN().getName(), new Tuple<>("signature ok", VerifyUtil.Outcome.SUCCESS));
-            Optional<X509Certificate> certOpt = Optional.empty();
-            certOpt = getX509IssuerCertificate(actualCert, certOpt);
-            if (certOpt.isPresent()) {
-                System.out.println("found subject:" + certOpt.get().getSubjectDN().getName());
-                certArray[index] = actualCert;
-                certArray[index + 1] = certOpt.get();
-                if (bean.isCheckPathOcsp()) {
-                    checkOCSP(results, certArray);
-                }
-            } else {
-                results.addSignatureResult(
-                        "", new Tuple<>("signature chain building failed", VerifyUtil.Outcome.FAILED));
+                    "certChain", new Tuple<>("signature chain building success", VerifyUtil.Outcome.SUCCESS));
+        } else {
+            results.addSignatureResult(
+                    "certChain", new Tuple<>("signature chain building failed", VerifyUtil.Outcome.FAILED));
+        }
+        for (X509Certificate actualCert: certArray) {
+            if (!CertificateWizzard.isCertificateSelfSigned(actualCert) && bean.isCheckPathOcsp()) {
+                checkOCSP(actualCert, certArray, bean.isCheckOcspUseAltResponder(), results);
             }
-            if (certOpt.isPresent()) {
-                actualCert = certOpt.get();
-            } else {
-                break;
-            }
-            index++;
         }
         results.addCertChain(new Tuple<>("set signer chain", VerifyUtil.Outcome.SUCCESS), Arrays.asList(certArray), certArray);
         return certArray;
@@ -76,50 +73,26 @@ public class AlgorithmPathChecker {
     }
 
     /**
-     * retrieve the issuers cedrtificate by searching it in the trust list
-     * @param signCert the signers certificate
-     * @param certOpt the certificate optional holding the issuer later on
-     * @return the optional holding the found cdertificate
-     */
-    public Optional<X509Certificate> getX509IssuerCertificate(X509Certificate signCert, Optional<X509Certificate> certOpt)
-    {
-
-        for (TrustListManager walker : walkers) {
-            certOpt = walker.getAllCerts()
-                    .stream().filter(e -> {
-                                try {
-                                    RDN commonIssuer = ((Name) signCert.getIssuerDN()).element(ObjectID.commonName);
-                                    String issuer = commonIssuer.getRFC2253String();
-                                    RDN commonSubject = ((Name) e.getSubjectDN()).element(ObjectID.commonName);
-                                    String subject = commonSubject.getRFC2253String();
-                                    return issuer.equals(subject);
-                                } catch (Exception ex) {
-                                    return false;
-                                }
-
-                            })
-                    .findFirst();
-            if (certOpt.isPresent()) {
-                break;
-            }
-        }
-        return certOpt;
-    }
-
-    /**
      * This method checks the specified certificate chain with
      * OCSP
-     * @param results the check results object
+     * @param actualCert
      * @param chain the certificate chain
+     * @param altResponder
+     * @param results the check results object
      */
-    public void checkOCSP (VerifyUtil.SignerInfoCheckResults results, X509Certificate [] chain) {
+    public void checkOCSP(X509Certificate actualCert, X509Certificate[] chain, boolean altResponder, VerifyUtil.SignerInfoCheckResults results) {
         try {
             boolean reqIsSigned = true;
             Tuple<PrivateKey, X509Certificate[]> bean = loadKey();
             X509Certificate[] certs;
             certs = bean.getSecond();
             int responseStatus = 0;
-            String ocspUrl = HttpOCSPClient.getOCSPUrl(chain[0]);
+            String ocspUrl;
+            if (altResponder) {
+                ocspUrl = OCSP_URL;
+            } else {
+                ocspUrl = HttpOCSPClient.getOCSPUrl(actualCert);
+            }
             OCSPResponse response = null;
             if (reqIsSigned == true && ocspUrl != null) {
                 response = HttpOCSPClient.sendOCSPRequest(ocspUrl, bean.getFirst(),
@@ -133,7 +106,11 @@ public class AlgorithmPathChecker {
                 responseStatus = HttpOCSPClient.getClient().parseOCSPResponse(response, true);
                 String resultName = chain[0].getSubjectDN().getName();
                 if (responseStatus == OCSPResponse.successful) {
-                    results.addOcspResult(resultName, new Tuple<String, VerifyUtil.Outcome>(response.getResponseStatusName(), VerifyUtil.Outcome.SUCCESS));
+                    BasicOCSPResponse basicOCSPResponse = (BasicOCSPResponse) response
+                            .getResponse();
+                    SingleResponse singleResponse = basicOCSPResponse.getSingleResponses()[0];
+                    results.addOcspResult(resultName,
+                            new Tuple<String, VerifyUtil.Outcome>("ocsp result is: " + singleResponse.getCertStatus().toString(), VerifyUtil.Outcome.SUCCESS));
                 } else if (responseStatus == OCSPResponse.tryLater) {
                     results.addOcspResult(resultName, new Tuple<String, VerifyUtil.Outcome>(response.getResponseStatusName(),
                             VerifyUtil.Outcome.UNDETERMINED));
@@ -184,7 +161,7 @@ public class AlgorithmPathChecker {
     }
 
     /**
-     * check method for RSA> Padding Version
+     * check method for RSA Padding Version
      * @param sigAlg the signature algorithm
      * @param results the check result container
      */
@@ -195,6 +172,8 @@ public class AlgorithmPathChecker {
             results.addSignatureResult("check rsa padding", new Tuple<>("padding PSS 1.5", VerifyUtil.Outcome.UNDETERMINED));
         }
     }
+
+
 
 
 
