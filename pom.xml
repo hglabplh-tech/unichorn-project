@@ -4,7 +4,7 @@
   <groupId>org.harry.security</groupId>
   <artifactId>unichorn-project</artifactId>
   <packaging>pom</packaging>
-  <version>1.0</version>
+  <version>1.1-SNAPSHOT</version>
   <modules>
     <module>unichorn-core</module>
     <module>unichorn-gui-fx</module>
