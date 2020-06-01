@@ -4,26 +4,54 @@ import java.io.File;
 
 public class CommonConst {
 
+    /**
+     * The applications configuration and data directory
+     */
     public static String APP_DIR;
 
+    /**
+     * The directory in which the private key store, the trust-lists and the crl resides
+     */
     public static String APP_DIR_TRUST;
 
+    /**
+     * Here the PKCS11 dll's reside
+     */
     public static String APP_DIR_DLL;
 
+    /**
+     * The file-name of the application properties
+     */
     public static final String PROP_FNAME = "application.properties";
 
+    /**
+     * Sub-Path for dll's
+     */
     public static final String PROP_DLLPATH = "dll";
 
-    public static final String PROP_TLS = "harry.trust.listurls";
+    /**
+     * The base URL for the services
+     */
+    public static final String BASE_URL = "https://localhost/unichorn-responder-1.1-SNAPSHOT";
 
-    public static final String BASE_URL = "https://localhost/unichorn-responder-1.0-SNAPSHOT";
-
+    /**
+     * The sub-path to the timestamp-service
+     */
     public static final String TSP_URL = BASE_URL + "/rest/tsp";
 
+    /**
+     * The sub-path to the ocsp-responder
+     */
     public static final String OCSP_URL  = BASE_URL + "/rest/ocsp";
 
+    /**
+     * The sub-path to the signing-service
+     */
     public static final String SIGNING_URL  = BASE_URL + "/rest/signing";
 
+    /**
+     * The sub-path to the admin-service
+     */
     public static final String ADMIN_URL  = BASE_URL + "/rest/admin";
 
     static {
@@ -37,7 +65,7 @@ public class CommonConst {
         if (!dirTrust.exists()) {
             dirTrust.mkdirs();
         }
-        File dirDll = new File(userDir, "dll");
+        File dirDll = new File(userDir, PROP_DLLPATH);
         if (!dirDll.exists()) {
             dirDll.mkdirs();
         }

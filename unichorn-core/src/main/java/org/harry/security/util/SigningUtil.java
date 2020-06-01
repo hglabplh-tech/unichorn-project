@@ -35,25 +35,6 @@ import static org.harry.security.CommonConst.OCSP_URL;
 
 public class SigningUtil {
 
-    private CertWriterReader.KeyStoreBean keyStoreBean;
-    private int mode = SignedDataStream.EXPLICIT;
-    private String signaturePath;
-    private ConfigReader.MainProperties properties;
-
-    public static String APP_DIR;
-
-    public static final String KEYSTORE_FNAME = "appKeyStore.jks";
-
-    static {
-        String userDir = System.getProperty("user.home");
-        userDir = userDir + "\\AppData\\Local\\MySigningApp";
-        File dir = new File(userDir);
-        if (!dir.exists()){
-            dir.mkdirs();
-        }
-        APP_DIR= userDir;
-    }
-
 
     public SigningUtil() {
 
@@ -474,6 +455,7 @@ public class SigningUtil {
      * @return the signed data
      */
     public DataSource signEncrCMS(SigningBean signingBean) {
+        ConfigReader.MainProperties properties = ConfigReader.loadStore();
         try {
             SignedData signedData = new SignedData(signingBean.getCertIN());
             if (signedData.getMode() == SignedData.EXPLICIT) {
@@ -535,13 +517,13 @@ public class SigningUtil {
      * @param data the message to be enveloped, as byte representation
      * @return the DER encoded ContentInfo holding the EnvelopedData object just created
      */
-    public DataSource envelopeDataCMS(InputStream data)  {
+    public DataSource envelopeDataCMS(SigningBean bean, InputStream data)  {
 
         EnvelopedDataStream enveloped_data;
 
         // create a new EnvelopedData object encrypted with TripleDES CBC
         try {
-
+            ConfigReader.MainProperties properties = ConfigReader.loadStore();
             AlgorithmID pbeAlgorithm = AlgorithmID.getAlgorithmID(properties.getEnvelopAlg());
             enveloped_data = new EnvelopedDataStream(data, pbeAlgorithm);
         } catch (NoSuchAlgorithmException ex) {
@@ -551,7 +533,7 @@ public class SigningUtil {
         // create the recipient infos
         RecipientInfo[] recipients = new RecipientInfo[1];
         // user1 is the first receiver
-        recipients[0] = new KeyTransRecipientInfo(keyStoreBean.getSelectedCert(), (AlgorithmID)AlgorithmID.rsaEncryption.clone());
+        recipients[0] = new KeyTransRecipientInfo(bean.getKeyStoreBean().getSelectedCert(), (AlgorithmID)AlgorithmID.rsaEncryption.clone());
 
         // specify the recipients of the encrypted message
         enveloped_data.setRecipientInfos(recipients);
@@ -582,7 +564,7 @@ public class SigningUtil {
      *
      * @return the recovered message, as byte array
      */
-    public DataSource getEnvelopedData(InputStream encoding) {
+    public DataSource getEnvelopedData(SigningBean bean, InputStream encoding) {
         EnvelopedDataStream enveloped_data = null;
 
         try {
@@ -601,7 +583,7 @@ public class SigningUtil {
 
 // decrypt the message
         try {
-            enveloped_data.setupCipher(keyStoreBean.getSelectedKey(), 0);
+            enveloped_data.setupCipher(bean.getKeyStoreBean().getSelectedKey(), 0);
             InputStreamDataSource ds = new InputStreamDataSource(enveloped_data.getInputStream());
             return ds;
 
@@ -615,69 +597,54 @@ public class SigningUtil {
     }
 
 
-        public static SigningUtil.Builder newBuilder() {
-        return new SigningUtil.Builder();
-     }
-
-
-    /**
-     * The builder for the classes possible parameters
-     */
-    public static class Builder {
-
-        private SigningUtil myInstance = null;
-        public Builder() {
-            myInstance = new SigningUtil();
-        }
-
-        public Builder withKeystoreBean(CertWriterReader.KeyStoreBean bean) {
-            myInstance.keyStoreBean = bean;
-            return this;
-        }
-
-        public Builder withProperties(ConfigReader.MainProperties props) {
-            myInstance.properties = props;
-            return this;
-        }
-
-        public Builder withMode(int mode) {
-            myInstance.mode = mode;
-            return this;
-        }
-
-        public Builder withSignaturePath(String path) {
-            myInstance.signaturePath = path;
-            return this;
-        }
-
-        public SigningUtil build() {
-            return myInstance;
-        }
-    }
-
     /**
      * A datasource reflecting a pure java.io.InputStream
      */
     public static class InputStreamDataSource implements DataSource {
 
+        /**
+         * the used stream
+         */
         private final InputStream myStream;
 
+        /**
+         * CTOr for the datasource
+         * @param in the input stream to wrap
+         */
         public InputStreamDataSource(InputStream in) {
             myStream = in;
         }
 
+
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
         public InputStream getInputStream() throws IOException {
             return myStream;
         }
 
+        /**
+         * {@inheritDoc}
+         */
+        @Override
         public OutputStream getOutputStream() throws IOException {
             return null;
         }
 
+        /**
+         * {@inheritDoc}
+         */
+        @Override
         public String getContentType() {
             return "application/cms";
         }
 
+        /**
+         * {@inheritDoc}
+         */
+        @Override
         public String getName() {
             return "CMSSig";
         }
@@ -688,28 +655,53 @@ public class SigningUtil {
      */
     public static class CopyInputStreamDataSource implements DataSource {
 
+        /**
+         * the byte array containing the data
+         */
         private final byte [] content;
 
 
+        /**
+         * CTOR copying the input stream to a reusable byte-array
+         * which is used by get-input-stream to create the returned ByteArrayInputStream
+         * @param in the input stream to wrap
+         * @throws IOException error case
+         */
         public CopyInputStreamDataSource(InputStream in) throws IOException {
             ByteArrayOutputStream out = new ByteArrayOutputStream();
             IOUtils.copy(in, out);
             content = out.toByteArray();
         }
 
+        /**
+         * {@inheritDoc}
+         */
+        @Override
         public InputStream getInputStream() throws IOException {
             ByteArrayInputStream stream = new ByteArrayInputStream(content);
             return stream;
         }
 
+        /**
+         * {@inheritDoc}
+         */
+        @Override
         public OutputStream getOutputStream() throws IOException {
             throw new UnsupportedOperationException("getOutputStream is forbidden");
         }
 
+        /**
+         * {@inheritDoc}
+         */
+        @Override
         public String getContentType() {
             return "application/cms";
         }
 
+        /**
+         * {@inheritDoc}
+         */
+        @Override
         public String getName() {
             return "CMSSig";
         }

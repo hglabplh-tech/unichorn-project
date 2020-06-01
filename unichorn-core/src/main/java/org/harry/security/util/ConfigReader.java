@@ -87,6 +87,11 @@ public class ConfigReader {
      */
     public static final String PROP_PKCS11_PIN = "harry.pkcs11.pin";
 
+    /**
+     * Property for the trust-list URL's
+     */
+    public static final String PROP_TLS = "harry.trust.listurls";
+
 
     /**
      * A HttpClient for accept all input
@@ -351,6 +356,20 @@ public class ConfigReader {
         private  List<String> trustLists;
         private String pkcs11Pin;
 
+        /**
+         * CTOr for the Main Properties
+         * @param keystorePath the path to the keystore
+         * @param keystoreType the keystore type
+         * @param keystorePass the keystore password
+         * @param alias the keystore alias
+         * @param country the country setting for a certificate
+         * @param organization the organization setting for a certificate
+         * @param unit the organization-unit setting for a certificate
+         * @param commonName the common name setting for a certificate
+         * @param decrPasswd the password for de-/ encryption
+         * @param pbeAlg the crypto algorithm for decrypt / encrypt
+         * @param envelopAlg the crypto algorithm for envelop
+         */
         public MainProperties(String keystorePath, String keystoreType,
                               String keystorePass, String alias, String country,
                               String organization, String unit, String commonName,
@@ -368,16 +387,26 @@ public class ConfigReader {
             this.envelopAlg = envelopAlg;
         }
 
+        /**
+         * Default CTOr
+         */
         public MainProperties() {
 
         }
 
+        /**
+         * get the algorithm for encryption
+         * @return the algorithm
+         */
         public String getPbeAlg() {
             return pbeAlg;
         }
 
 
-
+        /**
+         * get the decryption password
+         * @return the password
+         */
         public String getDecryptPWD() {
             if (decryptPWD == null) {
                 decryptPWD = readPassWD("Enter decrypt password:");
@@ -385,23 +414,44 @@ public class ConfigReader {
             return decryptPWD;
         }
 
+        /**
+         * get the trust lists urls
+         * @return the list-string
+         */
         public List<String> getTrustLists() {
             return trustLists;
         }
 
+        /**
+         * set the urls for the trust-lists used for loading them
+         * @param trustLists the urls list-string
+         * @return this object
+         */
         public MainProperties setTrustLists(List<String> trustLists) {
             this.trustLists = trustLists;
             return this;
         }
 
+        /**
+         * get the path to the keystore
+         * @return the path
+         */
         public String getKeystorePath() {
             return keystorePath;
         }
 
+        /**
+         * get the given key-store type
+         * @return the type as string
+         */
         public String getKeystoreType() {
             return keystoreType;
         }
 
+        /**
+         * get the keystore password
+         * @return the password
+         */
         public String getKeystorePass() {
             if (keystorePass == null) {
                 keystorePass = readPassWD("type keystore password:");
@@ -409,98 +459,195 @@ public class ConfigReader {
             return keystorePass;
         }
 
+        /**
+         * get the keystore-alias
+         * @return the alias
+         */
         public String getAlias() {
             return alias;
         }
 
+        /**
+         * get the algorithm for envelop data
+         * @return the algorithm
+         */
         public String getEnvelopAlg() {
             return envelopAlg;
         }
 
+        /**
+         * get the country for setting in certificate
+         * @return the country
+         */
         public String getCountry() {
             return country;
         }
 
+        /**
+         * get the organization for setting in certificate
+         * @return the organization
+         */
         public String getOrganization() {
             return organization;
         }
 
+        /**
+         * get the organization-unit for setting in certificate
+         * @return the organization-unit
+         */
         public String getUnit() {
             return unit;
         }
 
+        /**
+         * get the common-name for setting in certificate
+         * @return the common-name
+         */
         public String getCommonName() {
             return commonName;
         }
 
+        /**
+         * set the keystore path
+         * @param keystorePath the path
+         * @return this object
+         */
         public MainProperties setKeystorePath(String keystorePath) {
             this.keystorePath = keystorePath;
             return this;
         }
 
+        /**
+         * set the keystore-type
+         * @param keystoreType the type
+         * @return this object
+         */
         public MainProperties setKeystoreType(String keystoreType) {
             this.keystoreType = keystoreType;
             return this;
         }
 
+        /**
+         * set the keystore password
+         * @param keystorePass the password
+         * @return this object
+         */
         public MainProperties setKeystorePass(String keystorePass) {
             this.keystorePass = keystorePass;
             return this;
         }
 
+        /**
+         * set the keystore-alias
+         * @param alias the alias
+         * @return this object
+         */
         public MainProperties setAlias(String alias) {
             this.alias = alias;
             return this;
         }
 
+        /**
+         * set the algorithm for de-/ encryption
+         * @param pbeAlg the algorithm
+         * @return this object
+         */
         public MainProperties setPbeAlg(String pbeAlg) {
             this.pbeAlg = pbeAlg;
             return this;
         }
 
+        /**
+         * set the algorithm for envelop data
+         * @param envelopAlg the algorithm
+         * @return this object
+         */
         public MainProperties setEnvelopAlg(String envelopAlg) {
             this.envelopAlg = envelopAlg;
             return this;
         }
 
+        /**
+         * set the password for decryption/ encryption
+         * @param decryptPWD the password
+         * @return this object
+         */
         public MainProperties setDecryptPWD(String decryptPWD) {
             this.decryptPWD = decryptPWD;
             return this;
         }
 
+        /**
+         * set the country for use in a certificate
+         * @param country the country
+         * @return this object
+         */
         public MainProperties setCountry(String country) {
             this.country = country;
             return this;
         }
 
+        /**
+         * set the organization for use in a certificate
+         * @param organization the org
+         * @return this object
+         */
         public MainProperties setOrganization(String organization) {
             this.organization = organization;
             return this;
         }
 
+        /**
+         * set the organization unit for use in a certificate
+         * @param unit the unit
+         * @return this object
+         */
         public MainProperties setUnit(String unit) {
             this.unit = unit;
             return this;
         }
 
+        /**
+         * set the common-name for use in a certificate
+         * @param commonName the common-name
+         * @return this object
+         */
         public MainProperties setCommonName(String commonName) {
             this.commonName = commonName;
             return this;
         }
 
+        /**
+         * get the path of a attribute-certificate for use in signing
+         * @return the path
+         */
         public String getAttrCertPath() {
             return attrCertPath;
         }
 
+        /**
+         * set the path of a attribute-certificate for use in signing
+         * @param attrCertPath the path
+         * @return this object
+         */
         public MainProperties setAttrCertPath(String attrCertPath) {
             this.attrCertPath = attrCertPath;
             return this;
         }
 
+        /**
+         * get the pin for a smart-card
+         * @return the pin
+         */
         public String getPkcs11Pin() {
             return pkcs11Pin;
         }
 
+        /**
+         * set the pin for a smart-card usage
+         * @param pkcs11Pin the pin
+         * @return this object
+         */
         public MainProperties setPkcs11Pin(String pkcs11Pin) {
             this.pkcs11Pin = pkcs11Pin;
             return this;

@@ -129,11 +129,8 @@ public class CMSSigner {
                     if (signed.isImplicit()) {
                         mode = SignedDataStream.IMPLICIT;
                     }
-                    SigningUtil util = SigningUtil.newBuilder()
-                            .withProperties(params)
-                            .withKeystoreBean(bean)
-                            .withSignaturePath(cmds.getOutFileName())
-                            .withMode(mode).build();
+                    SigningUtil util = new SigningUtil();
+
                     FileInputStream dataStream = null;
                     String dataFileName = cmds.getDataFileName();
                     if (dataFileName != null) {
@@ -155,10 +152,10 @@ public class CMSSigner {
                         DataSource envelopDS = util.encryptCMS(signingBean);
                         util.writeToFile(envelopDS, signingBean);
                     } else if (command.equals(Commands.CRYPT_ENVELOP)) {
-                        DataSource outDS = util.envelopeDataCMS(dataStream);
+                        DataSource outDS = util.envelopeDataCMS(signingBean, dataStream);
                         util.writeToFile(outDS, signingBean);
                     } else if (command.equals(Commands.DECRYPT_ENVELOP)) {
-                        DataSource outDS = util.getEnvelopedData(dataStream);
+                        DataSource outDS = util.getEnvelopedData(signingBean, dataStream);
                         util.writeToFile(outDS, signingBean);
                     } else if (command.equals(Commands.SIGN_CERT)) {
 
