@@ -14,15 +14,15 @@ public class ServerInfoGetterTest {
     public void testInfo() throws Exception {
         Writer writer = new StringWriter();
         ServerInfoGetter getter = new ServerInfoGetter("www.google.de", 443);
-        Hashtable<X509Certificate, X509Certificate[]>  serverCerts = getter.getInformation();
+        Hashtable<iaik.x509.X509Certificate, iaik.x509.X509Certificate[]>  serverCerts = getter.getInformation();
         //System.out.println(writer.toString());
         getter = new ServerInfoGetter("www.ibm.com", 443);
         writer = new StringWriter();
         serverCerts = getter.getInformation();
         System.out.println(writer.toString());
-        Enumeration<X509Certificate[]> values = serverCerts.elements();
+        Enumeration<iaik.x509.X509Certificate[]> values = serverCerts.elements();
         while(values.hasMoreElements()) {
-            X509Certificate[] array = values.nextElement();
+            iaik.x509.X509Certificate[] array = values.nextElement();
             for (X509Certificate cert: array) {
                 iaik.x509.X509Certificate printable = new iaik.x509.X509Certificate(cert.getEncoded());
                 System.out.println(printable.toString(true));

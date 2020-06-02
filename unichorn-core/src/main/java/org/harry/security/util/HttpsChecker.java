@@ -22,6 +22,7 @@ import java.security.cert.CertificateException;
 import java.util.*;
 
 import static org.harry.security.CommonConst.OCSP_URL;
+import static org.harry.security.util.ocsp.OCSCRLPClient.checkCertificateForRevocation;
 
 public class HttpsChecker {
 
@@ -36,8 +37,33 @@ public class HttpsChecker {
      * @return return the list of certificates
      */
     public static List<X509Certificate> getCertFromHttps(String urlString) {
-        List<X509Certificate> certList = new ArrayList<>();
-        CloseableHttpClient httpClient = null;
+        try {
+            List<X509Certificate> certList = new ArrayList<>();
+            URL url = new URL(urlString);
+            int port;
+            if (url.getPort() != -1) {
+                port = url.getPort();
+            } else {
+                port = 443;
+            }
+            ServerInfoGetter getter =
+                    new ServerInfoGetter(url.getHost(), port);
+            Hashtable<X509Certificate, X509Certificate[]> certsTable =
+                    getter.getInformation();
+            Enumeration<X509Certificate[]> elements = certsTable.elements();
+            if (elements.hasMoreElements()) {
+                X509Certificate[] chain = elements.nextElement();
+                for (X509Certificate certificate: chain) {
+                    certList.add(certificate);
+                }
+            }
+            return certList;
+        } catch (Throwable ex) {
+                System.out.println("SSL error");
+                ex.printStackTrace();
+                throw new IllegalStateException("http error ", ex);
+        }
+      /*  CloseableHttpClient httpClient = null;
         try {
             URL netURL = new URL(urlString);
             String protocol = netURL.getProtocol();
@@ -87,7 +113,7 @@ public class HttpsChecker {
                 }
 
             }
-        }
+        } */
 
     }
     // create http response certificate interceptor
@@ -180,6 +206,19 @@ public class HttpsChecker {
                             responseStatus = single.getCertStatus().getCertStatus();
                         }
                     }
+                }
+
+                if (responseStatus != 0) {
+                    System.out.println("Check certificates via CRL");
+                    X509Certificate [] certificates = new X509Certificate[certList.size()];
+                    int index = 0;
+                    for (X509Certificate cert : certList) {
+                        certificates[index] = cert;
+                        index++;
+                    }
+                    boolean ok = checkCertificateForRevocation(certificates);
+                    responseStatus = (ok) ? 0: -1;
+                    System.out.println("Checked certificates via CRL ended with: " + responseStatus);
                 }
 
                 return  new Tuple<Integer, List<X509Certificate>>(Integer.valueOf(responseStatus), certList);

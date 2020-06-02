@@ -39,7 +39,7 @@ public class HttpOCSPClient {
     /**
      * The OCSP client instance
      */
-    private static OCSPClient client;
+    private static OCSCRLPClient client;
 
     /**
      * flag to tell that we are initialized
@@ -61,7 +61,7 @@ public class HttpOCSPClient {
                                                 X509Certificate[] targetCerts,
                                                 int type, boolean isAltRespRequested, boolean additionalExts) {
 
-        client = new OCSPClient();
+        client = new OCSCRLPClient();
         try {
             String altResponder= null;
             if (isAltRespRequested) {
@@ -84,7 +84,7 @@ public class HttpOCSPClient {
      * used to get the underlying client
      * @return the client
      */
-    public static OCSPClient getClient() {
+    public static OCSCRLPClient getClient() {
         return client;
     }
 
@@ -182,32 +182,4 @@ public class HttpOCSPClient {
         return null;
     }
 
-    /**
-     * Get the CRL from the certificate
-     * @param cert the certificate
-     * @return the X509CRL from the specified extension
-     * @throws X509ExtensionInitException error case
-     */
-    public static X509CRL getCRLOfCert(X509Certificate cert) throws X509ExtensionInitException {
-        String urlString = null;
-        CRLDistributionPoints access = (CRLDistributionPoints) cert.getExtension(ObjectID.certExt_CrlDistributionPoints);
-        if (access != null) {
-            Enumeration<DistributionPoint> enumDist = access.getDistributionPoints();
-            boolean hasMore = enumDist.hasMoreElements();
-            if (hasMore) {
-                DistributionPoint point = enumDist.nextElement();
-                try {
-                    X509CRL crl = point.loadCrl();
-                    return crl;
-                } catch (Exception ex) {
-                    throw new IllegalStateException("load crl failed", ex);
-                }
-            } else {
-                return null;
-            }
-        } else {
-            return null;
-
-        }
-    }
 }

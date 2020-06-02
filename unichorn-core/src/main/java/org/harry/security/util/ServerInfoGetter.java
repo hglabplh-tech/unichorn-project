@@ -39,7 +39,7 @@ public class ServerInfoGetter {
     private InetAddress hostAddress;
     private SSLClientContext context;
     private Throwable exception;
-    private Hashtable<java.security.cert.X509Certificate, java.security.cert.X509Certificate[]> serverCerts;
+    private Hashtable<X509Certificate, X509Certificate[]> serverCerts;
     private boolean eccAvailable;
 
     public ServerInfoGetter(String hostname, int port) {
@@ -61,7 +61,7 @@ public class ServerInfoGetter {
         } catch (Exception e) {
             // ignore; iaikEccProvider is null
         }
-        serverCerts = new Hashtable<java.security.cert.X509Certificate, java.security.cert.X509Certificate[]>();
+        serverCerts = new Hashtable<X509Certificate, X509Certificate[]>();
     }
 
     private void setExtensions(SSLContext context) {
@@ -86,7 +86,7 @@ public class ServerInfoGetter {
      * Get the SSL information of a given host
      * @return the SSL certificates HashTable
      */
-    public Hashtable<java.security.cert.X509Certificate, java.security.cert.X509Certificate[]> getInformation() {
+    public Hashtable<X509Certificate, X509Certificate[]> getInformation() {
 
         ServerInfo.init();
         if (hostname.indexOf("<") != -1) {
@@ -275,8 +275,8 @@ public class ServerInfoGetter {
 
 
 
-        for(Enumeration<java.security.cert.X509Certificate[]> e = serverCerts.elements(); e.hasMoreElements(); ) {
-            java.security.cert.X509Certificate[] next = e.nextElement();
+        for(Enumeration<X509Certificate[]> e = serverCerts.elements(); e.hasMoreElements(); ) {
+            X509Certificate[] next = e.nextElement();
             String type = Utils.certTypeToString(Utils.getCertificateType(next));
 
         }
@@ -298,7 +298,7 @@ public class ServerInfoGetter {
         for (X509Certificate thisCert: certIAIK) {
             System.out.println(thisCert.toString(true));
         }
-        serverCerts.put(certs[0], certs);
+        serverCerts.put(certIAIK[0], certIAIK);
     }
 
     /**

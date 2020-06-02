@@ -1,14 +1,15 @@
 package org.harry.security.util.ocsp;
 
 import iaik.asn1.ObjectID;
-import iaik.asn1.structures.AccessDescription;
-import iaik.asn1.structures.AlgorithmID;
-import iaik.asn1.structures.GeneralName;
-import iaik.asn1.structures.Name;
+import iaik.asn1.structures.*;
 import iaik.cms.IssuerAndSerialNumber;
 import iaik.utils.CryptoUtils;
+import iaik.x509.RevokedCertificate;
+import iaik.x509.X509CRL;
 import iaik.x509.X509Certificate;
+import iaik.x509.X509ExtensionInitException;
 import iaik.x509.extensions.AuthorityInfoAccess;
+import iaik.x509.extensions.CRLDistributionPoints;
 import iaik.x509.extensions.ExtendedKeyUsage;
 import iaik.x509.ocsp.*;
 import iaik.x509.ocsp.extensions.ArchiveCutoff;
@@ -16,12 +17,13 @@ import iaik.x509.ocsp.extensions.CrlID;
 import iaik.x509.ocsp.extensions.PreferredSignatureAlgorithms;
 import iaik.x509.ocsp.extensions.ServiceLocator;
 import iaik.x509.ocsp.utils.TrustedResponders;
+import org.harry.security.util.CertificateWizzard;
 
 import java.math.BigInteger;
 import java.security.*;
-import java.util.Date;
+import java.util.*;
 
-public class OCSPClient {
+public class OCSCRLPClient {
 
     private X509Certificate[] targetCerts;
     private ReqCert reqCert;
@@ -35,6 +37,86 @@ public class OCSPClient {
 
     // trust repository for responders
     TrustedResponders trustedResponders = null;
+
+    public static boolean checkCertificateForRevocation(X509Certificate[] certificates) {
+        boolean success = true;
+        try {
+            for (X509Certificate certificate : certificates) {
+                boolean ok = false;
+                X509CRL crl = getCRLOfCert(certificate);
+                if (crl != null) {
+                    Date revokeDate = checkRevocation(crl, certificate.getSerialNumber());
+                    if (revokeDate == null) {
+                        ok = true;
+                    }
+                    success = success && ok;
+                } else {
+                    success = false;
+                }
+            }
+            return success;
+        } catch (Exception ex) {
+            throw new IllegalStateException("cannot check CRL error: " + ex.getMessage(), ex);
+        }
+    }
+
+    /**
+     * Check if the given certificate is in the revokation list and has to be revoked.
+     * The method looks up the certificate and checks it's revocation state.
+     * @param crl the revocation list
+     * @param certSerial the certificates serial     *
+     * @return a possible revocation Date
+     */
+    public static Date checkRevocation(X509CRL crl, BigInteger certSerial) {
+        Set<RevokedCertificate> revoked = crl.getRevokedCertificates();
+        for (RevokedCertificate cert : revoked) {
+            System.out.println(cert.getSerialNumber() + " " + certSerial);
+        }
+        Optional<RevokedCertificate> found = revoked.stream()
+                .filter(e -> e.getSerialNumber().equals(certSerial))
+                .findFirst();
+        if (found.isPresent()) {
+            Calendar cal = Calendar.getInstance();
+            Date actualDate = new Date(cal.getTimeInMillis());
+            Date rDate = found.get().getRevocationDate();
+            if (rDate.after(actualDate)) {
+                return null;
+            } else {
+                return rDate;
+            }
+
+        }
+        return null;
+    }
+
+    /**
+     * Get the CRL from the certificate
+     * @param cert the certificate
+     * @return the X509CRL from the specified extension
+     * @throws X509ExtensionInitException error case
+     */
+    public static X509CRL getCRLOfCert(X509Certificate cert) throws X509ExtensionInitException {
+        String urlString = null;
+        CRLDistributionPoints access = (CRLDistributionPoints) cert.getExtension(ObjectID.certExt_CrlDistributionPoints);
+        if (access != null) {
+            Enumeration<DistributionPoint> enumDist = access.getDistributionPoints();
+            boolean hasMore = enumDist.hasMoreElements();
+            if (hasMore) {
+                DistributionPoint point = enumDist.nextElement();
+                try {
+                    X509CRL crl = point.loadCrl();
+                    return crl;
+                } catch (Exception ex) {
+                    throw new IllegalStateException("load crl failed", ex);
+                }
+            } else {
+                return null;
+            }
+        } else {
+            return null;
+
+        }
+    }
 
     /**
      * Creates an OCSPRequest.

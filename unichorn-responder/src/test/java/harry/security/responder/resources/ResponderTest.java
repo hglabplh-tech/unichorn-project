@@ -21,7 +21,7 @@ import org.harry.security.util.certandkey.CertWriterReader;
 import org.harry.security.util.certandkey.CertificateChainUtil;
 import org.harry.security.util.certandkey.KeyStoreTool;
 import org.harry.security.util.ocsp.HttpOCSPClient;
-import org.harry.security.util.ocsp.OCSPClient;
+import org.harry.security.util.ocsp.OCSCRLPClient;
 import org.harry.security.util.trustlist.TrustListManager;
 import org.junit.Before;
 import org.junit.Test;
@@ -85,7 +85,7 @@ public class ResponderTest  {
             URL ocspUrl= new URL(OCSP_URL);
             /*OCSPResponse response = HttpOCSPClient.sendOCSPRequest(ocspUrl, keys.getFirst(),
                     certs, certList.toArray(new X509Certificate[0]), true); */
-            OCSPClient client = new OCSPClient();
+            OCSCRLPClient client = new OCSCRLPClient();
             OCSPRequest request = client.createOCSPRequest(null, null,
                     certList.toArray(new X509Certificate[0]),
                     ReqCert.certID, ocspUrlOrig, true);
@@ -120,7 +120,7 @@ public class ResponderTest  {
         certs = keys.getSecond();
         for (X509Certificate cert : certList) {
             String ocspURL = HttpOCSPClient.getOCSPUrl(certList.get(0));
-            OCSPClient client = new OCSPClient();
+            OCSCRLPClient client = new OCSCRLPClient();
             OCSPRequest request = client.createOCSPRequest(keys.getFirst(),
                     certs, certList.toArray(new X509Certificate[0]),
                     ReqCert.certID, null, true);
@@ -160,7 +160,7 @@ public class ResponderTest  {
         for (X509Certificate[] certArray : certList) {
             if (certArray.length > 1) {
                 String ocspURL = HttpOCSPClient.getOCSPUrl(certArray[0]);
-                OCSPClient client = new OCSPClient();
+                OCSCRLPClient client = new OCSCRLPClient();
                 OCSPRequest request = client.createOCSPRequest(keys.getFirst(),
                         certs, certArray,
                         ReqCert.certID, ocspURL, true);
@@ -201,7 +201,7 @@ public class ResponderTest  {
         for (X509Certificate[] certArray : certList) {
             if (certArray.length > 1) {
                 String ocspURL = HttpOCSPClient.getOCSPUrl(certArray[0]);
-                OCSPClient client = new OCSPClient();
+                OCSCRLPClient client = new OCSCRLPClient();
                 OCSPRequest ocspRequest = client.createOCSPRequest(keys.getFirst(),
                         certs, certArray,
                         ReqCert.certID, ocspURL, true);
@@ -333,8 +333,8 @@ public class ResponderTest  {
         SingleResponse[] resps = basicOCSPResponse.getSingleResponses();
         System.out.println(resps[0].getCertStatus().toString());
         int responseStatus = HttpOCSPClient.getClient().parseOCSPResponse(response, false);
-        assertThat(OCSPClient.CertStatusEnum.fromStatus(resps[0].getCertStatus().getCertStatus()),
-                is(OCSPClient.CertStatusEnum.UNKNOWN));
+        assertThat(OCSCRLPClient.CertStatusEnum.fromStatus(resps[0].getCertStatus().getCertStatus()),
+                is(OCSCRLPClient.CertStatusEnum.UNKNOWN));
         System.out.println("Status: " + responseStatus);
 
     }
@@ -354,8 +354,8 @@ public class ResponderTest  {
         SingleResponse[] resps = basicOCSPResponse.getSingleResponses();
         int responseStatus = HttpOCSPClient.getClient().parseOCSPResponse(response, false);
         System.out.println(resps[0].getCertStatus().toString());
-        assertThat(OCSPClient.CertStatusEnum.fromStatus(resps[0].getCertStatus().getCertStatus()),
-                is(OCSPClient.CertStatusEnum.REVOKED));
+        assertThat(OCSCRLPClient.CertStatusEnum.fromStatus(resps[0].getCertStatus().getCertStatus()),
+                is(OCSCRLPClient.CertStatusEnum.REVOKED));
         System.out.println("Status: " + responseStatus);
 
     }
@@ -375,8 +375,8 @@ public class ResponderTest  {
         SingleResponse[] resps = basicOCSPResponse.getSingleResponses();
         int responseStatus = HttpOCSPClient.getClient().parseOCSPResponse(response, false);
         System.out.println(resps[0].getCertStatus().toString());
-        assertThat(OCSPClient.CertStatusEnum.fromStatus(resps[0].getCertStatus().getCertStatus()),
-                is(OCSPClient.CertStatusEnum.GOOD));
+        assertThat(OCSCRLPClient.CertStatusEnum.fromStatus(resps[0].getCertStatus().getCertStatus()),
+                is(OCSCRLPClient.CertStatusEnum.GOOD));
         System.out.println("Status: " + responseStatus);
 
     }
@@ -455,7 +455,7 @@ public class ResponderTest  {
                             String ocspUrl = OCSP_URL;
                         }
                         OCSPResponse response;
-                        OCSPClient client = new OCSPClient();
+                        OCSCRLPClient client = new OCSCRLPClient();
                         if (true) {
                             OCSPRequest request = client.createOCSPRequest(keys.getFirst(),
                                     certs,

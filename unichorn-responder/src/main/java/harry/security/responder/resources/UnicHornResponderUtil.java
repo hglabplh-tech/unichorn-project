@@ -55,7 +55,7 @@ import org.harry.security.util.algoritms.CryptoAlg;
 import org.harry.security.util.bean.SigningBean;
 import org.harry.security.util.certandkey.CertificateChainUtil;
 import org.harry.security.util.certandkey.KeyStoreTool;
-import org.harry.security.util.ocsp.HttpOCSPClient;
+import org.harry.security.util.ocsp.OCSCRLPClient;
 import org.harry.security.util.trustlist.TrustListLoader;
 import org.harry.security.util.trustlist.TrustListManager;
 import org.pmw.tinylog.Logger;
@@ -71,7 +71,7 @@ import java.util.*;
 import java.util.concurrent.*;
 
 import static org.harry.security.util.CertificateWizzard.isCertificateSelfSigned;
-import static org.harry.security.util.ocsp.HttpOCSPClient.getCRLOfCert;
+import static org.harry.security.util.ocsp.OCSCRLPClient.getCRLOfCert;
 
 /**
  * This class is designed for generating a OCSP response for a certain certificate given in
@@ -308,11 +308,11 @@ public class UnicHornResponderUtil {
                     AlgorithmID hashAlg = certID.getHashAlgorithm();
                     Date rDate = null;
                     X509Certificate actualCert = getX509Certificate(serial);
-                    X509CRL crlAlterntative = HttpOCSPClient.getCRLOfCert(actualCert);
+                    X509CRL crlAlterntative = OCSCRLPClient.getCRLOfCert(actualCert);
                     if (crlAlterntative != null) {
-                        rDate = checkRevocation(crlAlterntative, serial);
+                        rDate = OCSCRLPClient.checkRevocation(crlAlterntative, serial);
                     } else {
-                        rDate = checkRevocation(crl, serial);
+                        rDate = OCSCRLPClient.checkRevocation(crl, serial);
                     }
                     if (rDate == null && actualCert != null) {
                         setResponseEntry(responseGenerator, reqCert, null, actualCert);
@@ -339,12 +339,12 @@ public class UnicHornResponderUtil {
                         crlToUse = crl;
                     }
 
-                    X509CRL crlAlterntative = HttpOCSPClient.getCRLOfCert(certificate);
+                    X509CRL crlAlterntative = OCSCRLPClient.getCRLOfCert(certificate);
                     Date rDate = null;
                     if (crlAlterntative != null) {
-                        rDate = checkRevocation(crlAlterntative, certificate.getSerialNumber());
+                        rDate = OCSCRLPClient.checkRevocation(crlAlterntative, certificate.getSerialNumber());
                     } else {
-                        rDate = checkRevocation(crl, certificate.getSerialNumber());
+                        rDate = OCSCRLPClient.checkRevocation(crl, certificate.getSerialNumber());
                     }
                     X509Certificate actualCert = getX509Certificate(certificate.getSerialNumber());
 
@@ -774,35 +774,6 @@ public class UnicHornResponderUtil {
             throw new IllegalStateException("get input stream failed", ex);
         }
 
-    }
-
-    /**
-     * Check if the given certificate is in the revokation list and has to be revoked.
-     * The method looks up the certificate and checks it's revocation state.
-     * @param crl the revocation list
-     * @param certSerial the certificates serial     *
-     * @return a possible revocation Date
-     */
-    private static Date checkRevocation(X509CRL crl, BigInteger certSerial) {
-        Set<RevokedCertificate> revoked = crl.getRevokedCertificates();
-        for (RevokedCertificate cert : revoked) {
-            System.out.println(cert.getSerialNumber() + " " + certSerial);
-        }
-        Optional<RevokedCertificate> found = revoked.stream()
-                .filter(e -> e.getSerialNumber().equals(certSerial))
-                .findFirst();
-        if (found.isPresent()) {
-            Calendar cal = Calendar.getInstance();
-            Date actualDate = new Date(cal.getTimeInMillis());
-            Date rDate = found.get().getRevocationDate();
-            if (rDate.after(actualDate)) {
-                return null;
-            } else {
-                return rDate;
-            }
-
-        }
-        return null;
     }
 
     /**
