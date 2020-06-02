@@ -47,6 +47,7 @@ public class SecHarry extends Application {
         URL resourceURL = SecHarry.class.getResource(fxml + ".fxml");
         fxmlLoader = new FXMLLoader(resourceURL);
         Pane root = (Pane) fxmlLoader.load();
+        root.setMinSize(1200.0, 700.0);
         ControllerInit controller = (ControllerInit)fxmlLoader.getController();
         if (root.getStylesheets().size() > 0) {
             root.getStylesheets().remove(0);
@@ -54,6 +55,9 @@ public class SecHarry extends Application {
        root.getStylesheets().add(css.getUrl());
 
         Scene scene = controller.init();
+        if (scene != null) {
+
+        }
 
         return root;
     }

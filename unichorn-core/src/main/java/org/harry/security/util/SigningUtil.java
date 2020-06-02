@@ -20,7 +20,6 @@ import org.apache.commons.io.IOUtils;
 import org.harry.security.util.algoritms.DigestAlg;
 import org.harry.security.util.algoritms.SignatureAlg;
 import org.harry.security.util.bean.SigningBean;
-import org.harry.security.util.certandkey.CertWriterReader;
 import org.harry.security.util.certandkey.KeyStoreTool;
 import org.harry.security.util.ocsp.HttpOCSPClient;
 import org.pmw.tinylog.Logger;
@@ -153,7 +152,7 @@ public class SigningUtil {
             }
             Logger.trace("Get OCSP values from URL: " + url);
             OCSPResponse response = HttpOCSPClient.sendOCSPRequest(url, null, null,
-                    cert, ReqCert.certID, false);
+                    cert, ReqCert.certID, false, true);
             OCSPResponse [] responses = new OCSPResponse[1];
             responses[0] = response;
             parameters.addArchiveDetails(cert, null, responses);

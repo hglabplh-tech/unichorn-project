@@ -13,10 +13,10 @@ public class ServerInfoGetterTest {
     @Test
     public void testInfo() throws Exception {
         Writer writer = new StringWriter();
-        ServerInfoGetter getter = new ServerInfoGetter("www.google.de", 443, writer, "");
+        ServerInfoGetter getter = new ServerInfoGetter("www.google.de", 443);
         Hashtable<X509Certificate, X509Certificate[]>  serverCerts = getter.getInformation();
         //System.out.println(writer.toString());
-        getter = new ServerInfoGetter("www.ibm.com", 443, writer, "");
+        getter = new ServerInfoGetter("www.ibm.com", 443);
         writer = new StringWriter();
         serverCerts = getter.getInformation();
         System.out.println(writer.toString());

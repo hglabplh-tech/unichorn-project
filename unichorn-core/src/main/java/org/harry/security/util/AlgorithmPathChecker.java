@@ -10,7 +10,6 @@ import iaik.x509.ocsp.BasicOCSPResponse;
 import iaik.x509.ocsp.OCSPResponse;
 import iaik.x509.ocsp.ReqCert;
 import iaik.x509.ocsp.SingleResponse;
-import org.bouncycastle.asn1.isismtt.ocsp.RequestedCertificate;
 import org.harry.security.util.bean.SigningBean;
 import org.harry.security.util.certandkey.CertificateChainUtil;
 import org.harry.security.util.ocsp.HttpOCSPClient;
@@ -98,10 +97,10 @@ public class AlgorithmPathChecker {
             OCSPResponse response = null;
             if (reqIsSigned == true && ocspUrl != null) {
                 response = HttpOCSPClient.sendOCSPRequest(ocspUrl, bean.getFirst(),
-                        certs, chain, ReqCert.certID, false);
+                        certs, chain, ReqCert.certID, false, true);
             } else if (ocspUrl != null){
                 response = HttpOCSPClient.sendOCSPRequest(ocspUrl, bean.getFirst(),
-                        certs, chain, ReqCert.certID, false);
+                        certs, chain, ReqCert.certID, false, true);
             }
 
             if (response != null) {

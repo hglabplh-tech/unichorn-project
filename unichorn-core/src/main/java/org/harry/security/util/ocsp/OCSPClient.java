@@ -47,6 +47,7 @@ public class OCSPClient {
      *          certs shall be included
      * @param targetCerts
      *          the certs for which status information shall be included
+     * @param additionalExts
      * @return the OCSPRequest created
      *
      * @exception OCSPException
@@ -56,7 +57,7 @@ public class OCSPClient {
                                          X509Certificate[] requestorCerts,
                                          X509Certificate[] targetCerts,
                                          int type,
-                                         String altResponder)
+                                         String altResponder, boolean additionalExts)
             throws OCSPException
 
     {
@@ -101,28 +102,30 @@ public class OCSPClient {
             // set the requestList
             ocspRequest.setRequestList(new Request[] { request });
 
-          // we only accept basic OCSP responses
-            ocspRequest
-                    .setAcceptableResponseTypes(new ObjectID[] { BasicOCSPResponse.responseType });
-
             // set a nonce value
             nonce = new byte[16];
             SecureRandom random = new SecureRandom();
             random.nextBytes(nonce);
             ocspRequest.setAcceptableResponseTypes(new ObjectID[]{BasicOCSPResponse.responseType});
             ocspRequest.setNonce(nonce);
-            PreferredSignatureAlgorithms.PreferredSignatureAlgorithm [] algorithms = new PreferredSignatureAlgorithms.PreferredSignatureAlgorithm[4];
-            algorithms[0] = new PreferredSignatureAlgorithms.PreferredSignatureAlgorithm(AlgorithmID.sha3_256WithRSAEncryption);
-            algorithms[1] = new PreferredSignatureAlgorithms.PreferredSignatureAlgorithm(AlgorithmID.sha3_512WithRSAEncryption);
-            algorithms[2] = new PreferredSignatureAlgorithms.PreferredSignatureAlgorithm(AlgorithmID.sha256WithRSAEncryption);
-            algorithms[3] = new PreferredSignatureAlgorithms.PreferredSignatureAlgorithm(AlgorithmID.sha512WithRSAEncryption);
-            PreferredSignatureAlgorithms algorithmsExt = new PreferredSignatureAlgorithms(algorithms);
-            ocspRequest.addExtension(algorithmsExt);
+            // we only accept basic OCSP responses
+            ocspRequest
+                    .setAcceptableResponseTypes(new ObjectID[] { BasicOCSPResponse.responseType });
+
+            if (additionalExts) {
+                PreferredSignatureAlgorithms.PreferredSignatureAlgorithm[] algorithms = new PreferredSignatureAlgorithms.PreferredSignatureAlgorithm[4];
+                algorithms[0] = new PreferredSignatureAlgorithms.PreferredSignatureAlgorithm(AlgorithmID.sha3_256WithRSAEncryption);
+                algorithms[1] = new PreferredSignatureAlgorithms.PreferredSignatureAlgorithm(AlgorithmID.sha3_512WithRSAEncryption);
+                algorithms[2] = new PreferredSignatureAlgorithms.PreferredSignatureAlgorithm(AlgorithmID.sha256WithRSAEncryption);
+                algorithms[3] = new PreferredSignatureAlgorithms.PreferredSignatureAlgorithm(AlgorithmID.sha512WithRSAEncryption);
+                PreferredSignatureAlgorithms algorithmsExt = new PreferredSignatureAlgorithms(algorithms);
+                ocspRequest.addExtension(algorithmsExt);
+            }
 
 
 
 
-            if (requestorKey != null) {
+            if (requestorKey != null && additionalExts) {
                 if ((requestorCerts == null) || (requestorCerts.length == 0)) {
                     throw new NullPointerException(
                             "Requestor certs must not be null if request has to be signed!");

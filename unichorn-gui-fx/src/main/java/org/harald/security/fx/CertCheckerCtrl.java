@@ -85,7 +85,7 @@ public class CertCheckerCtrl implements ControllerInit {
         CheckBox ocspCheck = Miscellaneous.getCheckBoxByFXID("ocspCheck");
         CheckBox altResponder = Miscellaneous.getCheckBoxByFXID("altResp");
         Writer writer = new StringWriter();
-        ServerInfoGetter getter = new ServerInfoGetter(url.getText(), Integer.parseInt(port.getText()), writer, "");
+        ServerInfoGetter getter = new ServerInfoGetter(url.getText(), Integer.parseInt(port.getText()));
         Hashtable<java.security.cert.X509Certificate, java.security.cert.X509Certificate[]> serverCerts = getter.getInformation();
         Enumeration<java.security.cert.X509Certificate[]> values = serverCerts.elements();
         if(values.hasMoreElements()) {

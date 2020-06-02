@@ -27,6 +27,11 @@ public class Miscellaneous {
         return inputField;
     }
 
+    public static Label getLabelByFXID(String fxId) {
+        Label inputField = (Label) SecHarry.fxmlLoader.getNamespace().get(fxId);
+        return inputField;
+    }
+
     public static ChoiceBox getChoiceBoxByFXID(String fxId)  {
         ChoiceBox choice = (ChoiceBox) SecHarry.fxmlLoader.getNamespace().get(fxId);
         return choice;
@@ -55,11 +60,6 @@ public class Miscellaneous {
     public static ProgressBar getProgessBarByFXID(String fxId)  {
         ProgressBar progress = (ProgressBar) SecHarry.fxmlLoader.getNamespace().get(fxId);
         return progress;
-    }
-
-    public static Label getLabelByFXID(String fxId)  {
-        Label label = (Label) SecHarry.fxmlLoader.getNamespace().get(fxId);
-        return label;
     }
 
     public static ListView getListViewByFXID(String fxId) {

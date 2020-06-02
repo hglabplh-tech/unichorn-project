@@ -17,7 +17,6 @@ import org.apache.http.entity.InputStreamEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.harry.security.util.*;
-import org.harry.security.util.bean.SigningBean;
 import org.harry.security.util.certandkey.CertWriterReader;
 import org.harry.security.util.certandkey.CertificateChainUtil;
 import org.harry.security.util.certandkey.KeyStoreTool;
@@ -31,7 +30,6 @@ import org.pmw.tinylog.Level;
 import org.pmw.tinylog.Logger;
 import org.pmw.tinylog.writers.ConsoleWriter;
 
-import javax.net.ssl.TrustManager;
 import javax.ws.rs.core.Response;
 import java.io.*;
 import java.net.URL;
@@ -90,7 +88,7 @@ public class ResponderTest  {
             OCSPClient client = new OCSPClient();
             OCSPRequest request = client.createOCSPRequest(null, null,
                     certList.toArray(new X509Certificate[0]),
-                    ReqCert.certID, ocspUrlOrig);
+                    ReqCert.certID, ocspUrlOrig, true);
 
             ByteArrayInputStream stream = new ByteArrayInputStream(request.getEncoded());
             ResponseGenerator respGen = null;
@@ -125,7 +123,7 @@ public class ResponderTest  {
             OCSPClient client = new OCSPClient();
             OCSPRequest request = client.createOCSPRequest(keys.getFirst(),
                     certs, certList.toArray(new X509Certificate[0]),
-                    ReqCert.certID, null);
+                    ReqCert.certID, null, true);
 
             ByteArrayInputStream stream = new ByteArrayInputStream(request.getEncoded());
             ResponseGenerator respGen = null;
@@ -165,7 +163,7 @@ public class ResponderTest  {
                 OCSPClient client = new OCSPClient();
                 OCSPRequest request = client.createOCSPRequest(keys.getFirst(),
                         certs, certArray,
-                        ReqCert.certID, ocspURL);
+                        ReqCert.certID, ocspURL, true);
 
                 ByteArrayInputStream stream = new ByteArrayInputStream(request.getEncoded());
                 ResponseGenerator respGen = null;
@@ -206,7 +204,7 @@ public class ResponderTest  {
                 OCSPClient client = new OCSPClient();
                 OCSPRequest ocspRequest = client.createOCSPRequest(keys.getFirst(),
                         certs, certArray,
-                        ReqCert.certID, ocspURL);
+                        ReqCert.certID, ocspURL, true);
 
                 String uri = OCSP_URL;
                 HttpOCSPRequest request = new HttpOCSPRequest
@@ -247,7 +245,7 @@ public class ResponderTest  {
                     certs, certList.toArray(new X509Certificate[0]), true); */
             OCSPResponse response = HttpOCSPClient.sendOCSPRequest(ocspUrl, null,
                     null, certList.toArray(new X509Certificate[0]),
-                    ReqCert.pKCert, false);
+                    ReqCert.pKCert, false, true);
             responseStatus = HttpOCSPClient.getClient().parseOCSPResponse(response, false);
         }
 
@@ -273,7 +271,7 @@ public class ResponderTest  {
             ocspUrl= OCSP_URL;
             OCSPResponse response = HttpOCSPClient.sendOCSPRequest(ocspUrl, keys.getFirst(),
                     certs, certList.toArray(new X509Certificate[0]),
-                    ReqCert.pKCert, false);
+                    ReqCert.pKCert, false, true);
             responseStatus = HttpOCSPClient.getClient().parseOCSPResponse(response, false);
         }
 
@@ -310,7 +308,7 @@ public class ResponderTest  {
                  */
                 OCSPResponse response = HttpOCSPClient.sendOCSPRequest(ocspUrl, null,
                         null, certArray,
-                        ReqCert.certID, false);
+                        ReqCert.certID, false, true);
                 responseStatus = HttpOCSPClient.getClient().parseOCSPResponse(response, false);
             }
         }
@@ -330,7 +328,7 @@ public class ResponderTest  {
         ocspUrl = OCSP_URL;
         OCSPResponse response = HttpOCSPClient.sendOCSPRequest(ocspUrl, null,
                 null, chain,
-                ReqCert.certID, false);
+                ReqCert.certID, false, true);
         BasicOCSPResponse basicOCSPResponse = (BasicOCSPResponse)response.getResponse();
         SingleResponse[] resps = basicOCSPResponse.getSingleResponses();
         System.out.println(resps[0].getCertStatus().toString());
@@ -351,7 +349,7 @@ public class ResponderTest  {
         ocspUrl = OCSP_URL;
         OCSPResponse response = HttpOCSPClient.sendOCSPRequest(ocspUrl, null,
                 null, chain,
-                ReqCert.certID, false);
+                ReqCert.certID, false, true);
         BasicOCSPResponse basicOCSPResponse = (BasicOCSPResponse)response.getResponse();
         SingleResponse[] resps = basicOCSPResponse.getSingleResponses();
         int responseStatus = HttpOCSPClient.getClient().parseOCSPResponse(response, false);
@@ -372,7 +370,7 @@ public class ResponderTest  {
         ocspUrl = OCSP_URL;
         OCSPResponse response = HttpOCSPClient.sendOCSPRequest(ocspUrl, null,
                 null, chain,
-                ReqCert.certID, false);
+                ReqCert.certID, false, true);
         BasicOCSPResponse basicOCSPResponse = (BasicOCSPResponse)response.getResponse();
         SingleResponse[] resps = basicOCSPResponse.getSingleResponses();
         int responseStatus = HttpOCSPClient.getClient().parseOCSPResponse(response, false);
@@ -462,7 +460,7 @@ public class ResponderTest  {
                             OCSPRequest request = client.createOCSPRequest(keys.getFirst(),
                                     certs,
                                     certList.toArray(new X509Certificate[0]),
-                                    ReqCert.certID, ocspUrlOrig);
+                                    ReqCert.certID, ocspUrlOrig, true);
 
                             ByteArrayInputStream stream = new ByteArrayInputStream(request.getEncoded());
                             ResponseGenerator respGen = null;

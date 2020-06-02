@@ -156,6 +156,13 @@ public class CertToolCtrl implements ControllerInit {
         //SecHarry.setRoot("crledit", SecHarry.CSS.ABBY);
         SecHarry.setRoot("trustEdit", SecHarry.CSS.ABBY);
     }
+
+    @FXML
+    private void browser(ActionEvent event) throws IOException {
+        //SecHarry.setRoot("crledit", SecHarry.CSS.ABBY);
+        SecHarry.setRoot("browser", SecHarry.CSS.UNICHORN);
+    }
+
     @FXML
     private void editProps(ActionEvent event) throws IOException {
         SecHarry.setRoot("properties", SecHarry.CSS.UNICHORN);

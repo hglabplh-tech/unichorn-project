@@ -1,14 +1,14 @@
 package org.harry.security.util;
 
 import iaik.x509.X509Certificate;
-import iaik.x509.ocsp.OCSPResponse;
-import iaik.x509.ocsp.ReqCert;
+import iaik.x509.ocsp.*;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.conn.ssl.TrustAllStrategy;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.protocol.HttpContext;
 import org.apache.http.protocol.HttpCoreContext;
 import org.apache.http.ssl.SSLContextBuilder;
+import org.harry.security.util.certandkey.CertificateChainUtil;
 import org.harry.security.util.certandkey.KeyStoreTool;
 import org.harry.security.util.httpclient.ClientFactory;
 import org.harry.security.util.ocsp.HttpOCSPClient;
@@ -20,6 +20,8 @@ import java.security.*;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.util.*;
+
+import static org.harry.security.CommonConst.OCSP_URL;
 
 public class HttpsChecker {
 
@@ -142,6 +144,7 @@ public class HttpsChecker {
                                                                                boolean ocspCheck,
                                                                                boolean altResponder
     ) {
+        int responseStatus = -1;
         try {
         List<X509Certificate> certList = HttpsChecker.getCertFromHttps(checkURL);
         Map<String, X509Certificate> certMap = CertLoader.loadCertificatesFromWIN();
@@ -155,23 +158,27 @@ public class HttpsChecker {
                 certs = bean.getSecond();
                 /*OCSPResponse response = HttpOCSPClient.sendOCSPRequest(ocspUrl, bean.getSelectedKey(),
                         certs, certList.toArray(new X509Certificate[0]), false);*/
-                int responseStatus = 0;
-                for (X509Certificate cert : certList) {
-                    String ocspUrl = HttpOCSPClient.getOCSPUrl(cert);
 
-                    if (altResponder) {
-                        ocspUrl ="http://localhost:8080/unichorn-responder-1.0-SNAPSHOT/rest/ocsp";
-                    }
-                    OCSPResponse response;
+                for (X509Certificate cert : certList) {
+                    if (!CertificateWizzard.isCertificateSelfSigned(cert)) {
+                        String ocspUrl = HttpOCSPClient.getOCSPUrl(cert);
+
+                        if (altResponder) {
+                            ocspUrl = OCSP_URL;
+                        }
+                        OCSPResponse response;
 
                         response = HttpOCSPClient.sendOCSPRequest(ocspUrl, bean.getFirst(),
                                 certs, certList.toArray(new X509Certificate[0]),
-                                ReqCert.certID, true);
+                                ReqCert.certID, false, true);
 
-                    int oldStatus = responseStatus;
-                    responseStatus = HttpOCSPClient.getClient().parseOCSPResponse(response, true);
-                    if(oldStatus != OCSPResponse.successful) {
-                        responseStatus = oldStatus;
+
+                        responseStatus = HttpOCSPClient.getClient().parseOCSPResponse(response, true);
+                        if (responseStatus == OCSPResponse.successful) {
+                            BasicOCSPResponse basic = (BasicOCSPResponse) response.getResponse();
+                            SingleResponse single = basic.getSingleResponses()[0];
+                            responseStatus = single.getCertStatus().getCertStatus();
+                        }
                     }
                 }
 

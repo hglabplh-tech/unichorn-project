@@ -1,5 +1,9 @@
 package org.harry.security.util.httpclient;
 
+import iaik.protocol.https.HttpsURLConnection;
+import iaik.security.ssl.OCSPCertStatusChainVerifier;
+import iaik.security.ssl.SSLClientContext;
+import iaik.x509.X509Certificate;
 import org.apache.http.Header;
 import org.apache.http.HttpResponseInterceptor;
 import org.apache.http.client.CookieStore;
@@ -17,18 +21,45 @@ import org.apache.http.protocol.HttpCoreContext;
 import org.apache.http.ssl.SSLContextBuilder;
 import org.apache.http.ssl.SSLContexts;
 import org.apache.http.ssl.TrustStrategy;
+import org.harry.security.util.certandkey.CertificateChainUtil;
 import org.harry.security.util.certandkey.KeyStoreTool;
 
 import javax.net.ssl.*;
 import java.io.IOException;
+import java.net.URL;
 import java.security.*;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
+import java.util.ArrayList;
+import java.util.List;
 
 public class ClientFactory {
 
     public static final String PEER_CERTIFICATES = "PEER_CERTIFICATES";
 
+    public static HttpsURLConnection createIAIKManagedClient(String url) throws Exception {
+        OCSPCertStatusChainVerifier verifier = new OCSPCertStatusChainVerifier();
+        SSLClientContext clientContext = new SSLClientContext();
+        OCSPCertStatusChainVerifier ocspCertStatusChainVerifier = new OCSPCertStatusChainVerifier();
+        clientContext.setChainVerifier(ocspCertStatusChainVerifier);
+        List<X509Certificate> trusted = new ArrayList<>();
+        CertificateChainUtil.loadTrustCerts(trusted);
+        for (X509Certificate certificate: trusted) {
+            clientContext.addTrustedCertificate(certificate);
+        }
+        URL conURL = new URL(url);
+        HttpsURLConnection connection = new HttpsURLConnection(conURL);
+        connection.connect();
+        connection.setSSLContext(clientContext);
+        connection.setDoInput(true);
+        connection.setDoInput(true);
+        return connection;
+    }
+
+    /**
+     * create a client accepting all requests from any host
+     * @return the client
+     */
     public static HttpClient getAcceptAllHttpClient() {
         try {
 

@@ -52,13 +52,14 @@ public class HttpOCSPClient {
      * @param requestorKey the requestor private key this is nullable
      * @param requestorCerts the requestor certificates this is nullable
      * @param targetCerts the target certificates which have to be checked
+     * @param additionalExts
      * @return the response from the responder
      */
     public static  OCSPResponse sendOCSPRequest(String ocspSedrverURL,
                                                 PrivateKey requestorKey,
                                                 X509Certificate[] requestorCerts,
                                                 X509Certificate[] targetCerts,
-                                                int type, boolean isAltRespRequested) {
+                                                int type, boolean isAltRespRequested, boolean additionalExts) {
 
         client = new OCSPClient();
         try {
@@ -67,7 +68,7 @@ public class HttpOCSPClient {
              altResponder = getOCSPUrl(targetCerts[0]);
             }
             OCSPRequest request = client.createOCSPRequest(requestorKey, requestorCerts,
-                    targetCerts, type, altResponder);
+                    targetCerts, type, altResponder, additionalExts);
             OCSPResponse response;
 
             response = getOcspResponsePOSTApache(ocspSedrverURL, request);
