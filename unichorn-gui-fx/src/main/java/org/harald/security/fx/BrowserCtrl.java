@@ -140,8 +140,8 @@ public class BrowserCtrl implements ControllerInit {
                     progress.setVisible(false);
                 } else if (newValue == Worker.State.RUNNING) {
                     WebView webview = (WebView) getWebViewByFXID("browser");
-                    String authString = String.format("%s:%s", "hglabplh", "2Much4Me#");
-                    String base64 = Util.toBase64String(authString.getBytes());
+                    String basicAuthData = System.getenv("BASIC_AUTH");
+                    String base64 = Util.toBase64String(basicAuthData.getBytes());
                     engine.setUserAgent("foo\nAuthorization: Basic " + base64);
                     progress.progressProperty().bind(engine.getLoadWorker().progressProperty());
                     TrustManager trm = new X509TrustManager() {
