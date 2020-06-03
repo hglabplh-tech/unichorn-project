@@ -13,10 +13,12 @@ import iaik.pdf.parameters.CadesBESParameters;
 import iaik.pdf.parameters.CadesLTAParameters;
 import iaik.pdf.parameters.CadesTParameters;
 import iaik.smime.ess.SigningCertificate;
+import iaik.utils.Util;
 import iaik.x509.X509Certificate;
 import iaik.x509.ocsp.OCSPResponse;
 import iaik.x509.ocsp.ReqCert;
 import org.apache.commons.io.IOUtils;
+import org.harry.security.util.algoritms.CryptoAlg;
 import org.harry.security.util.algoritms.DigestAlg;
 import org.harry.security.util.algoritms.SignatureAlg;
 import org.harry.security.util.bean.SigningBean;
@@ -406,6 +408,71 @@ public class SigningUtil {
         }
 
     }
+
+    /**
+     * This method encrypts a string message using the CMS encryption
+     * @param toEncrypt the String which has to be encrypted
+     * @param masterPW the master password used for encryption
+     * @return the encrypted stream as base64 String
+     */
+    public String encryptStringCMS(String toEncrypt, String masterPW) {
+
+        EncryptedData encrypted_data;
+        try {
+            encrypted_data = new EncryptedData(toEncrypt.getBytes());
+            AlgorithmID pbeAlg = CryptoAlg.PBE_SHAA3_KEY_TRIPLE_DES_CBC.getAlgId();
+            System.out.println(pbeAlg.getImplementationName());
+            encrypted_data.setupCipher(pbeAlg, masterPW.toCharArray());
+        } catch (InvalidKeyException ex) {
+            throw new IllegalStateException("Key error: " + ex.toString());
+        } catch (NoSuchAlgorithmException ex) {
+            throw new IllegalStateException("Content encryption algorithm not implemented: " + ex.toString());
+        }
+        try {
+            ByteArrayOutputStream result = new ByteArrayOutputStream();
+            ContentInfoStream cis = new ContentInfoStream(encrypted_data);
+            cis.writeTo(result);
+            String base64 = Util.toBase64String(result.toByteArray());
+            return base64;
+        } catch (Exception ex) {
+            throw new IllegalStateException("error occured", ex);
+
+        }
+    }
+
+
+    /**
+     * This method decrypts a encrypted CMS message
+     * @param base64 the encrypted data as base 64 string
+     * @param masterPW master password to decrypt data
+     * @return the decoded plain String
+     */
+    public String decryptBase64CMS(String base64, String masterPW)  {
+        try{
+            byte[] decodedBase64 = Util.fromBase64String(base64);
+
+            ByteArrayInputStream input = new ByteArrayInputStream(decodedBase64);
+            ContentInfo cis = new ContentInfo(input);
+            EncryptedData encrypted_data = (EncryptedData)cis.getContent();
+
+            System.out.println("Information about the encrypted data:");
+            EncryptedContentInfoStream eci = encrypted_data.getEncryptedContentInfo();
+            System.out.println("Content type: "+eci.getContentType().getName());
+            System.out.println("Content encryption algorithm: "+eci.getContentEncryptionAlgorithm().getName());
+            // decrypt the message
+
+            encrypted_data.setupCipher(masterPW.toCharArray());
+            byte[] decrypted = encrypted_data.getContent();
+
+            return new String(decrypted);
+        } catch (Exception ex) {
+            throw new IllegalStateException("I/O", ex);
+        }
+
+    }
+
+
+
 
     /**
      * This method skips a input stream

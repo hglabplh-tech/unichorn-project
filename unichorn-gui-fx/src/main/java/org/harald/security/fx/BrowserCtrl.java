@@ -15,8 +15,10 @@ import javafx.scene.web.*;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
 import javafx.util.Callback;
+import javafx.util.Pair;
 import org.harry.security.util.HttpsChecker;
 import org.harry.security.util.Tuple;
+import org.harry.security.util.pwdmanager.PasswordManager;
 
 import javax.net.ssl.*;
 import java.io.File;
@@ -139,9 +141,7 @@ public class BrowserCtrl implements ControllerInit {
 
                     progress.setVisible(false);
                 } else if (newValue == Worker.State.RUNNING) {
-                    WebView webview = (WebView) getWebViewByFXID("browser");
-                    String basicAuthData = System.getenv("BASIC_AUTH");
-                    String base64 = Util.toBase64String(basicAuthData.getBytes());
+                    String base64 = getBasicAuth(nextUrlString);
                     engine.setUserAgent("foo\nAuthorization: Basic " + base64);
                     progress.progressProperty().bind(engine.getLoadWorker().progressProperty());
                     TrustManager trm = new X509TrustManager() {
@@ -252,35 +252,28 @@ public class BrowserCtrl implements ControllerInit {
     }
 
     @FXML
-    public void forward(ActionEvent event) throws IOException {
-
-        WebHistory history = engine.getHistory();
-        if (webIndex <= 0) {
-            String url = history.getEntries().get(0).getUrl();
-            nextUrlString = url;
-            engine.load(nextUrlString);
-            progress.progressProperty().bind(engine.getLoadWorker().progressProperty());
-            progress.setVisible(true);
-            webIndex++;
-        } else if (webIndex == history.getEntries().size()) {
-            String url = history.getEntries().get(webIndex -1).getUrl();
-            nextUrlString = url;
-            engine.load(nextUrlString);
-            progress.progressProperty().bind(engine.getLoadWorker().progressProperty());
-            progress.setVisible(true);
-            webIndex++;
-        } else {
-            String url = history.getEntries().get(webIndex).getUrl();
-            nextUrlString = url;
-            engine.load(nextUrlString);
-            progress.progressProperty().bind(engine.getLoadWorker().progressProperty());
-            progress.setVisible(true);
-            webIndex++;
+    public void createPasswd(ActionEvent event) throws IOException {
+        TextField masterPass = getTextFieldByFXID("masterPass");
+        String masterPW = masterPass.getText();
+        if (masterPW != null && !masterPW.isEmpty()) {
+            StorePasswdDialog.passwordStoreDialog(masterPW, false);
         }
     }
 
     private boolean isHostLocal(String host) {
         return (("localhost".equals(host)) || ("127.0.0.1".equals(host)));
+    }
+
+    private String getBasicAuth(String url) {
+        TextField masterPass = getTextFieldByFXID("masterPass");
+        String masterPW = masterPass.getText();
+        PasswordManager manager = new PasswordManager(masterPW);
+        Tuple<String, String> result = manager.readPassword(url);
+        String authString = "dummy";
+        if (result != null) {
+            authString = String.format("%s:%s", result.getFirst(), result.getSecond());
+        }
+        return Util.toBase64String(authString.getBytes());
     }
 
 }

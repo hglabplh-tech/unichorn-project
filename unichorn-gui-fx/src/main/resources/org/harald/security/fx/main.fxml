@@ -96,6 +96,6 @@
             <InnerShadow />
          </effect>
       </Sphere>
-      <Label text="(C) Copyright by H &amp; H Glab Unichorn Company" />
+      <Label text="Copyright (C) 2020 Harald Glab-Plhak" />
    </children>
 </VBox>

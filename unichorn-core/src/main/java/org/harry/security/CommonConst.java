@@ -22,7 +22,12 @@ public class CommonConst {
     /**
      * The file-name of the application properties
      */
-    public static final String PROP_FNAME = "application.properties";
+    public static final String PROP_APPLICATAION_PROPERTIES = "application.properties";
+
+    /**
+     * The file-name of the application properties
+     */
+    public static final String PROP_PASSWD_PROPERTIES = "passwd.properties";
 
     /**
      * Sub-Path for dll's

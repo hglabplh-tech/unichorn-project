@@ -110,7 +110,7 @@ public class ConfigReader {
      * @return
      */
     public static Properties init() {
-        File propFile = new File(APP_DIR, PROP_FNAME);
+        File propFile = new File(APP_DIR, PROP_APPLICATAION_PROPERTIES);
         Properties props = new Properties();
         if (!propFile.exists()) {
 
@@ -145,7 +145,7 @@ public class ConfigReader {
     public static void saveProperties(Properties properties) {
         FileOutputStream propFile = null;
         try {
-            File theFile= new File(APP_DIR, PROP_FNAME);
+            File theFile= new File(APP_DIR, PROP_APPLICATAION_PROPERTIES);
             propFile = new FileOutputStream(theFile);
             properties.store(propFile, "Configuration for Corona-Project");
             propFile.close();
