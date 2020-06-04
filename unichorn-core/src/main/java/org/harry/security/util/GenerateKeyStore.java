@@ -32,34 +32,11 @@
 package org.harry.security.util;
 
 
-import iaik.asn1.CodingException;
-import iaik.asn1.ObjectID;
-import iaik.asn1.structures.*;
-import iaik.asn1.structures.PolicyQualifierInfo;
-import iaik.cms.Utils;
-import iaik.security.ec.common.ECStandardizedParameterFactory;
-import iaik.security.ec.provider.ECCelerate;
-import iaik.security.provider.IAIK;
-import iaik.utils.Util;
-import iaik.x509.SimpleChainVerifier;
-import iaik.x509.X509Certificate;
-import iaik.x509.X509ExtensionException;
-import iaik.x509.extensions.*;
 import org.harry.security.util.certandkey.KeyStoreTool;
 
 
 import java.io.*;
-import java.math.BigInteger;
-import java.net.MalformedURLException;
 import java.security.*;
-import java.security.cert.*;
-import java.security.cert.Certificate;
-import java.security.spec.AlgorithmParameterSpec;
-import java.util.*;
-
-import static org.harry.security.CommonConst.OCSP_URL;
-import static org.harry.security.util.CertificateWizzard.isCertificateSelfSigned;
-import static org.harry.security.util.CertificateWizzard.setOCSPUrl;
 
 
 /**
@@ -82,7 +59,8 @@ public class GenerateKeyStore  {
   // 'TODO: next to look at
     ConfigReader.MainProperties properties = ConfigReader.loadStore();
     FileOutputStream stream = new FileOutputStream(properties.getAttrCertPath());
-    CertificateWizzard wizzard = new CertificateWizzard(properties, stream);
+    CertificateWizzard wizzard = new CertificateWizzard(properties, stream,
+            KeyStoreTool.StoreType.IAIKKeyStore.getType());
     KeyPair caKeys = wizzard.generateCA(properties.getCommonName(), true);
     KeyPair interKeys = wizzard.generateIntermediate(caKeys, properties.getCommonName(), true);
     wizzard.generateUser(interKeys, properties.getCommonName(), true);

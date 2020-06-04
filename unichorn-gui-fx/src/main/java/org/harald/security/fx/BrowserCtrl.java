@@ -15,13 +15,15 @@ import javafx.scene.web.*;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
 import javafx.util.Callback;
-import javafx.util.Pair;
 import org.harry.security.util.HttpsChecker;
 import org.harry.security.util.Tuple;
+import org.harry.security.util.certandkey.KeyStoreTool;
 import org.harry.security.util.pwdmanager.PasswordManager;
 
 import javax.net.ssl.*;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -29,6 +31,7 @@ import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateException;
 import java.util.List;
+import java.util.Properties;
 
 import static org.harald.security.fx.util.Miscellaneous.*;
 import static org.harry.security.CommonConst.APP_DIR;
@@ -36,13 +39,15 @@ import static org.harry.security.util.certandkey.KeyStoreTool.KEYSTORE_FNAME;
 
 public class BrowserCtrl implements ControllerInit {
 
-    private ProgressBar progress;
+    @FXML private ProgressBar progress;
     private WebEngine engine = null;
     private String nextUrlString = "https://www.google.de";
     private URL nextUrl = null;
     private int webIndex = 0;
+    private Properties bookmarkList = new Properties();
     @Override
     public Scene init() {
+        loadBookmarks();
         File keyFile = new File(APP_DIR, KEYSTORE_FNAME);
         System.setProperty("javax.net.ssl.keyStore", keyFile.getAbsolutePath());
         System.setProperty("javax.net.ssl.keyStorePassword","geheim");
@@ -202,9 +207,18 @@ public class BrowserCtrl implements ControllerInit {
     }
 
     @FXML
-    public void load(ActionEvent event) {
-        TextField address = getTextFieldByFXID("address");
-        nextUrlString = address.getText();
+    public void load(ActionEvent event) throws IOException {
+        Object source = event.getSource();
+        if (source instanceof TextField) {
+            TextField address = getTextFieldByFXID("address");
+            nextUrlString = address.getText();
+        } else if (source instanceof ComboBox) {
+            ComboBox bookmark = getComboBoxByFXID("bookmarks");
+            String title = (String)bookmark.getSelectionModel().getSelectedItem();
+            nextUrlString = bookmarkList.getProperty(title);
+            File bookmarkFile = new File(KeyStoreTool.APP_DIR, "bookmarks.properties");
+            bookmarkList.storeToXML(new FileOutputStream(bookmarkFile), "bookmarks");
+        }
         engine.load(nextUrlString);
     }
 
@@ -260,6 +274,21 @@ public class BrowserCtrl implements ControllerInit {
         }
     }
 
+    @FXML
+    public void bookmarkit(ActionEvent event) {
+        ComboBox bookmark = getComboBoxByFXID("bookmarks");
+        WebHistory history = engine.getHistory();
+        WebHistory.Entry entry = history.getEntries().get(history.getCurrentIndex());
+        String key;
+        if (entry.getTitle() != null && !entry.getTitle().isEmpty()) {
+            key = entry.getTitle();
+        } else {
+            key = entry.getUrl();
+        }
+        bookmarkList.setProperty(key, entry.getUrl());
+        bookmark.getItems().add(key);
+    }
+
     private boolean isHostLocal(String host) {
         return (("localhost".equals(host)) || ("127.0.0.1".equals(host)));
     }
@@ -274,6 +303,19 @@ public class BrowserCtrl implements ControllerInit {
             authString = String.format("%s:%s", result.getFirst(), result.getSecond());
         }
         return Util.toBase64String(authString.getBytes());
+    }
+
+    private void loadBookmarks() {
+        try {
+            File bookmarkFile = new File(KeyStoreTool.APP_DIR, "bookmarks.properties");
+            if (bookmarkFile.exists()) {
+                bookmarkList.loadFromXML(new FileInputStream(bookmarkFile));
+                ComboBox bookmarkCombo = getComboBoxByFXID("bookmarks");
+                bookmarkCombo.getItems().addAll(bookmarkList.keySet());
+            }
+        } catch (Exception ex) {
+            throw new IllegalStateException("loading bookmarks failed....", ex);
+        }
     }
 
 }

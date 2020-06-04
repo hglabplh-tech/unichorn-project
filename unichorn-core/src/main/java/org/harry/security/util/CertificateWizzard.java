@@ -32,11 +32,9 @@ import org.harry.security.util.trustlist.TrustListManager;
 
 import java.io.File;
 import java.io.FileOutputStream;
-import java.io.IOException;
 import java.io.OutputStream;
 import java.math.BigInteger;
 import java.net.MalformedURLException;
-import java.net.URL;
 import java.security.*;
 import java.security.cert.CertificateException;
 import java.security.spec.AlgorithmParameterSpec;
@@ -96,8 +94,9 @@ public class CertificateWizzard {
      * The CTOr for the wizzard
      * @param properties the MainProperties object
      * @param attrCertOut the output stream defining the target file for the generated AttributeCertificate
+     * @param storeType
      */
-    public CertificateWizzard(ConfigReader.MainProperties properties, OutputStream attrCertOut) {
+    public CertificateWizzard(ConfigReader.MainProperties properties, OutputStream attrCertOut, String storeType) {
         try {
             manager = loader.getManager(null);
         } catch (Exception e) {
@@ -105,7 +104,7 @@ public class CertificateWizzard {
         }
         this.attrCertOut = attrCertOut;
         this.properties = properties;
-        store = KeyStoreTool.initStore("PKCS12", "geheim");
+        store = KeyStoreTool.initStore(storeType, "geheim");
 
         // for verifying the created certificates
 
@@ -768,7 +767,7 @@ public class CertificateWizzard {
             properties.setKeystorePass("geheim");
             try {
                 FileOutputStream stream = new FileOutputStream(properties.getAttrCertPath());
-                CertificateWizzard wizzard = new CertificateWizzard(properties, stream);
+                CertificateWizzard wizzard = new CertificateWizzard(properties, stream, "PKCS12");
                 KeyPair caKeys = wizzard.generateCA(properties.getCommonName(), false);
                 KeyPair interKeys = wizzard.generateIntermediate(caKeys, properties.getCommonName(), false);
                 wizzard.generateUser(interKeys, properties.getCommonName(), false);
@@ -802,7 +801,7 @@ public class CertificateWizzard {
         properties.setKeystorePass("geheim");
         try {
             FileOutputStream stream = new FileOutputStream(properties.getAttrCertPath());
-            CertificateWizzard wizzard = new CertificateWizzard(properties, stream);
+            CertificateWizzard wizzard = new CertificateWizzard(properties, stream, "PKCS12");
             KeyPair caKeys = wizzard.generateCA(properties.getCommonName(), false);
             KeyPair interKeys = wizzard.generateIntermediate(caKeys, properties.getCommonName(), false);
             wizzard.generateUser(interKeys, properties.getCommonName(), false);
