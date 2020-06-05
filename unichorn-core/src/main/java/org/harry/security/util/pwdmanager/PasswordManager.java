@@ -1,20 +1,14 @@
 package org.harry.security.util.pwdmanager;
 
 import iaik.utils.Util;
+import org.apache.commons.io.IOUtils;
 import org.harry.security.util.SigningUtil;
 import org.harry.security.util.Tuple;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.OutputStream;
-import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
+import javax.activation.DataSource;
+import java.io.*;
 import java.security.SecureRandom;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
+import java.util.*;
 
 import static org.harry.security.CommonConst.APP_DIR;
 import static org.harry.security.CommonConst.PROP_PASSWD_PROPERTIES;
@@ -43,7 +37,7 @@ public class PasswordManager {
                 properties.loadFromXML(new FileInputStream(pwdFile));
             }
             SigningUtil util = new SigningUtil();
-            String base64Encr = util.encryptStringCMS(toEncrypt, this.masterPW);
+            String base64Encr = util.encryptBase64CMS(toEncrypt, this.masterPW);
             String base64Key = Util.toBase64String(key.getBytes());
             properties.setProperty(base64Key, base64Encr);
             OutputStream stream = new FileOutputStream(pwdFile);
@@ -125,6 +119,19 @@ public class PasswordManager {
         String passwd = decoded.substring((decoded.lastIndexOf(':') + 1));
         return new Tuple<>(username, passwd);
     }
+
+    public static DataSource encryptStrong(String passwd, String masterPW) {
+        SigningUtil util = new SigningUtil();
+        DataSource ds = util.encryptStrongBase64CMS(passwd, masterPW);
+        return ds;
+    }
+
+    public static String decryptStrong(DataSource input, String passwd, String masterPW) throws Exception {
+        SigningUtil util = new SigningUtil();
+        String result = util.decryptStrongBase64CMS(input.getInputStream(), passwd, masterPW);
+        return result;
+    }
+
 
 }
 

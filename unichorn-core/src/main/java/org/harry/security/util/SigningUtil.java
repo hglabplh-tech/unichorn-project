@@ -12,6 +12,7 @@ import iaik.pdf.cmscades.CadesSignatureStream;
 import iaik.pdf.parameters.CadesBESParameters;
 import iaik.pdf.parameters.CadesLTAParameters;
 import iaik.pdf.parameters.CadesTParameters;
+import iaik.security.cipher.PBEKey;
 import iaik.smime.ess.SigningCertificate;
 import iaik.utils.Util;
 import iaik.x509.X509Certificate;
@@ -24,9 +25,13 @@ import org.harry.security.util.algoritms.SignatureAlg;
 import org.harry.security.util.bean.SigningBean;
 import org.harry.security.util.certandkey.KeyStoreTool;
 import org.harry.security.util.ocsp.HttpOCSPClient;
+import org.harry.security.util.ocsp.OCSPCRLClient;
 import org.pmw.tinylog.Logger;
 
 import javax.activation.DataSource;
+import javax.crypto.Cipher;
+import javax.crypto.SecretKeyFactory;
+import javax.crypto.spec.PBEKeySpec;
 import java.io.*;
 import java.security.*;
 import java.security.cert.CertificateException;
@@ -148,7 +153,7 @@ public class SigningUtil {
                     null, null);
 
             X509Certificate [] cert = signingBean.getKeyStoreBean().getChain();
-            String url = HttpOCSPClient.getOCSPUrl(signingBean.getKeyStoreBean().getSelectedCert());
+            String url = OCSPCRLClient.getOCSPUrl(signingBean.getKeyStoreBean().getSelectedCert());
             if (url == null) {
                 url = OCSP_URL;
             }
@@ -415,7 +420,7 @@ public class SigningUtil {
      * @param masterPW the master password used for encryption
      * @return the encrypted stream as base64 String
      */
-    public String encryptStringCMS(String toEncrypt, String masterPW) {
+    public String encryptBase64CMS(String toEncrypt, String masterPW) {
 
         EncryptedData encrypted_data;
         try {
@@ -439,6 +444,90 @@ public class SigningUtil {
 
         }
     }
+
+    /**
+     * This method encrypts a string message using the CMS encryption
+     * @param toEncrypt the String which has to be encrypted
+     * @param masterPW the master password used for encryption
+     * @return the encrypted stream as base64 String
+     */
+    public DataSource encryptStrongBase64CMS(String toEncrypt, String masterPW) {
+
+        EncryptedData encrypted_data;
+        try {
+            encrypted_data = new EncryptedData(toEncrypt.getBytes());
+            AlgorithmID pbeAlg = CryptoAlg.PBE_SHAA3_KEY_TRIPLE_DES_CBC.getAlgId();
+            System.out.println(pbeAlg.getImplementationName());
+            encrypted_data.setupCipher(pbeAlg, masterPW.toCharArray());
+        } catch (InvalidKeyException ex) {
+            throw new IllegalStateException("Key error: " + ex.toString());
+        } catch (NoSuchAlgorithmException ex) {
+            throw new IllegalStateException("Content encryption algorithm not implemented: " + ex.toString());
+        }
+        try {
+            ByteArrayOutputStream result = new ByteArrayOutputStream();
+            ContentInfoStream cis = new ContentInfoStream(encrypted_data);
+            cis.writeTo(result);
+            byte[] expanded = getNewPassCode(toEncrypt, masterPW);
+            encrypted_data = new EncryptedData(result.toByteArray());
+            AlgorithmID pbeAlg = CryptoAlg.PBE_SHAA3_KEY_TRIPLE_DES_CBC.getAlgId();
+            System.out.println(pbeAlg.getImplementationName());
+            encrypted_data.setupCipher(pbeAlg, new String(expanded).toCharArray());
+            result = new ByteArrayOutputStream();
+            cis = new ContentInfoStream(encrypted_data);
+            cis.writeTo(result);
+            InputStream input = new ByteArrayInputStream(result.toByteArray());
+            InputStreamDataSource ds = new InputStreamDataSource(input);
+            return ds;
+        } catch (Exception ex) {
+            throw new IllegalStateException("error occured", ex);
+
+        }
+    }
+
+    private byte[] getNewPassCode(String toEncrypt, String masterPW) {
+        byte[] expanded = new byte[toEncrypt.getBytes().length + masterPW.getBytes().length];
+        System.arraycopy(toEncrypt.getBytes(), 0, expanded, 0, toEncrypt.getBytes().length);
+        System.arraycopy(masterPW.getBytes(), 0, expanded, toEncrypt.getBytes().length, masterPW.getBytes().length);
+        return expanded;
+    }
+
+    /**
+     * This method encrypts a string message using the CMS encryption
+     * @param encrypted the stream which has to be decrypted
+     * @param masterPW the master password used for encryption
+     * @return the encrypted stream as base64 String
+     */
+    public String decryptStrongBase64CMS(InputStream encrypted, String passwd, String masterPW) {
+
+        EncryptedData encrypted_data;
+        try {
+            ContentInfoStream cis = new ContentInfoStream(encrypted);
+            byte[] expanded = getNewPassCode(passwd, masterPW);
+            encrypted_data = new EncryptedData(cis.getContentInputStream());
+            encrypted_data.setupCipher(new String(expanded).toCharArray());
+        } catch (InvalidKeyException ex) {
+            throw new IllegalStateException("Key error: " + ex.toString());
+        } catch (NoSuchAlgorithmException | InvalidAlgorithmParameterException | InvalidParameterSpecException | IOException | CMSParsingException ex) {
+            throw new IllegalStateException("Content encryption algorithm not implemented: " + ex.toString());
+        }
+        try {
+            byte[] decrypted = encrypted_data.getContent();
+            ByteArrayInputStream stream = new ByteArrayInputStream(decrypted);
+            ContentInfoStream cis = new ContentInfoStream(stream);
+            byte[] expanded = getNewPassCode(passwd, masterPW);
+            encrypted_data = new EncryptedData(cis.getContentInputStream());
+            encrypted_data.setupCipher(masterPW.toCharArray());
+            decrypted = encrypted_data.getContent();
+            return new String(decrypted);
+        } catch (Exception ex) {
+            throw new IllegalStateException("error occured", ex);
+
+        }
+    }
+
+
+
 
 
     /**
@@ -660,6 +749,28 @@ public class SigningUtil {
         } catch (CMSException ex) {
             throw new IllegalStateException("general error: ",ex);
         }
+    }
+
+    public byte[] encryptCiphered(byte[] data, String password)
+            throws Exception
+    {
+
+        // create a KeySpec from our password
+        PBEKeySpec keySpec = new PBEKeySpec(password.toCharArray());
+        // use the "PKCS#5" or "PBE" SecretKeyFactory to convert the password
+        SecretKeyFactory kf = SecretKeyFactory.getInstance("PKCS#5", "IAIK");
+        // create an appropriate PbeKey
+        PBEKey pbeKey = (PBEKey)kf.generateSecret(keySpec);
+        // get the cipher
+        Cipher c = Cipher.getInstance("PBES2WithHmacSHA256AndAES", "IAIK");
+
+        // initialize it with PBEKey
+        c.init(Cipher.ENCRYPT_MODE, pbeKey);
+
+        // encrypt the data
+        byte[] encrypted = c.doFinal(data);
+
+        return encrypted;
     }
 
 

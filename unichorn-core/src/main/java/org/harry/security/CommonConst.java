@@ -25,6 +25,14 @@ public class CommonConst {
     public static final String PROP_APPLICATAION_PROPERTIES = "application.properties";
 
     /**
+     * The file-name of the responder list of the responders which are used by
+     * requested certificates to see which responders are used by the different PKI's.
+     * This file resides in the applications configuration root directory
+     */
+    public static final String PROP_RESPONDER_LIST_FILE = "responders.used";
+
+
+    /**
      * The file-name of the application properties
      */
     public static final String PROP_PASSWD_PROPERTIES = "passwd.properties";

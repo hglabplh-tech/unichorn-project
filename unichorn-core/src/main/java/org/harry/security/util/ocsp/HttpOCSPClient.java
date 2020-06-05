@@ -1,13 +1,6 @@
 package org.harry.security.util.ocsp;
 
-import iaik.asn1.ObjectID;
-import iaik.asn1.structures.AccessDescription;
-import iaik.asn1.structures.DistributionPoint;
-import iaik.x509.X509CRL;
 import iaik.x509.X509Certificate;
-import iaik.x509.X509ExtensionInitException;
-import iaik.x509.extensions.AuthorityInfoAccess;
-import iaik.x509.extensions.CRLDistributionPoints;
 import iaik.x509.ocsp.OCSPRequest;
 import iaik.x509.ocsp.OCSPResponse;
 import org.apache.http.Header;
@@ -20,12 +13,10 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 
 import java.io.InputStream;
-import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URL;
 import java.security.PrivateKey;
 import java.util.Base64;
-import java.util.Enumeration;
 
 import static org.harry.security.util.httpclient.ClientFactory.createSSLClient;
 
@@ -39,7 +30,7 @@ public class HttpOCSPClient {
     /**
      * The OCSP client instance
      */
-    private static OCSCRLPClient client;
+    private static OCSPCRLClient client;
 
     /**
      * flag to tell that we are initialized
@@ -61,11 +52,11 @@ public class HttpOCSPClient {
                                                 X509Certificate[] targetCerts,
                                                 int type, boolean isAltRespRequested, boolean additionalExts) {
 
-        client = new OCSCRLPClient();
+        client = new OCSPCRLClient();
         try {
             String altResponder= null;
             if (isAltRespRequested) {
-             altResponder = getOCSPUrl(targetCerts[0]);
+             altResponder = OCSPCRLClient.getOCSPUrl(targetCerts[0]);
             }
             OCSPRequest request = client.createOCSPRequest(requestorKey, requestorCerts,
                     targetCerts, type, altResponder, additionalExts);
@@ -84,7 +75,7 @@ public class HttpOCSPClient {
      * used to get the underlying client
      * @return the client
      */
-    public static OCSCRLPClient getClient() {
+    public static OCSPCRLClient getClient() {
         return client;
     }
 
@@ -163,23 +154,5 @@ public class HttpOCSPClient {
         }
     }
 
-
-    /**
-     * Get the responder URL from the certificate
-     * @param cert the certificate
-     * @return the URL from the specified extension
-     * @throws X509ExtensionInitException error case
-     * @throws MalformedURLException error case
-     */
-    public static String getOCSPUrl(X509Certificate cert) throws X509ExtensionInitException, MalformedURLException {
-        String urlString = null;
-        AuthorityInfoAccess access = (AuthorityInfoAccess)cert.getExtension(ObjectID.certExt_AuthorityInfoAccess);
-        if (access != null) {
-            AccessDescription description = access.getAccessDescription(ObjectID.ocsp);
-            urlString = description.getUriAccessLocation();
-            return urlString;
-        }
-        return null;
-    }
 
 }

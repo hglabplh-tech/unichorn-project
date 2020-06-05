@@ -1,28 +1,21 @@
 package org.harry.security.util;
 
+import iaik.utils.Util;
 import iaik.x509.X509Certificate;
+import iaik.x509.X509ExtensionInitException;
 import iaik.x509.ocsp.*;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.conn.ssl.TrustAllStrategy;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.protocol.HttpContext;
-import org.apache.http.protocol.HttpCoreContext;
-import org.apache.http.ssl.SSLContextBuilder;
-import org.harry.security.util.certandkey.CertificateChainUtil;
 import org.harry.security.util.certandkey.KeyStoreTool;
-import org.harry.security.util.httpclient.ClientFactory;
 import org.harry.security.util.ocsp.HttpOCSPClient;
+import org.harry.security.util.ocsp.OCSPCRLClient;
 
-import javax.net.ssl.SSLContext;
-import java.io.FileNotFoundException;
+import java.io.*;
 import java.net.URL;
 import java.security.*;
-import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.util.*;
 
-import static org.harry.security.CommonConst.OCSP_URL;
-import static org.harry.security.util.ocsp.OCSCRLPClient.checkCertificateForRevocation;
+import static org.harry.security.CommonConst.*;
+import static org.harry.security.util.ocsp.OCSPCRLClient.checkCertificateForRevocation;
 
 public class HttpsChecker {
 
@@ -187,23 +180,32 @@ public class HttpsChecker {
 
                 for (X509Certificate cert : certList) {
                     if (!CertificateWizzard.isCertificateSelfSigned(cert)) {
-                        String ocspUrl = HttpOCSPClient.getOCSPUrl(cert);
+                        String ocspUrl = OCSPCRLClient.getOCSPUrl(cert);
 
                         if (altResponder) {
                             ocspUrl = OCSP_URL;
                         }
                         OCSPResponse response;
 
+                        X509Certificate [] realChain = Util.arrangeCertificateChain(
+                                certList.toArray(new X509Certificate[0]),
+                                false);
                         response = HttpOCSPClient.sendOCSPRequest(ocspUrl, bean.getFirst(),
-                                certs, certList.toArray(new X509Certificate[0]),
-                                ReqCert.certID, false, true);
+                                certs, realChain,
+                                ReqCert.certID,
+                                false, true);
+
 
 
                         responseStatus = HttpOCSPClient.getClient().parseOCSPResponse(response, true);
+
                         if (responseStatus == OCSPResponse.successful) {
                             BasicOCSPResponse basic = (BasicOCSPResponse) response.getResponse();
                             SingleResponse single = basic.getSingleResponses()[0];
                             responseStatus = single.getCertStatus().getCertStatus();
+                            collectUsedResponders(cert, response.getResponseStatusName(), single.getCertStatus().getCertStatusName());
+                        } else {
+                            collectUsedResponders(cert, response.getResponseStatusName(), null);
                         }
                     }
                 }
@@ -251,4 +253,33 @@ public class HttpsChecker {
         return keys;
     }
 
+    /**
+     * This method collects ocsp-responders in relation to the requested certificates and the ocsp-response
+     * to see what the different responders are doing and if they accept our requests
+     * @param certificate the certificate requested
+     * @param responseStatusName the name of the OCSP response status
+     */
+    public static void collectUsedResponders(X509Certificate certificate, String responseStatusName, String certificateState) {
+        File usedRespondersFile = new File(APP_DIR, PROP_RESPONDER_LIST_FILE);
+        try {
+            String url = OCSPCRLClient.getOCSPUrl(certificate);
+            if (url != null && !url.isEmpty()) {
+                FileOutputStream out  = new FileOutputStream(usedRespondersFile, true);
+                PrintWriter writer = new PrintWriter(out);
+                writer.println("------ start entry ------");
+                writer.println(certificate.getSubjectDN().getName());
+                writer.println(url);
+                writer.println(responseStatusName);
+                if (certificateState != null) {
+                    writer.println(certificateState);
+                }
+                writer.println("------ end entry ------");
+                writer.flush();
+                writer.close();
+            }
+        } catch (IOException | X509ExtensionInitException ex) {
+           throw new IllegalStateException("Internal error getting OCSP Responder URL", ex);
+        }
+
+    }
 }

@@ -20,10 +20,11 @@ import iaik.x509.ocsp.utils.TrustedResponders;
 import org.harry.security.util.CertificateWizzard;
 
 import java.math.BigInteger;
+import java.net.MalformedURLException;
 import java.security.*;
 import java.util.*;
 
-public class OCSCRLPClient {
+public class OCSPCRLClient {
 
     private X509Certificate[] targetCerts;
     private ReqCert reqCert;
@@ -116,6 +117,24 @@ public class OCSCRLPClient {
             return null;
 
         }
+    }
+
+    /**
+     * Get the responder URL from the certificate
+     * @param cert the certificate
+     * @return the URL from the specified extension
+     * @throws X509ExtensionInitException error case
+     * @throws MalformedURLException error case
+     */
+    public static String getOCSPUrl(X509Certificate cert) throws X509ExtensionInitException, MalformedURLException {
+        String urlString = null;
+        AuthorityInfoAccess access = (AuthorityInfoAccess)cert.getExtension(ObjectID.certExt_AuthorityInfoAccess);
+        if (access != null) {
+            AccessDescription description = access.getAccessDescription(ObjectID.ocsp);
+            urlString = description.getUriAccessLocation();
+            return urlString;
+        }
+        return null;
     }
 
     /**

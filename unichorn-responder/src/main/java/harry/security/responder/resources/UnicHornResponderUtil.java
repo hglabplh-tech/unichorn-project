@@ -55,7 +55,8 @@ import org.harry.security.util.algoritms.CryptoAlg;
 import org.harry.security.util.bean.SigningBean;
 import org.harry.security.util.certandkey.CertificateChainUtil;
 import org.harry.security.util.certandkey.KeyStoreTool;
-import org.harry.security.util.ocsp.OCSCRLPClient;
+import org.harry.security.util.ocsp.HttpOCSPClient;
+import org.harry.security.util.ocsp.OCSPCRLClient;
 import org.harry.security.util.trustlist.TrustListLoader;
 import org.harry.security.util.trustlist.TrustListManager;
 import org.pmw.tinylog.Logger;
@@ -63,6 +64,7 @@ import org.pmw.tinylog.Logger;
 import javax.activation.DataSource;
 import java.io.*;
 import java.math.BigInteger;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.security.*;
 import java.security.cert.*;
@@ -70,8 +72,9 @@ import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.*;
 
+import static org.harry.security.CommonConst.PROP_RESPONDER_LIST_FILE;
 import static org.harry.security.util.CertificateWizzard.isCertificateSelfSigned;
-import static org.harry.security.util.ocsp.OCSCRLPClient.getCRLOfCert;
+import static org.harry.security.util.ocsp.OCSPCRLClient.getCRLOfCert;
 
 /**
  * This class is designed for generating a OCSP response for a certain certificate given in
@@ -104,6 +107,8 @@ public class UnicHornResponderUtil {
     private static ThreadLocal<LocalCache> workingData
             = new ThreadLocal<>();
     private static SimpleChainVerifier verifier = new SimpleChainVerifier();
+
+    private static X509Certificate[] predefinedChain = null;
 
     /**
      * Initialize neccessary directories
@@ -141,6 +146,25 @@ public class UnicHornResponderUtil {
                                                 InputStream ocspReqInput,
                                                 ResponseGenerator responseGenerator,
                                                 AlgorithmID signatureAlgorithm) {
+        return generateResponse(ocspRequest, ocspReqInput, responseGenerator, signatureAlgorithm, null);
+    }
+
+    /**
+     * generate the OCSP response by checking the certificate and its values for
+     * being ok
+     * @param ocspRequest the OCSP request
+     * @param ocspReqInput the request encoded in a input stream
+     * @param responseGenerator the response generator used to generate a valid response
+     * @param signatureAlgorithm the signature algorithm used to sign the response
+     * @return a valid ocsp-response
+     */
+    public static OCSPResponse generateResponse(OCSPRequest ocspRequest,
+                                                InputStream ocspReqInput,
+                                                ResponseGenerator responseGenerator,
+                                                AlgorithmID signatureAlgorithm, X509Certificate[] givenChain) {
+
+        predefinedChain = givenChain;
+
         workingData.set(new LocalCache());
         loadActualPrivStore();
         CertificateChainUtil.loadTrustCerts(workingData.get().getCertificateList());
@@ -308,11 +332,11 @@ public class UnicHornResponderUtil {
                     AlgorithmID hashAlg = certID.getHashAlgorithm();
                     Date rDate = null;
                     X509Certificate actualCert = getX509Certificate(serial);
-                    X509CRL crlAlterntative = OCSCRLPClient.getCRLOfCert(actualCert);
+                    X509CRL crlAlterntative = OCSPCRLClient.getCRLOfCert(actualCert);
                     if (crlAlterntative != null) {
-                        rDate = OCSCRLPClient.checkRevocation(crlAlterntative, serial);
+                        rDate = OCSPCRLClient.checkRevocation(crlAlterntative, serial);
                     } else {
-                        rDate = OCSCRLPClient.checkRevocation(crl, serial);
+                        rDate = OCSPCRLClient.checkRevocation(crl, serial);
                     }
                     if (rDate == null && actualCert != null) {
                         setResponseEntry(responseGenerator, reqCert, null, actualCert);
@@ -339,12 +363,12 @@ public class UnicHornResponderUtil {
                         crlToUse = crl;
                     }
 
-                    X509CRL crlAlterntative = OCSCRLPClient.getCRLOfCert(certificate);
+                    X509CRL crlAlterntative = OCSPCRLClient.getCRLOfCert(certificate);
                     Date rDate = null;
                     if (crlAlterntative != null) {
-                        rDate = OCSCRLPClient.checkRevocation(crlAlterntative, certificate.getSerialNumber());
+                        rDate = OCSPCRLClient.checkRevocation(crlAlterntative, certificate.getSerialNumber());
                     } else {
-                        rDate = OCSCRLPClient.checkRevocation(crl, certificate.getSerialNumber());
+                        rDate = OCSPCRLClient.checkRevocation(crl, certificate.getSerialNumber());
                     }
                     X509Certificate actualCert = getX509Certificate(certificate.getSerialNumber());
 
@@ -388,7 +412,15 @@ public class UnicHornResponderUtil {
         Date actualDate = new Date(instance.getTimeInMillis());
         instance.add(Calendar.WEEK_OF_YEAR, 1);
         Date nextWeek = new Date(instance.getTimeInMillis());
-        Optional<X509Certificate> issuer = CertificateChainUtil.findIssuer(actualCert, workingData.get().getCertificateList());
+
+        Optional<X509Certificate> issuer = Optional.empty();
+        if (predefinedChain != null && predefinedChain.length >= 2) {
+            if (predefinedChain[1] != null) {
+                issuer = Optional.of(predefinedChain[1]);
+            }
+        } else {
+            issuer = CertificateChainUtil.findIssuer(actualCert, workingData.get().getCertificateList());
+        }
         boolean matches = false;
         boolean error = false;
         try {
@@ -782,6 +814,12 @@ public class UnicHornResponderUtil {
      * @return the certificate chain in a optional or empty if there is none.
      */
     private static Optional<X509Certificate> findSerialINPositiveList(BigInteger serial) {
+        if (predefinedChain != null) {
+            Optional<X509Certificate> opt =
+                    Arrays.asList(predefinedChain).stream().filter(e -> e.getSerialNumber().equals(serial))
+                    .findFirst();
+
+        }
         Optional<X509Certificate> opt = workingData.get().getCertificateList().stream().filter(e -> {
             X509Certificate cert = e;
             if (cert.getSerialNumber().equals(serial)) {

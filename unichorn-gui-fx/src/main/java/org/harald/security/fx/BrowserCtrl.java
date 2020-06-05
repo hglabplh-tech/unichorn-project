@@ -216,9 +216,10 @@ public class BrowserCtrl implements ControllerInit {
             ComboBox bookmark = getComboBoxByFXID("bookmarks");
             String title = (String)bookmark.getSelectionModel().getSelectedItem();
             nextUrlString = bookmarkList.getProperty(title);
-            File bookmarkFile = new File(KeyStoreTool.APP_DIR, "bookmarks.properties");
-            bookmarkList.storeToXML(new FileOutputStream(bookmarkFile), "bookmarks");
+
         }
+        File bookmarkFile = new File(KeyStoreTool.APP_DIR, "bookmarks.properties");
+        bookmarkList.storeToXML(new FileOutputStream(bookmarkFile), "bookmarks");
         engine.load(nextUrlString);
     }
 

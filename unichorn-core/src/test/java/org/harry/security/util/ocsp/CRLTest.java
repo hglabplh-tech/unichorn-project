@@ -12,7 +12,7 @@ public class CRLTest extends TestBase {
     public void testGetCRLExt() throws Exception {
         InputStream certStream = CRLTest.class.getResourceAsStream("/certificates/hgp.cer");
         X509Certificate cert = new X509Certificate(certStream);
-        OCSCRLPClient.getCRLOfCert(cert);
+        OCSPCRLClient.getCRLOfCert(cert);
 
 
     }

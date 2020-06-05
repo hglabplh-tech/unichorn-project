@@ -13,6 +13,7 @@ import iaik.x509.ocsp.SingleResponse;
 import org.harry.security.util.bean.SigningBean;
 import org.harry.security.util.certandkey.CertificateChainUtil;
 import org.harry.security.util.ocsp.HttpOCSPClient;
+import org.harry.security.util.ocsp.OCSPCRLClient;
 import org.harry.security.util.trustlist.TrustListManager;
 
 
@@ -92,7 +93,7 @@ public class AlgorithmPathChecker {
             if (altResponder) {
                 ocspUrl = OCSP_URL;
             } else {
-                ocspUrl = HttpOCSPClient.getOCSPUrl(actualCert);
+                ocspUrl = OCSPCRLClient.getOCSPUrl(actualCert);
             }
             OCSPResponse response = null;
             if (reqIsSigned == true && ocspUrl != null) {
