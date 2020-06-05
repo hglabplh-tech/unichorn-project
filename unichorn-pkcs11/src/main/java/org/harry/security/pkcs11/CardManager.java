@@ -8,12 +8,15 @@ import iaik.pkcs.pkcs11.Session;
 import iaik.pkcs.pkcs11.SessionInfo;
 import iaik.pkcs.pkcs11.Token;
 import iaik.pkcs.pkcs11.objects.Object;
+import iaik.pkcs.pkcs11.objects.WTLSCertificate;
+import iaik.pkcs.pkcs11.objects.X509AttributeCertificate;
 import iaik.pkcs.pkcs11.objects.X509PublicKeyCertificate;
 import iaik.pkcs.pkcs11.provider.IAIKPkcs11;
 import iaik.pkcs.pkcs11.provider.TokenKeyStore;
 import iaik.pkcs.pkcs11.provider.TokenManager;
 import iaik.security.provider.IAIK;
 import iaik.x509.X509Certificate;
+import iaik.x509.attr.AttributeCertificate;
 import iaik.x509.extensions.ExtendedKeyUsage;
 import org.harry.security.util.AlgorithmPathChecker;
 import org.harry.security.util.SignPDFUtil;
@@ -29,14 +32,11 @@ import java.security.*;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateFactory;
 import java.security.interfaces.RSAPrivateCrtKey;
-import java.util.Arrays;
-import java.util.Enumeration;
-import java.util.List;
-import java.util.Properties;
+import java.util.*;
 
 import static org.harry.security.CommonConst.APP_DIR_DLL;
 
-public class CardSigner {
+public class CardManager {
     /**
      * The PKCS#11 JCE provider.
      */
@@ -78,6 +78,12 @@ public class CardSigner {
      */
     protected X509Certificate signerCertificate_;
 
+    protected List<X509Certificate> certificates = new ArrayList<X509Certificate>();
+
+    protected List<AttributeCertificate> attrCertificates = new ArrayList<>();
+
+    protected List<iaik.pkcs.pkcs11.objects.PublicKey> publicKeys = new ArrayList<>();
+
 
 
     /**
@@ -85,7 +91,7 @@ public class CardSigner {
      *
 
      */
-    public CardSigner() {
+    public CardManager() {
 
         if (!initialized) {
             // special care is required during the registration of the providers
@@ -126,8 +132,8 @@ public class CardSigner {
         SessionInfo sessionInfo = session.getSessionInfo();
         System.out.println(" using session:");
         System.out.println(sessionInfo);
-        session.findObjectsInit(new X509PublicKeyCertificate());
-        Object [] objects = session.findObjects(1);
+        session.findObjectsInit(null);
+        Object[] objects = session.findObjects(1);
         while (objects != null && objects.length > 0) {
             for (Object obj : objects) {
                 if (obj instanceof X509PublicKeyCertificate) {
@@ -135,12 +141,35 @@ public class CardSigner {
                     System.out.println(certificate.toString(true));
                     if (checkCertificate(certificate)) {
                         signerCertificate_ = certificate;
+                        certificates.add(certificate);
                     }
+                } else if (obj instanceof X509AttributeCertificate) {
+                    AttributeCertificate certificate = getAttrCertificate(obj);
+                    System.out.println(certificate.toString(true));
+
+                    attrCertificates.add(certificate);
+                } else if (obj instanceof WTLSCertificate) {
+                    System.out.println("WTLSCertificate user defined certificate");
+                    System.out.println("Object found: " + obj.toString());
+                } else if (obj instanceof iaik.pkcs.pkcs11.objects.Certificate) {
+                    System.out.println("Individual user defined certificate");
+                    System.out.println("Object found: " + obj.toString());
+                }else if(obj instanceof iaik.pkcs.pkcs11.objects.PublicKey) {
+                    System.out.println("Public key found");
+                    publicKeys.add((iaik.pkcs.pkcs11.objects.PublicKey) obj);
+                } else {
+                    if(Object.getVendorDefinedObjectBuilder() != null) {
+                        Object.VendorDefinedObjectBuilder builder = Object.getVendorDefinedObjectBuilder();
+                        java.lang.Object object = builder.build(session, obj.getObjectHandle());
+                        System.out.println("Vendor object clazz : " + object.getClass().getCanonicalName());
+                    }
+                    System.out.println("Object found: " + obj.toString());
+                    System.out.println("Object vendor clazz found: " + obj.getClass().getCanonicalName());
                 }
+
             }
             objects = session.findObjects(1);
         }
-        session.findObjectsFinal();
         session.closeSession();
 
     }
@@ -354,6 +383,17 @@ public class CardSigner {
         return null;
     }
 
+    private AttributeCertificate getAttrCertificate(Object object) throws Exception {
+        CertificateFactory x509CertificateFactory = null;
+        byte[] encodedCertificate = ((X509PublicKeyCertificate) object)
+                .getValue().getByteArrayValue();
+        if (encodedCertificate != null) {
+            AttributeCertificate attributeCert = new AttributeCertificate(encodedCertificate);
+            return attributeCert;
+        }
+        return null;
+    }
+
 
     /**
      * This method checks a loaded certificate for being a signing certificate
@@ -410,7 +450,52 @@ public class CardSigner {
      * Print information how to use this demo class.
      */
     public void releaseResource() {
-        tokenKeyStore_.logout();
+        if (tokenKeyStore_ != null) {
+            tokenKeyStore_.logout();
+        }
     }
 
+    public static IAIKPkcs11 getPkcs11Provider_() {
+        return pkcs11Provider_;
+    }
+
+    public static boolean isInitialized() {
+        return initialized;
+    }
+
+    public IAIK getIaikSoftwareProvider_() {
+        return iaikSoftwareProvider_;
+    }
+
+    public String getFileToBeSigned_() {
+        return fileToBeSigned_;
+    }
+
+    public String getOutputFile_() {
+        return outputFile_;
+    }
+
+    public TokenKeyStore getTokenKeyStore_() {
+        return tokenKeyStore_;
+    }
+
+    public PrivateKey getSignatureKey_() {
+        return signatureKey_;
+    }
+
+    public X509Certificate getSignerCertificate_() {
+        return signerCertificate_;
+    }
+
+    public List<X509Certificate> getCertificates() {
+        return certificates;
+    }
+
+    public List<AttributeCertificate> getAttrCertificates() {
+        return attrCertificates;
+    }
+
+    public List<iaik.pkcs.pkcs11.objects.PublicKey> getPublicKeys() {
+        return publicKeys;
+    }
 }

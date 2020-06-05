@@ -9,7 +9,7 @@ import javafx.scene.control.CheckBox;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.TextField;
 import org.harry.security.CMSSigner;
-import org.harry.security.pkcs11.CardSigner;
+import org.harry.security.pkcs11.CardManager;
 import org.harry.security.util.ConfigReader;
 import org.harry.security.util.SigningUtil;
 import org.harry.security.util.Tuple;
@@ -114,7 +114,7 @@ public class SigningCtrl implements ControllerInit {
             if (cardSigning.isSelected()) {
                 String cardPin = getSmartCardPIN();
                 boolean reallySign = (cardPin != null && cardPin.length() == 6);
-                CardSigner signer = new CardSigner();
+                CardManager signer = new CardManager();
                 signer.readCardData();
                 if (reallySign) {
                     signer.getKeyStore(cardPin);

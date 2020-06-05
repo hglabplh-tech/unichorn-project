@@ -15,6 +15,7 @@ import org.harry.security.util.trustlist.TrustListManager;
 import java.io.IOException;
 import java.net.URL;
 import java.util.List;
+import java.util.Properties;
 
 /**
  * JavaFX App
@@ -25,6 +26,8 @@ public class SecHarry extends Application {
 
     public static FXMLLoader fxmlLoader = null;
 
+    public static ThreadLocal<Properties> bookmarkLocal = null;
+
     @Override
     public void start(Stage stage) throws IOException {
         CMSSigner.setProviders();
@@ -34,16 +37,22 @@ public class SecHarry extends Application {
         contexts.set(context);
         scene = new Scene(loadFXML("main", CSS.UNICHORN));
         stage.setScene(scene);
+        synchronized (SecHarry.class)  {
+            if (bookmarkLocal == null) {
+                bookmarkLocal = new ThreadLocal<>();
+                bookmarkLocal.set(new Properties());
+            }
+        }
         stage.show();
     }
 
-    static void setRoot(String fxml, CSS css) throws IOException {
+    public static void setRoot(String fxml, CSS css) throws IOException {
         scene.setRoot(loadFXML(fxml, css));
 }
 
 
 
-    private static Parent loadFXML(String fxml, CSS css) throws IOException {
+    public static Parent loadFXML(String fxml, CSS css) throws IOException {
         URL resourceURL = SecHarry.class.getResource(fxml + ".fxml");
         fxmlLoader = new FXMLLoader(resourceURL);
         Pane root = (Pane) fxmlLoader.load();
@@ -53,14 +62,13 @@ public class SecHarry extends Application {
             root.getStylesheets().remove(0);
         }
        root.getStylesheets().add(css.getUrl());
+        controller.init();
 
-        Scene scene = controller.init();
-        if (scene != null) {
-
-        }
 
         return root;
     }
+
+
 
 
     public static void main(String[] args) {

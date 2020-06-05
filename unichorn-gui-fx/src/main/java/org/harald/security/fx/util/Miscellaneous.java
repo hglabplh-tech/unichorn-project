@@ -27,6 +27,11 @@ public class Miscellaneous {
         return inputField;
     }
 
+    public static Tab getTabByFXID(String fxId) {
+        Tab tab = (Tab) SecHarry.fxmlLoader.getNamespace().get(fxId);
+        return tab;
+    }
+
     public static Label getLabelByFXID(String fxId) {
         Label inputField = (Label) SecHarry.fxmlLoader.getNamespace().get(fxId);
         return inputField;
