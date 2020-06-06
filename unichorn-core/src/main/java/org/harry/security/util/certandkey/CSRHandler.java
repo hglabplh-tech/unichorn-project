@@ -35,6 +35,7 @@ import java.util.Base64;
 
 import static org.harry.security.CommonConst.ADMIN_URL;
 import static org.harry.security.CommonConst.SIGNING_URL;
+import static org.harry.security.util.CertificateWizzard.addQualifiedExtension;
 import static org.harry.security.util.httpclient.ClientFactory.createSSLClient;
 
 public class CSRHandler {
@@ -80,9 +81,8 @@ public class CSRHandler {
     }
 
     public static void setSigningCert(File keyStore) throws Exception {
-        String password = getPassCode();
-        String token = getToken();
-        URL ocspUrl= new URL(SIGNING_URL);
+        String token = getTokenAdmin();
+        URL ocspUrl= new URL(ADMIN_URL);
         // create closable http client and assign the certificate interceptor
         CloseableHttpClient httpClient = createSSLClient();
         URIBuilder uriBuilder = new URIBuilder(ocspUrl.toURI());
@@ -221,6 +221,8 @@ public class CSRHandler {
                 | KeyUsage.nonRepudiation);
         ExtensionRequest extensionRequest = new ExtensionRequest();
         extensionRequest.addExtension(keyUsage);
+        extensionRequest.addExtension(addQualifiedExtension());
+
         attributes[0] = new Attribute(extensionRequest);
         // and an challenge password
         ChallengePassword challengePassword = new ChallengePassword(password);

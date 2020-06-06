@@ -1,10 +1,13 @@
 package org.harald.security.fx;
 
+
 import iaik.utils.Util;
 import iaik.x509.X509Certificate;
+import javafx.application.Platform;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.ListChangeListener;
+import javafx.concurrent.Task;
 import javafx.concurrent.Worker;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
@@ -33,6 +36,9 @@ import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateException;
 import java.util.List;
 import java.util.Properties;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import static org.harald.security.fx.SecHarry.bookmarkLocal;
 import static org.harald.security.fx.util.Miscellaneous.*;
@@ -45,10 +51,12 @@ public class BrowserTabCtrl  {
     @FXML private ComboBox bookmarks;
     @FXML private WebView browser;
     @FXML private TextField address;
-    @FXML private Label status;
+    @FXML public  Label status;
     @FXML private CheckBox ocspCheck;
     @FXML private ComboBox history;
     @FXML private TextField masterPass;
+
+    HttpsCheckerTask task;
 
 
     private WebEngine engine = null;
@@ -138,7 +146,8 @@ public class BrowserTabCtrl  {
 
                 if (newValue == Worker.State.SUCCEEDED) {
                     try {
-                        if (nextUrl.getProtocol().startsWith("https") && !isHostLocal(nextUrl.getHost())) {
+                        startChecker();
+                       /* if (nextUrl.getProtocol().startsWith("https") && !isHostLocal(nextUrl.getHost())) {
                             Tuple<Integer, List<X509Certificate>> tuple =
                                     HttpsChecker.checkHttpsCertValidity(nextUrlString, ocspCheck.isSelected(), false);
                             if (tuple.getFirst() == 0) {
@@ -150,7 +159,7 @@ public class BrowserTabCtrl  {
                             } else {
                                 label.setText("no security info available");
                             }
-                        }
+                        } */
                     } catch (Exception ex) {
                         throw new IllegalStateException("load failed", ex);
                     }
@@ -219,7 +228,10 @@ public class BrowserTabCtrl  {
     }
 
     @FXML
-    public void load(ActionEvent event) throws IOException {
+    public void load(ActionEvent event) throws Exception {
+        if (task != null ) {
+            task.get();
+        }
         Object source = event.getSource();
         if (source instanceof TextField) {
             TextField address = (TextField)source;
@@ -333,6 +345,47 @@ public class BrowserTabCtrl  {
     public void setTabContent(Tab tab) throws IOException {
         Parent parent = SecHarry.loadFXML("browserTab", SecHarry.CSS.UNICHORN);
         tab.setContent(parent);
+    }
+
+    public void startChecker () throws ExecutionException, InterruptedException {
+        task = new HttpsCheckerTask(nextUrlString, ocspCheck.isSelected());
+       /* ExecutorService executorService
+                = Executors.newFixedThreadPool(1);
+        executorService.execute(task);
+        executorService.shutdown(); */
+        Platform.runLater(task);
+    }
+
+    public class  HttpsCheckerTask extends Task<Void> {
+
+        private final String url;
+
+        private final boolean ocspCheck;
+
+        public HttpsCheckerTask(String url, boolean ocspCheck) {
+            this.url = url;
+            this.ocspCheck = ocspCheck;
+        }
+
+        @Override
+        protected Void call() throws Exception {
+            Tuple<Integer, List<X509Certificate>> tuple =
+                    HttpsChecker.checkHttpsCertValidity(this.url, ocspCheck, false);
+            String text = null;
+            if (tuple.getFirst() == 0) {
+
+                if (ocspCheck) {
+                    text = "web-site is secure";
+                } else {
+                    text = "identity checked ok";
+                }
+            } else {
+                text = "no security info available";
+            }
+            System.out.println("Try to show alert......");
+            status.setText(text);
+            return null;
+        }
     }
 
 }

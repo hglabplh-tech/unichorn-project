@@ -223,6 +223,11 @@
                     <source>src/main/resources/xsd/ts_119612v010201_xsd.xsd</source>
                     <source>src/main/resources/xsd/ts_119612v010201_sie_xsd.xsd</source>
                     <source>src/main/resources/xsd/ts_119612v010201_additionaltypes_xsd.xsd</source>
+                    <source>src/main/resources/xsd/ts_102231v030102_sie_xsd.xsd</source>
+                    <source>src/main/resources/xsd/oasis-dss-core-schema-v1.0-os.xsd</source>
+                    <source>src/main/resources/xsd/oasis-sstc-saml-schema-protocol-1.1.xsd</source>
+                    <source>src/main/resources/xsd/saml-schema-assertion-2.0.xsd</source>
+                    <source>src/main/resources/xsd/oasis-dssx-1.0-profiles-vr-cd1.xsd</source>
                 </sources>
             </configuration>
         </plugin>

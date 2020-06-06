@@ -124,7 +124,7 @@ public class UnichornResponder extends HttpServlet {
            File crlFile = new File(UnicHornResponderUtil.APP_DIR_TRUST, "privRevokation" + ".crl");
            Logger.trace("CRL list file is: " + crlFile.getAbsolutePath());
            File keyFile = new File(UnicHornResponderUtil.APP_DIR_TRUST, "privKeystore" + ".p12");
-           Logger.trace("CRL list file is: " + keyFile.getAbsolutePath());
+           Logger.trace("Key Store file is: " + keyFile.getAbsolutePath());
            String type = request.getHeader("fileType");
            if (type.equals("crl")) {
                OutputStream  out = new FileOutputStream(crlFile);

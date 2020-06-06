@@ -13,10 +13,7 @@ import iaik.security.rsa.RSAPssKeyPairGenerator;
 import iaik.security.rsa.RSAPssPrivateKey;
 import iaik.security.rsa.RSAPssPublicKey;
 import iaik.utils.Util;
-import iaik.x509.SimpleChainVerifier;
-import iaik.x509.X509Certificate;
-import iaik.x509.X509ExtensionException;
-import iaik.x509.X509ExtensionInitException;
+import iaik.x509.*;
 import iaik.x509.attr.*;
 import iaik.x509.attr.attributes.*;
 import iaik.x509.attr.extensions.AuditIdentity;
@@ -24,6 +21,11 @@ import iaik.x509.attr.extensions.NoRevAvail;
 import iaik.x509.attr.extensions.ProxyInfo;
 import iaik.x509.attr.extensions.TargetInformation;
 import iaik.x509.extensions.*;
+import iaik.x509.extensions.qualified.QCStatements;
+import iaik.x509.extensions.qualified.structures.QCStatement;
+import iaik.x509.extensions.qualified.structures.QCSyntaxV2;
+import iaik.x509.extensions.qualified.structures.etsi.*;
+import iaik.x509.qualified.QualifiedCertificate;
 import org.harry.security.util.bean.AttrCertBean;
 import org.harry.security.util.certandkey.KeyStoreTool;
 import org.harry.security.util.trustlist.TrustListLoader;
@@ -421,6 +423,7 @@ public class CertificateWizzard {
                 cert.addExtension(extKeyUsage);
                 cert.addExtension(keyUsage);
                 setOCSPUrl(cert, OCSP_URL);
+
             }
             String explicitText = "This certificate may be used for testing purposes only";
             PolicyQualifierInfo policyQualifier = new PolicyQualifierInfo(null, null, explicitText);
@@ -433,6 +436,7 @@ public class CertificateWizzard {
             cert.addExtension(subjectKeyID);
 
             cert.addExtension(certPolicies);
+            cert.addExtension(addQualifiedExtension());
             cert.setValidNotAfter(date.getTime());
             // and sign the certificate
             cert.sign(algorithm ,privateKey);
@@ -887,6 +891,66 @@ public class CertificateWizzard {
         } catch (Exception ex) {
             throw new IllegalStateException("cannot detect self signed ??!!", ex);
         }
+
+    }
+
+    public static V3Extension addQualifiedExtension() throws X509ExtensionException {
+
+        Vector extensions = new Vector();
+        // register QCEuCompliance as indicating a qualified certificate
+        QualifiedCertificate
+                .registerQualifiedQCStatementIDs(new ObjectID[] { QcEuCompliance.statementID });
+
+
+        // QCSyntaxV2
+        ObjectID semID = new ObjectID("1.3.6.1.4.1.2706.2.2.1.3");
+        GeneralName[] genNames = new GeneralName[1];
+        genNames[0] = new GeneralName(GeneralName.uniformResourceIdentifier,
+                "http//ca.iaik.at/registrationAuthority");
+        QCSyntaxV2 qcSyntaxV2 = new QCSyntaxV2(semID, genNames);
+
+        // QCEuCompliance
+        QcEuCompliance qcCompliance = new QcEuCompliance();
+
+        // QcEuRetentionPeriod
+        int retentionPeriod = 10;
+        QcEuRetentionPeriod qcRetentionPeriod = new QcEuRetentionPeriod(retentionPeriod);
+
+        // QcEuLimitValue
+        String currency = "EUR";
+        int amount = 1;
+        int exponent = 4;
+        QcEuLimitValue qcLimitValue = new QcEuLimitValue(currency, amount, exponent);
+
+        // QcEuSSCD
+        QcEuSSCD qcSSCD = new QcEuSSCD();
+
+        // QcEuPDS
+        QcEuPDS qcEuPDS = new QcEuPDS();
+        qcEuPDS.addPdsLocation(new QcEuPDS.PdsLocation("https://localhost", "de"));
+        qcEuPDS.addPdsLocation(new QcEuPDS.PdsLocation("https://localhost", "en"));
+
+        // QcType
+        ObjectID qcTypeID = QcType.ID_ETSI_QCT_ESIGN;
+        QcType qcType = new QcType(qcTypeID);
+        qcType.addQcTypeID(QcType.ID_ETSI_QCT_ESEAL);
+
+        QCStatement[] qcStatements = new QCStatement[8];
+        qcStatements[0] = new QCStatement(qcSyntaxV2);
+        // we add a QCStatement consisting only of a statementId and no
+        // statementInfo
+        ObjectID newStatementID = new ObjectID("1.3.6.1.4.1.2706.2.2.1.5", "NewQCStatement");
+        qcStatements[1] = new QCStatement(newStatementID);
+        qcStatements[2] = new QCStatement(qcCompliance);
+        qcStatements[3] = new QCStatement(qcRetentionPeriod);
+        qcStatements[4] = new QCStatement(qcLimitValue);
+        qcStatements[5] = new QCStatement(qcSSCD);
+        qcStatements[6] = new QCStatement(qcEuPDS);
+        qcStatements[7] = new QCStatement(qcType);
+
+        QCStatements qcStatementsExt = new QCStatements(qcStatements);
+        return qcStatementsExt;
+
 
     }
 }

@@ -173,6 +173,7 @@ public class VerifyUtil {
                         results.addSignatureResult("digest algorithm",
                                 new Tuple<>(digestAlg.getImplementationName(), Outcome.SUCCESS));
                         X509Certificate signCert = cadesSig.verifySignatureValue(j);
+                        CertChecker.checkQualified(signCert, results);
                         checkAttributeCertIfThere(certificateSet, results);
                         vResult.addSignersInfo(signCert.getSubjectDN().getName(), results);
                         results.addSignatureResult("signature value",
@@ -295,6 +296,7 @@ public class VerifyUtil {
                     for (X509Certificate signCert : signCertList) {
                         algPathChecker.checkSignatureAlgorithm(sigAlg, signCert.getPublicKey(), results);
                         if (info.isSignerCertificate(signCert)) {
+                            CertChecker.checkQualified(signCert, results);
                             vResult.addSignersInfo(signCert.getSubjectDN().getName(), results);
                             try {
                                 if (info.verifySignature(signCert.getPublicKey())) {

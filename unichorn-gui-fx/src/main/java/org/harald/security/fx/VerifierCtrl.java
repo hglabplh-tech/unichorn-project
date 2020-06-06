@@ -129,7 +129,6 @@ public class VerifierCtrl implements ControllerInit {
                     ObservableList<ResultEntry> data = verifyResults.getItems();
                     entry.getSignersChain();
                     data.clear();
-                    verifyResults.setVisible(false);
                     data.addAll(entryList);
                     if (signerChain != null && signerChain.length == 3) {
                         KeyStore store = KeyStoreTool.initStore("PKCS12", "geheim");
@@ -164,7 +163,6 @@ public class VerifierCtrl implements ControllerInit {
                     ObservableList<ResultEntry> data = verifyResults.getItems();
                     entry.getSignersChain();
                     data.clear();
-                    verifyResults.setVisible(false);
                     data.addAll(entryList);
                     if (signerChain != null && signerChain.length == 3) {
                         KeyStore store = KeyStoreTool.initStore("PKCS12", "geheim");

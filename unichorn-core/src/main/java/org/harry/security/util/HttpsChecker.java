@@ -56,57 +56,6 @@ public class HttpsChecker {
                 ex.printStackTrace();
                 throw new IllegalStateException("http error ", ex);
         }
-      /*  CloseableHttpClient httpClient = null;
-        try {
-            URL netURL = new URL(urlString);
-            String protocol = netURL.getProtocol();
-            if (!protocol.equalsIgnoreCase("https")) {
-                //return certList;
-            }
-            // create closable http client and assign the certificate interceptor
-            httpClient = ClientFactory.getAcceptCookieHttpClient();
-
-            // make HTTP GET request to resource server
-            HttpGet request = new HttpGet(netURL.toURI());
-            System.out.println("Executing request " + request.getRequestLine());
-
-            // create http context where the certificate will be added
-            HttpContext context = new HttpCoreContext();
-            SSLContext sslContext = SSLContextBuilder
-                    .create()
-                    .loadTrustMaterial(new TrustAllStrategy())
-                    .build();
-            httpClient.execute(request, context);
-
-            // obtain the server certificates from the context
-            Certificate[] peerCertificates = (Certificate[])context.getAttribute(PEER_CERTIFICATES);
-
-
-            // loop over certificates and print meta-data
-            for (Certificate certificate : peerCertificates){
-                X509Certificate real = new X509Certificate(certificate.getEncoded());
-                System.out.println(real.toString(true));
-                certList.add(real);
-            }
-
-
-            return certList;
-        } catch (Throwable ex) {
-            System.out.println("http error");
-            ex.printStackTrace();
-            throw new IllegalStateException("http error ", ex);
-
-        }
-        finally {
-            if (httpClient != null) {
-                try {
-                    httpClient.close();
-                } catch (Exception ex) {
-                    throw new IllegalStateException("http error ", ex);
-                }
-
-            }
-        } */
 
     }
     // create http response certificate interceptor
