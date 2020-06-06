@@ -1,6 +1,10 @@
 package org.harald.security.fx;
 
+import iaik.pdf.parameters.PadesBESParameters;
+import iaik.security.provider.IAIK;
 import iaik.utils.Util;
+import iaik.x509.X509CRL;
+import iaik.x509.X509Certificate;
 import iaik.x509.attr.AttributeCertificate;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
@@ -11,21 +15,27 @@ import javafx.scene.control.TextField;
 import org.harry.security.CMSSigner;
 import org.harry.security.pkcs11.CardManager;
 import org.harry.security.util.ConfigReader;
+import org.harry.security.util.SignPDFUtil;
 import org.harry.security.util.SigningUtil;
 import org.harry.security.util.Tuple;
 import org.harry.security.util.algoritms.CryptoAlg;
 import org.harry.security.util.algoritms.DigestAlg;
 import org.harry.security.util.algoritms.SignatureAlg;
 import org.harry.security.util.bean.SigningBean;
+import org.harry.security.util.certandkey.CertWriterReader;
 import org.harry.security.util.certandkey.GSON;
+import org.harry.security.util.certandkey.KeyStoreTool;
 import org.harry.security.util.httpclient.HttpClientConnection;
 
 import javax.activation.DataSource;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.security.KeyStore;
+import java.security.PrivateKey;
 import java.security.cert.CertificateException;
 import java.util.Arrays;
+import java.util.Enumeration;
 import java.util.List;
 
 import static org.harald.security.fx.util.Miscellaneous.*;
@@ -51,13 +61,20 @@ public class SigningCtrl implements ControllerInit {
     "https://tsp.iaik.tugraz.at/tsp/TspRequest",
     "http://timestamp.apple.com/ts01",
     "http://timestamp.entrust.net/TSS/RFC3161sha2TS",
-    TSP_URL
+    TSP_URL);
 
-    );
-    File keyStoreStream = null;
+    @FXML TextField pin;
+    @FXML ComboBox aliasBox;
+    @FXML CheckBox signLoacal;
+
+
+    File keyStoreFile = null;
+    KeyStore store;
     File dataInput = null;
     File outFile = null;
     AttributeCertificate attributeCertificate;
+    SigningBean signingBean = SecHarry.contexts.get();
+    File keystoreFile;
 
 
 
@@ -107,10 +124,16 @@ public class SigningCtrl implements ControllerInit {
         CheckBox archiveInfo = getCheckBoxByFXID("archiveInfo");
         CheckBox cardSigning = getCheckBoxByFXID("cardsigning");
         boolean addArchiveInfo = archiveInfo.isSelected();
-        SigningBean bean = SecHarry.contexts.get();
-        bean = filloutBean(bean);
+        signingBean = SecHarry.contexts.get();
+        String alias = (String)aliasBox.getSelectionModel().getSelectedItem();
+        if (!cardSigning.isSelected()) {
+            Tuple<PrivateKey, X509Certificate[]> keys = KeyStoreTool.getKeyEntry(store, alias, pin.getText().toCharArray());
+            CertWriterReader.KeyStoreBean keyStoreBean = new CertWriterReader.KeyStoreBean(keys.getSecond(), keys.getFirst());
+            signingBean.setKeyStoreBean(keyStoreBean);
+        }
+        signingBean = filloutBean(signingBean);
         SigningUtil util = new SigningUtil();
-        if(bean.getAction().equals(CMSSigner.Commands.SIGN)) {
+        if(signingBean.getAction().equals(CMSSigner.Commands.SIGN)) {
             if (cardSigning.isSelected()) {
                 String cardPin = getSmartCardPIN();
                 boolean reallySign = (cardPin != null && cardPin.length() == 6);
@@ -118,39 +141,87 @@ public class SigningCtrl implements ControllerInit {
                 signer.readCardData();
                 if (reallySign) {
                     signer.getKeyStore(cardPin);
-                    DataSource signed = signer.sign(bean, addArchiveInfo, bean.getWalker());
-                    util.writeToFile(signed, bean);
+                    DataSource signed = signer.sign(signingBean, addArchiveInfo, signingBean.getWalker());
+                    util.writeToFile(signed, signingBean);
                 }
-            } else if (!cardSigning.isSelected()){
+            } else if (!cardSigning.isSelected() && !signLoacal.isSelected()) {
                 GSON.Params params = new GSON.Params();
                 GSON.Signing signing = new GSON.Signing();
                 params.signing = signing;
                 params.parmType = "docSign";
-                params.signing.signatureType = bean.getSignatureType().name();
-                params.signing.mode = bean.getSigningMode().getMode();
-                if (bean.getSignatureAlgorithm() != null) {
-                    params.signing.signatureAlgorithm = bean.getSignatureAlgorithm().getName();
+                params.signing.signatureType = signingBean.getSignatureType().name();
+                params.signing.mode = signingBean.getSigningMode().getMode();
+                if (signingBean.getSignatureAlgorithm() != null) {
+                    params.signing.signatureAlgorithm = signingBean.getSignatureAlgorithm().getName();
                 }
-                if (bean.getDigestAlgorithm() != null) {
-                    params.signing.digestAlgorithm = bean.getDigestAlgorithm().getName();
+                if (signingBean.getDigestAlgorithm() != null) {
+                    params.signing.digestAlgorithm = signingBean.getDigestAlgorithm().getName();
                     if (attributeCertificate != null) {
                         params.signing.attributeCert = Util.toBase64String(attributeCertificate.getEncoded());
                     }
                 }
-                if (bean.getSignatureType().equals(SigningBean.SigningType.CAdES)) {
+                if (signingBean.getSignatureType().equals(SigningBean.SigningType.CAdES)) {
                     GSON.SigningCAdES cades = new GSON.SigningCAdES();
                     params.signing.cadesParams = cades;
-                    params.signing.cadesParams.TSAURL = bean.getTspURL();
+                    params.signing.cadesParams.TSAURL = signingBean.getTspURL();
                     params.signing.cadesParams.addArchiveinfo = addArchiveInfo;
                 }
                 HttpClientConnection
-                        .sendDocSigningRequest(bean.getDataIN(),
-                                params, new File(bean.getOutputPath()));
+                        .sendDocSigningRequest(signingBean.getDataIN(),
+                                params, new File(signingBean.getOutputPath()));
 
-            } else if (bean.getAction().equals(CMSSigner.Commands.ENCRYPT_SIGN)) {
-                Tuple<DataSource, DataSource> outCome = util.encryptAndSign(bean);
-                util.writeToFile(outCome.getSecond(), bean);
+            } else if (!cardSigning.isSelected() && signLoacal.isSelected()) {
+                if (signingBean.getSignatureType().equals(SigningBean.SigningType.CAdES)) {
+                    DataSource ds = util.signCAdES(signingBean, archiveInfo.isSelected());
+                    util.writeToFile(ds, signingBean);
+
+                }
+                else if (signingBean.getSignatureType().equals(SigningBean.SigningType.CMS)) {
+                    DataSource ds = util.signCMS(signingBean);
+                    util.writeToFile(ds, signingBean);
+
+                }
+                else if (signingBean.getSignatureType().equals(SigningBean.SigningType.PAdES)) {
+                    CertWriterReader.KeyStoreBean bean = signingBean.getKeyStoreBean();
+                    SignPDFUtil pdfUtil = new SignPDFUtil(bean.getSelectedKey(), bean.getChain());
+                    PadesBESParameters params = pdfUtil.createParameters(signingBean);
+                    DataSource ds = pdfUtil.signPDF(signingBean, params, "IAIK");
+                    util.writeToFile(ds, signingBean);
+                }
+            } else if (signingBean.getAction().equals(CMSSigner.Commands.ENCRYPT_SIGN)) {
+                Tuple<DataSource, DataSource> outCome = util.encryptAndSign(signingBean);
+                util.writeToFile(outCome.getSecond(), signingBean);
             }
+        }
+
+    }
+
+    @FXML
+    public void selectIN(ActionEvent event) throws Exception {
+        File inFile = showOpenDialog(event, "dataIN");
+        signingBean.setDataINFile(inFile).setDataIN(new FileInputStream(inFile));
+    }
+
+    @FXML
+    public void selectOut(ActionEvent event) throws Exception {
+        File outFile = showSaveDialog(event, "signatureOut");
+        signingBean.setOutputPath(outFile.getAbsolutePath());
+    }
+
+    @FXML
+    public void selectStore(ActionEvent event) throws Exception {
+        keystoreFile = showOpenDialog(event, "keyStoreLoc");
+    }
+
+    @FXML
+    public void loadStore(ActionEvent event) throws Exception {
+        store = KeyStoreTool
+                .loadStore(new FileInputStream(keystoreFile),
+                        pin.getText().toCharArray(),
+                        "PKCS12");
+        Enumeration<String> aliases = store.aliases();
+        while(aliases.hasMoreElements()) {
+            aliasBox.getItems().add(aliases.nextElement());
         }
 
     }

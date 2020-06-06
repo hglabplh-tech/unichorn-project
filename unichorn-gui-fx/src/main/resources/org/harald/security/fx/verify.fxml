@@ -34,7 +34,14 @@
             <Button fx:id="verify" mnemonicParsing="false" onAction="#verify" text="Verify" GridPane.rowIndex="3" />
             <Button fx:id="goBack" mnemonicParsing="false" onAction="#goBack" text="Go Back" GridPane.columnIndex="1" GridPane.rowIndex="3" />
             <Label text="Data Path" />
-            <TextField fx:id="nonEditDataPath" editable="false" GridPane.columnIndex="1" />
+            <TextField fx:id="dataPath" editable="false" GridPane.columnIndex="1">
+               <contextMenu>
+                  <ContextMenu>
+                    <items>
+                      <MenuItem fx:id="selectData" mnemonicParsing="false" onAction="#selectData" text="Select Data File" />
+                    </items>
+                  </ContextMenu>
+               </contextMenu></TextField>
             <Button fx:id="downloadTrust" alignment="TOP_RIGHT" mnemonicParsing="false" onAction="#downloadTrust" text="Download Trust" GridPane.columnIndex="2" GridPane.rowIndex="3" />
             <CheckBox fx:id="ocspPathCheck" mnemonicParsing="false" text="Path/OCSPCheck" GridPane.columnIndex="2" GridPane.rowIndex="1" />
             <ComboBox fx:id="sigType" prefWidth="150.0" GridPane.columnIndex="2" />

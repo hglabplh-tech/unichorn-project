@@ -27,7 +27,7 @@ import static org.harry.security.util.ConfigReader.downloadTrusts;
 public class VerifierCtrl implements ControllerInit {
 
     @FXML private TableView<ResultEntry> verifyResults;
-    private SigningBean bean;
+    private SigningBean signingBean;
 
     private File signatureInput = null;
 
@@ -35,9 +35,9 @@ public class VerifierCtrl implements ControllerInit {
 
     @Override
     public Scene init() {
-        bean = SecHarry.contexts.get();
-        TextField dataPathField = getTextFieldByFXID("nonEditDataPath");
-        inputPath = bean.getDataINPath();
+        signingBean = SecHarry.contexts.get();
+        TextField dataPathField = getTextFieldByFXID("dataPath");
+        inputPath = signingBean.getDataINPath();
         ComboBox sigType = getComboBoxByFXID("sigType");
         sigType.getItems().addAll(SigningBean.SigningType.values());
 
@@ -58,7 +58,7 @@ public class VerifierCtrl implements ControllerInit {
         verifyResults.getSelectionModel().setCellSelectionEnabled(true);
         verifyResults.setEditable(false);
         verifyResults.getSelectionModel().getSelectedItem();
-        SigningBean bean = SecHarry.contexts.get();
+        signingBean = SecHarry.contexts.get();
         CheckBox check = getCheckBoxByFXID("ocspPathCheck");
         CheckBox altResponder = getCheckBoxByFXID("altResponder");
         Label status = getLabelByFXID("status");
@@ -67,9 +67,9 @@ public class VerifierCtrl implements ControllerInit {
         SigningBean.SigningType type = (SigningBean.SigningType) sigType.getSelectionModel().getSelectedItem();
         boolean ocspPathCheck = check.isSelected();
         boolean altResp = altResponder.isSelected();
-        bean = bean.setCheckOcspUseAltResponder(altResp);
-        bean.setCheckPathOcsp(ocspPathCheck);
-        VerifyUtil util = new VerifyUtil(bean.getWalker(), bean);
+        signingBean = signingBean.setCheckOcspUseAltResponder(altResp);
+        signingBean.setCheckPathOcsp(ocspPathCheck);
+        VerifyUtil util = new VerifyUtil(signingBean.getWalker(), signingBean);
         InputStream dataIN = null;
         InputStream signatureIN = null;
         if (inputPath != null && signatureInput != null) {
@@ -141,7 +141,7 @@ public class VerifierCtrl implements ControllerInit {
         } else if (signatureInput != null) {
             signatureIN = new FileInputStream(signatureInput);
             if (type.equals(SigningBean.SigningType.PAdES)) {
-                VerifyPDFUtil pdfUtil = new VerifyPDFUtil(bean.getWalker(), bean);
+                VerifyPDFUtil pdfUtil = new VerifyPDFUtil(signingBean.getWalker(), signingBean);
                 VerifyUtil.VerifierResult result = pdfUtil.verifySignedPdf(signatureIN);
                 List<VerifyUtil.SignerInfoCheckResults> set = result.getSignersCheck();
                 List<ResultEntry> entryList = new ArrayList<>();
@@ -181,7 +181,14 @@ public class VerifierCtrl implements ControllerInit {
     }
 
     @FXML
-    public void signatureSelect(ActionEvent event) {
+    public void selectData(ActionEvent event) throws IOException {
+        String fxId = "dataPath";
+        inputPath = showOpenDialog(event, fxId);
+        signingBean.setDataINPath(inputPath).setDataIN(new FileInputStream(inputPath)).setDataINFile(inputPath);
+
+    }
+    @FXML
+    public void signatureSelect(ActionEvent event)  {
         String fxId = "signatureIN";
         signatureInput = showOpenDialog(event, fxId);
     }

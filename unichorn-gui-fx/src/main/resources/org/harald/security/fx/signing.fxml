@@ -5,7 +5,7 @@
 <?import java.lang.*?>
 <?import javafx.scene.layout.*?>
 
-<VBox maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="400.0" prefWidth="600.0" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.harald.security.fx.SigningCtrl">
+<VBox maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="800.0" prefWidth="1200.0" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.harald.security.fx.SigningCtrl">
 
    <children>
       <GridPane>
@@ -16,9 +16,12 @@
           <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0" />
         </columnConstraints>
         <rowConstraints>
+            <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+            <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
           <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
           <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
           <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+            <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
             <RowConstraints maxHeight="32.0" minHeight="10.0" prefHeight="32.0" vgrow="SOMETIMES" />
             <RowConstraints maxHeight="32.0" minHeight="10.0" prefHeight="32.0" vgrow="SOMETIMES" />
             <RowConstraints maxHeight="46.0" minHeight="10.0" prefHeight="28.0" vgrow="SOMETIMES" />
@@ -28,30 +31,30 @@
             <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
         </rowConstraints>
          <children>
-            <Label text="Signature Type" GridPane.rowIndex="1" />
-            <Label text="Mode" GridPane.rowIndex="2" />
-            <Label text="Digest Algorithm" GridPane.columnIndex="2" GridPane.rowIndex="1" />
-            <Label text="Signature Algorithm" GridPane.columnIndex="2" GridPane.rowIndex="2" />
-            <ComboBox fx:id="digestAlg" prefWidth="150.0" GridPane.columnIndex="3" GridPane.rowIndex="1" />
-            <ComboBox fx:id="sigAlg" prefWidth="150.0" GridPane.columnIndex="3" GridPane.rowIndex="2" />
-            <ComboBox fx:id="sigType" prefWidth="150.0" GridPane.columnIndex="1" GridPane.rowIndex="1" />
-            <ComboBox fx:id="mode" prefWidth="150.0" GridPane.columnIndex="1" GridPane.rowIndex="2" />
-            <Label text="The following settings are only valid for encryption" GridPane.columnSpan="2" GridPane.rowIndex="5" />
-            <Label text="Encryption lgorithm" GridPane.rowIndex="6" />
-            <ComboBox fx:id="encrAlg" prefWidth="150.0" GridPane.columnIndex="1" GridPane.rowIndex="6" />
-            <Button fx:id="signEncr" mnemonicParsing="false" onAction="#signEncr" text="Process" GridPane.rowIndex="9" />
-            <Button fx:id="cancelSigning" mnemonicParsing="false" onAction="#cancelSigning" text="Cancel" GridPane.columnIndex="1" GridPane.rowIndex="9" />
-            <Label text="Card PIN" />
-            <Label text="Optional Parameters" GridPane.columnIndex="2" />
-            <Label text="Encryption PW" GridPane.columnIndex="2" GridPane.rowIndex="6" />
-            <PasswordField fx:id="passwd" GridPane.columnIndex="3" GridPane.rowIndex="6" />
-            <Label text="Timestamp Authority" GridPane.rowIndex="8" />
-            <Label text="The following Values are CAdES only" GridPane.columnSpan="2" GridPane.rowIndex="7" />
-            <ComboBox fx:id="tspField" prefHeight="25.0" prefWidth="150.0" GridPane.columnIndex="1" GridPane.rowIndex="8" />
-            <CheckBox fx:id="archiveInfo" mnemonicParsing="false" text="Add Archive Info" GridPane.columnIndex="2" GridPane.rowIndex="8" />
-            <PasswordField fx:id="pin" GridPane.columnIndex="1" />
-            <Label text="Attribute Cert Path" GridPane.rowIndex="3" />
-            <TextField fx:id="attrCert" GridPane.columnIndex="1" GridPane.rowIndex="3">
+            <Label text="Signature Type" GridPane.rowIndex="3" />
+            <Label text="Mode" GridPane.rowIndex="4" />
+            <Label text="Digest Algorithm" GridPane.columnIndex="2" GridPane.rowIndex="3" />
+            <Label text="Signature Algorithm" GridPane.columnIndex="2" GridPane.rowIndex="4" />
+            <ComboBox fx:id="digestAlg" prefWidth="150.0" GridPane.columnIndex="3" GridPane.rowIndex="3" />
+            <ComboBox fx:id="sigAlg" prefWidth="150.0" GridPane.columnIndex="3" GridPane.rowIndex="4" />
+            <ComboBox fx:id="sigType" prefWidth="150.0" GridPane.columnIndex="1" GridPane.rowIndex="3" />
+            <ComboBox fx:id="mode" prefWidth="150.0" GridPane.columnIndex="1" GridPane.rowIndex="4" />
+            <Label text="The following settings are only valid for encryption" GridPane.columnSpan="2" GridPane.rowIndex="7" />
+            <Label text="Encryption lgorithm" GridPane.rowIndex="8" />
+            <ComboBox fx:id="encrAlg" prefWidth="150.0" GridPane.columnIndex="1" GridPane.rowIndex="8" />
+            <Button fx:id="signEncr" mnemonicParsing="false" onAction="#signEncr" text="Process" GridPane.rowIndex="11" />
+            <Button fx:id="cancelSigning" mnemonicParsing="false" onAction="#cancelSigning" text="Cancel" GridPane.columnIndex="1" GridPane.rowIndex="11" />
+            <Label text="Card PIN / Keysore Pass" GridPane.rowIndex="2" />
+            <Label text="Optional Parameters below:" GridPane.columnIndex="2" GridPane.rowIndex="2" />
+            <Label text="Encryption PW" GridPane.columnIndex="2" GridPane.rowIndex="8" />
+            <PasswordField fx:id="passwd" GridPane.columnIndex="3" GridPane.rowIndex="8" />
+            <Label text="Timestamp Authority" GridPane.rowIndex="10" />
+            <Label text="The following Values are CAdES only" GridPane.columnSpan="2" GridPane.rowIndex="9" />
+            <ComboBox fx:id="tspField" prefHeight="25.0" prefWidth="150.0" GridPane.columnIndex="1" GridPane.rowIndex="10" />
+            <CheckBox fx:id="archiveInfo" mnemonicParsing="false" text="Add Archive Info" GridPane.columnIndex="2" GridPane.rowIndex="10" />
+            <PasswordField fx:id="pin" GridPane.columnIndex="1" GridPane.rowIndex="2" />
+            <Label text="Attribute Cert Path" GridPane.rowIndex="5" />
+            <TextField fx:id="attrCert" GridPane.columnIndex="1" GridPane.rowIndex="5">
                <contextMenu>
                   <ContextMenu>
                     <items>
@@ -60,7 +63,41 @@
                   </ContextMenu>
                </contextMenu>
             </TextField>
-            <CheckBox fx:id="cardsigning" mnemonicParsing="false" text="Sign with card" GridPane.rowIndex="4" />
+            <CheckBox fx:id="cardsigning" mnemonicParsing="false" text="Sign with card" GridPane.rowIndex="6" />
+            <Label text="Data Input" />
+            <Label prefHeight="21.0" prefWidth="154.0" text="Signature Ouptut" GridPane.columnIndex="2" />
+            <Label prefHeight="21.0" prefWidth="155.0" text="Keystore Location" GridPane.rowIndex="1" />
+            <Label text="Key alias" GridPane.columnIndex="2" GridPane.rowIndex="1" />
+            <ComboBox fx:id="aliasBox" prefHeight="39.0" prefWidth="150.0" GridPane.columnIndex="3" GridPane.rowIndex="1" />
+            <Button fx:id="loadStore" mnemonicParsing="false" onAction="#loadStore" text="Load Store" GridPane.columnIndex="3" GridPane.rowIndex="2" />
+            <TextField fx:id="dataIN" GridPane.columnIndex="1">
+               <contextMenu>
+                  <ContextMenu>
+                    <items>
+                      <MenuItem fx:id="selectIN" mnemonicParsing="false" onAction="#selectIN" text="Select Location" />
+                    </items>
+                  </ContextMenu>
+               </contextMenu>
+            </TextField>
+            <TextField fx:id="signatureOut" GridPane.columnIndex="3">
+               <contextMenu>
+                  <ContextMenu>
+                    <items>
+                      <MenuItem fx:id="selectOut" mnemonicParsing="false" onAction="#selectOut" text="Select Location" />
+                    </items>
+                  </ContextMenu>
+               </contextMenu>
+            </TextField>
+            <TextField fx:id="keyStoreLoc" GridPane.columnIndex="1" GridPane.rowIndex="1">
+               <contextMenu>
+                  <ContextMenu>
+                    <items>
+                      <MenuItem fx:id="selectStore" mnemonicParsing="false" onAction="#selectStore" text="Select Location" />
+                    </items>
+                  </ContextMenu>
+               </contextMenu>
+            </TextField>
+            <CheckBox fx:id="signLoacal" mnemonicParsing="false" text="Signing Loacally ?" GridPane.columnIndex="1" GridPane.rowIndex="6" />
          </children>
       </GridPane>
    </children>
