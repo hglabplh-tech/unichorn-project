@@ -111,11 +111,11 @@ public class AlgorithmPathChecker {
                     BasicOCSPResponse basicOCSPResponse = (BasicOCSPResponse) response
                             .getResponse();
                     SingleResponse singleResponse = basicOCSPResponse.getSingleResponses()[0];
-                    results.addOcspResult(resultName,
-                            new Tuple<String, VerifyUtil.Outcome>("ocsp result is: " + singleResponse.getCertStatus().toString(), VerifyUtil.Outcome.SUCCESS));
+                    results.addOcspResult("ocspResult",
+                            new Tuple<String, VerifyUtil.Outcome>(singleResponse.getCertStatus().toString(), VerifyUtil.Outcome.SUCCESS));
                 } else if (responseStatus == OCSPResponse.tryLater) {
                     results.addOcspResult(resultName, new Tuple<String, VerifyUtil.Outcome>(response.getResponseStatusName(),
-                            VerifyUtil.Outcome.UNDETERMINED));
+                            VerifyUtil.Outcome.INDETERMINED));
                 } else {
                     results.addOcspResult(resultName, new Tuple<String, VerifyUtil.Outcome>(response.getResponseStatusName(),
                             VerifyUtil.Outcome.FAILED));
@@ -158,7 +158,7 @@ public class AlgorithmPathChecker {
         if (lenght >= 4096) {
             results.addSignatureResult("check signature algorithm", new Tuple<>("algorithm", VerifyUtil.Outcome.SUCCESS));
         } else {
-            results.addSignatureResult("check signature algorithm", new Tuple<>("algorithm", VerifyUtil.Outcome.UNDETERMINED));
+            results.addSignatureResult("check signature algorithm", new Tuple<>("algorithm", VerifyUtil.Outcome.INDETERMINED));
         }
     }
 
@@ -171,7 +171,7 @@ public class AlgorithmPathChecker {
         if (sigAlg.equals(CMSAlgorithmID.rsassaPss)) {
             results.addSignatureResult("check rsa padding", new Tuple<>("padding PSS 2.1", VerifyUtil.Outcome.SUCCESS));
         } else {
-            results.addSignatureResult("check rsa padding", new Tuple<>("padding PSS 1.5", VerifyUtil.Outcome.UNDETERMINED));
+            results.addSignatureResult("check rsa padding", new Tuple<>("padding PSS 1.5", VerifyUtil.Outcome.INDETERMINED));
         }
     }
 

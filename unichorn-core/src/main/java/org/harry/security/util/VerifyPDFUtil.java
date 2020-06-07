@@ -98,7 +98,7 @@ public class VerifyPDFUtil {
                                 new Tuple<>("found certificates are identical", VerifyUtil.Outcome.SUCCESS));
                     } else {
                         results.addSignatureResult("certificate identity uclear",
-                                new Tuple<>("found certificates are not sure identical", VerifyUtil.Outcome.UNDETERMINED));
+                                new Tuple<>("found certificates are not sure identical", VerifyUtil.Outcome.INDETERMINED));
                     }
                     Calendar signatureDate = sigApp.getSigningTime();
                     try {

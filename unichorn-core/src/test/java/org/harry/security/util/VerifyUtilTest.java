@@ -140,7 +140,9 @@ public class VerifyUtilTest extends TestBase {
         List<TrustListManager> walkers = ConfigReader.loadAllTrusts();
         in = this.getClass().getResourceAsStream("/data/pom.xml");
         VerifyUtil vutil = new VerifyUtil(walkers, bean);
-        vutil.verifyCadesSignature(input, in);
+        VerifyUtil.VerifierResult vResult = vutil.verifyCadesSignature(input, in);
+        File reportFile = File.createTempFile("sigReport", ".rpt");
+        ReportUtil.generateAndWriteReport(reportFile, vResult);
     }
 
 

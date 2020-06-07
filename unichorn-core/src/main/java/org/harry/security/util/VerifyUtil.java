@@ -153,26 +153,35 @@ public class VerifyUtil {
      */
     public VerifierResult verifyCadesSignature(InputStream signature, InputStream data) {
         VerifierResult vResult = new VerifierResult();
+        SignerInfoCheckResults results = new SignerInfoCheckResults();
                 try {
                     CadesSignatureStream cadesSig = new CadesSignatureStream(signature, data);
                     int signerInfoLength = cadesSig.getSignerInfos().length;
 
                     System.out.println("Signature contains " + signerInfoLength + " signer infos");
 
-                    SignerInfoCheckResults results = new SignerInfoCheckResults();
+
                     SignedDataStream signedData = cadesSig.getSignedDataObject();
                     CertificateSet certificateSet = signedData.getCertificateSet();
+                    results.addFormatResult("sigFormatOk", new Tuple<>("the signature is well formed", Outcome.SUCCESS));
 
                     int j = 0;
                     for (SignerInfo info: cadesSig.getSignerInfos()) {
                         AlgorithmID sigAlg = info.getSignatureAlgorithm();
                         AlgorithmID digestAlg = info.getDigestAlgorithm();
 
-                        results.addSignatureResult("signature algorithm",
+                        results.addSignatureResult("sigAlg",
                                 new Tuple<>(sigAlg.getImplementationName(), Outcome.SUCCESS));
-                        results.addSignatureResult("digest algorithm",
+                        results.addSignatureResult("digestAlg",
                                 new Tuple<>(digestAlg.getImplementationName(), Outcome.SUCCESS));
                         X509Certificate signCert = cadesSig.verifySignatureValue(j);
+                        if(signCert != null) {
+                            results.addSignatureResult("sigMathOk",
+                                    new Tuple<>("signature is math correct", Outcome.SUCCESS));
+                        } else {
+                            results.addSignatureResult("sigMathOk",
+                                    new Tuple<>("signature is math incorrect", Outcome.FAILED));
+                        }
                         CertChecker.checkQualified(signCert, results);
                         checkAttributeCertIfThere(certificateSet, results);
                         vResult.addSignersInfo(signCert.getSubjectDN().getName(), results);
@@ -203,6 +212,8 @@ public class VerifyUtil {
                         cadesExtractTimestampAndData(results, cadesSig);
                     }
                 } catch (Exception ex) {
+                    results.addFormatResult("sigFormatOk",
+                            new Tuple<>("the signature is NOT well formed", Outcome.FAILED));
                     throw new IllegalStateException("failure", ex);
                 }
 
@@ -565,6 +576,7 @@ public class VerifyUtil {
      * The class holding the check results for a specific signer-info
      */
     public static class SignerInfoCheckResults {
+        Map<String, Tuple<String, Outcome>> formatResults = new HashMap<>();
         Map<String, Tuple<String, Outcome>> signatureResults = new HashMap<>();
         Map<String, Tuple<String, Outcome>> ocspResults = new HashMap<>();
         X509Certificate [] signerChain = null;
@@ -588,6 +600,10 @@ public class VerifyUtil {
             return signersChain;
         }
 
+        public Map<String, Tuple<String, Outcome>> getFormatResult() {
+            return formatResults;
+        }
+
         public Map<String, Tuple<String, Outcome>> getSignatureResult() {
             return signatureResults;
         }
@@ -605,9 +621,67 @@ public class VerifyUtil {
             return this;
         }
 
+        public SignerInfoCheckResults addFormatResult(String resultName, Tuple<String, Outcome> signatureResult) {
+            this.formatResults.put(resultName, signatureResult);
+            return this;
+        }
+
         public SignerInfoCheckResults addOcspResult(String resultName, Tuple<String, Outcome> ocspResult) {
             this.ocspResults.put(resultName, ocspResult);
             return this;
+        }
+
+        public Outcome sigMathOk () {
+            Tuple<String, Outcome> result = signatureResults.get("sigMathOk");
+            if (result != null) {
+                return result.getSecond();
+            } else {
+                return Outcome.FAILED;
+            }
+        }
+
+        public Tuple<String, Outcome> getSignatureAlgorithm() {
+            Tuple<String, Outcome> result = signatureResults.get("sigAlg");
+            return result;
+        }
+
+        public Tuple<String, Outcome> getOCSPResult() {
+            Tuple<String, Outcome> result = ocspResults.get("ocspResult");
+            return result;
+        }
+
+        public Outcome checkFormatResult() {
+            Outcome format = Outcome.SUCCESS;
+            for (Map.Entry<String, Tuple<String, Outcome>> entry: formatResults.entrySet()) {
+                Tuple<String, Outcome> toCheck = formatResults.get(entry.getKey());
+                if (toCheck.getSecond() == Outcome.FAILED) {
+                    format = Outcome.FAILED;
+                }
+            }
+            return format;
+        }
+
+        public Outcome checkOverallResult () {
+            Outcome overall = Outcome.SUCCESS;
+            for (Map.Entry<String, Tuple<String, Outcome>> entry: formatResults.entrySet()) {
+                Tuple<String, Outcome> toCheck = formatResults.get(entry.getKey());
+                if (toCheck.getSecond() == Outcome.FAILED) {
+                    overall = Outcome.FAILED;
+                }
+            }
+            for (Map.Entry<String, Tuple<String, Outcome>> entry: signatureResults.entrySet()) {
+                Tuple<String, Outcome> toCheck = signatureResults.get(entry.getKey());
+                if (toCheck.getSecond() == Outcome.FAILED) {
+                    overall = Outcome.FAILED;
+                }
+            }
+            for (Map.Entry<String, Tuple<String, Outcome>> entry: ocspResults.entrySet()) {
+                Tuple<String, Outcome> toCheck = ocspResults.get(entry.getKey());
+                if (toCheck.getSecond() == Outcome.FAILED) {
+                    overall = Outcome.FAILED;
+                }
+            }
+            return overall;
         }
     }
 
@@ -617,7 +691,7 @@ public class VerifyUtil {
     public static enum Outcome {
         SUCCESS,
         FAILED,
-        UNDETERMINED;
+        INDETERMINED;
     }
 
 }

@@ -206,7 +206,7 @@ public class CMSSigner {
                         Collection<Tuple<String, VerifyUtil.Outcome>> sigRes = result.getSignatureResult().values();
                         for (Tuple<String, VerifyUtil.Outcome> tuple : sigRes) {
                             if (!tuple.getSecond().equals(VerifyUtil.Outcome.SUCCESS)
-                                    && !tuple.getSecond().equals(VerifyUtil.Outcome.UNDETERMINED)) {
+                                    && !tuple.getSecond().equals(VerifyUtil.Outcome.INDETERMINED)) {
                                 success = false;
                             }
                         }
@@ -214,7 +214,7 @@ public class CMSSigner {
                         Collection<Tuple<String, VerifyUtil.Outcome>> ocspRes = result.getOcspResult().values();
                         for (Tuple<String, VerifyUtil.Outcome> tuple : ocspRes) {
                             if (!tuple.getSecond().equals(VerifyUtil.Outcome.SUCCESS)
-                            && !tuple.getSecond().equals(VerifyUtil.Outcome.UNDETERMINED)) {
+                            && !tuple.getSecond().equals(VerifyUtil.Outcome.INDETERMINED)) {
                                 success = false;
                             }
                         }
