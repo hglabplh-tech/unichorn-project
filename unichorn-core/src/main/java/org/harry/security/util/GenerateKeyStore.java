@@ -62,7 +62,7 @@ public class GenerateKeyStore  {
     CertificateWizzard wizzard = new CertificateWizzard(properties, stream,
             KeyStoreTool.StoreType.IAIKKeyStore.getType());
     KeyPair caKeys = wizzard.generateCA(properties.getCommonName(), true);
-    KeyPair interKeys = wizzard.generateIntermediate(caKeys, properties.getCommonName(), true);
+    KeyPair interKeys = wizzard.generateIntermediate(caKeys, properties.getCommonName() + "-PSS-Common", true);
     wizzard.generateUser(interKeys, properties.getCommonName(), true);
 
     caKeys = wizzard.generateCA("NoPSS Cert Common", false);

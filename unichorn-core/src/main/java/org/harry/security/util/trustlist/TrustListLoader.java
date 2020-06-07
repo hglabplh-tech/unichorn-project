@@ -3,17 +3,22 @@ package org.harry.security.util.trustlist;
 
 
 import org.etsi.uri._02231.v2_.*;
+import org.pmw.tinylog.Logger;
 
 import javax.xml.bind.*;
 import javax.xml.namespace.QName;
-import javax.xml.stream.XMLStreamReader;
 import java.io.*;
-import java.security.cert.CertificateEncodingException;
 import java.util.List;
 
 public class TrustListLoader {
 
     private TrustStatusListType trustList;
+
+    private final boolean calledFromService;
+
+    public TrustListLoader(boolean calledFromService) {
+        this.calledFromService = calledFromService;
+    }
 
     private List<DigitalIdentityType> listDigi;
     public void makeRoot() {
@@ -55,16 +60,20 @@ public class TrustListLoader {
      * @throws IOException error case
      */
     public TrustListManager getManager(File trustListFile) throws Exception {
+        Logger.trace("Get manager....");
         if(trustListFile != null && trustListFile.exists()) {
             InputStream stream = new FileInputStream(trustListFile);
+            Logger.trace("Load trust....");
             TrustStatusListType trust = loadTrust(stream);
-            TrustListManager mgr = new TrustListManager(trust);
+            Logger.trace("Trust loaded....");
+            TrustListManager mgr = new TrustListManager(trust, this.calledFromService);
             trustList = trust;
             stream.close();
+            Logger.trace("Get manager ok....");
             return mgr;
         } else {
             makeRoot();
-            TrustListManager mgr = new TrustListManager(trustList);
+            TrustListManager mgr = new TrustListManager(trustList, false);
             return mgr;
         }
 
@@ -75,18 +84,21 @@ public class TrustListLoader {
 
 
         try {
+            Logger.trace("About to unmarshall.....");
             jaxbContext = JAXBContext.newInstance(TrustStatusListType.class);
             Unmarshaller umarshall  = jaxbContext.createUnmarshaller();
-
+            Logger.trace("About to unmarshall unmarshaller created.....");
             JAXBElement root = (JAXBElement) umarshall.unmarshal(trustList);
+            Logger.trace("About to unmarshall ok.....");
 
 
             System.out.println(root.getValue());
 
             return (TrustStatusListType)root.getValue();
         }
-        catch (JAXBException ex)
-        {
+        catch (JAXBException ex) {
+            Logger.trace("trust list not loaded error ->: " + ex.getMessage());
+            Logger.trace(ex);
             throw new IllegalStateException("trust list not loaded", ex);
         }
     }

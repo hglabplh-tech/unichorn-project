@@ -55,7 +55,6 @@ import org.harry.security.util.algoritms.CryptoAlg;
 import org.harry.security.util.bean.SigningBean;
 import org.harry.security.util.certandkey.CertificateChainUtil;
 import org.harry.security.util.certandkey.KeyStoreTool;
-import org.harry.security.util.ocsp.HttpOCSPClient;
 import org.harry.security.util.ocsp.OCSPCRLClient;
 import org.harry.security.util.trustlist.TrustListLoader;
 import org.harry.security.util.trustlist.TrustListManager;
@@ -64,7 +63,6 @@ import org.pmw.tinylog.Logger;
 import javax.activation.DataSource;
 import java.io.*;
 import java.math.BigInteger;
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.security.*;
 import java.security.cert.*;
@@ -72,7 +70,7 @@ import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.*;
 
-import static org.harry.security.CommonConst.PROP_RESPONDER_LIST_FILE;
+import static org.harry.security.CommonConst.*;
 import static org.harry.security.util.CertificateWizzard.isCertificateSelfSigned;
 import static org.harry.security.util.ocsp.OCSPCRLClient.getCRLOfCert;
 
@@ -85,22 +83,6 @@ import static org.harry.security.util.ocsp.OCSPCRLClient.getCRLOfCert;
 public class UnicHornResponderUtil {
 
     /**
-     * The application directory
-     */
-
-    public static String APP_DIR;
-
-    /**
-     * The trust file directory
-     */
-    public static String APP_DIR_TRUST;
-
-    /**
-     * The trust file directory
-     */
-    public static String APP_DIR_WORKING;
-
-    /**
      * The positive list of certificate chains which are known
      */
 
@@ -108,72 +90,44 @@ public class UnicHornResponderUtil {
             = new ThreadLocal<>();
     private static SimpleChainVerifier verifier = new SimpleChainVerifier();
 
-    private static X509Certificate[] predefinedChain = null;
+    /**
+     * Use an OCSP ResponseGenerator for request parsing / response generation.
+     */
+    private static ResponseGenerator responseGenerator;
+    /**
+     * Algorithm to be used for signing the response.
+     */
+    private static AlgorithmID signatureAlgorithm = AlgorithmID.sha1WithRSAEncryption;
 
     /**
      * Initialize neccessary directories
      */
-    static {
-        String userDir = System.getProperty("user.home");
-        userDir = userDir + "\\AppData\\Local\\MySigningApp";
-        File dir = new File(userDir);
-        if (!dir.exists()) {
-            dir.mkdirs();
-        }
-        File dirTrust = new File(userDir, "trustedLists");
-        if (!dirTrust.exists()) {
-            dirTrust.mkdirs();
-        }
-        File dirWorking = new File(userDir, "working");
-        if (!dirWorking.exists()) {
-            dirWorking.mkdirs();
-        }
-        UnicHornResponderUtil.APP_DIR_TRUST = dirTrust.getAbsolutePath();
-        UnicHornResponderUtil.APP_DIR_WORKING = dirWorking.getAbsolutePath();
-        UnicHornResponderUtil.APP_DIR = userDir;
-    }
+
 
     /**
      * generate the OCSP response by checking the certificate and its values for
      * being ok
      * @param ocspRequest the OCSP request
      * @param ocspReqInput the request encoded in a input stream
-     * @param responseGenerator the response generator used to generate a valid response
-     * @param signatureAlgorithm the signature algorithm used to sign the response
      * @return a valid ocsp-response
      */
     public static OCSPResponse generateResponse(OCSPRequest ocspRequest,
-                                                InputStream ocspReqInput,
-                                                ResponseGenerator responseGenerator,
-                                                AlgorithmID signatureAlgorithm) {
-        return generateResponse(ocspRequest, ocspReqInput, responseGenerator, signatureAlgorithm, null);
-    }
-
-    /**
-     * generate the OCSP response by checking the certificate and its values for
-     * being ok
-     * @param ocspRequest the OCSP request
-     * @param ocspReqInput the request encoded in a input stream
-     * @param responseGenerator the response generator used to generate a valid response
-     * @param signatureAlgorithm the signature algorithm used to sign the response
-     * @return a valid ocsp-response
-     */
-    public static OCSPResponse generateResponse(OCSPRequest ocspRequest,
-                                                InputStream ocspReqInput,
-                                                ResponseGenerator responseGenerator,
-                                                AlgorithmID signatureAlgorithm, X509Certificate[] givenChain) {
-
-        predefinedChain = givenChain;
-
+                                                InputStream ocspReqInput) {
+        Logger.trace("Enter generateResponse do the real work of responder.......");
         workingData.set(new LocalCache());
+        Logger.trace("Setting cache is ok....");
         loadActualPrivStore();
-        CertificateChainUtil.loadTrustCerts(workingData.get().getCertificateList());
+        Logger.trace("Load certificates ok....");
+       /* List<X509Certificate> temp = CertificateChainUtil.loadTrustCerts(workingData.get().getCertificateList());
+        workingData.get().setCertificateList(temp); */
         try {
+            Logger.trace("Before loading prepared....");
             initStorePreparedResponses();
+            Logger.trace("loading prepared ok.....");
         } catch (IOException e) {
-            e.printStackTrace();
+            Logger.trace(e);
         } catch (ClassNotFoundException e) {
-            e.printStackTrace();
+            Logger.trace(e);
         }
         Logger.trace("before getting keys and certs");
         Tuple<PrivateKey, X509Certificate[]> keys = null;
@@ -222,8 +176,10 @@ public class UnicHornResponderUtil {
         Tuple<BigInteger, Optional<OCSPResponse>> responseOpt =
                 searchResponseINMap(ocspRequest.getRequestList()[0].getReqCert(), keys);
         if (responseOpt.getSecond().isPresent()) {
+            Logger.trace( "Message is: prepared response found");
             return responseOpt.getSecond().get();
         }
+        Logger.trace( "Message is: prepared response NOT found looking up revocation...");
         OCSPResponse response = checkCertificateRevocation(ocspRequest, responseGenerator, crl);
 
 
@@ -414,13 +370,8 @@ public class UnicHornResponderUtil {
         Date nextWeek = new Date(instance.getTimeInMillis());
 
         Optional<X509Certificate> issuer = Optional.empty();
-        if (predefinedChain != null && predefinedChain.length >= 2) {
-            if (predefinedChain[1] != null) {
-                issuer = Optional.of(predefinedChain[1]);
-            }
-        } else {
-            issuer = CertificateChainUtil.findIssuer(actualCert, workingData.get().getCertificateList());
-        }
+        issuer = CertificateChainUtil.findIssuer(actualCert, workingData.get().getCertificateList());
+
         boolean matches = false;
         boolean error = false;
         try {
@@ -747,17 +698,22 @@ public class UnicHornResponderUtil {
     public static void loadActualPrivStore() {
         loadActualPrivTrust();
         try {
+            Logger.trace("Before loading private key-store....");
             String password = decryptPassword("pwdFile");
-            File keyFile = new File(UnicHornResponderUtil.APP_DIR_TRUST, "privKeystore" + ".p12");
+            File keyFile = new File(APP_DIR_TRUST, "privKeystore" + ".p12");
             KeyStore storeApp = KeyStoreTool.loadStore(new FileInputStream(keyFile),
                     password.toCharArray(), "PKCS12");
+            Logger.trace("key-store loaded reading certificates ....");
             Enumeration<String> aliasEnum = storeApp.aliases();
             while (aliasEnum.hasMoreElements()) {
                 String alias = aliasEnum.nextElement();
                 Logger.trace("Try to read alias: " + alias);
                 X509Certificate[] chain = KeyStoreTool.getCertChainEntry(storeApp, alias);
-                CertificateChainUtil.addToCertificateList(chain, workingData.get().getCertificateList());
+                List<X509Certificate> temp = CertificateChainUtil
+                        .addToCertificateList(chain, workingData.get().getCertificateList());
+                workingData.get().setCertificateList(temp);
             }
+            Logger.trace("loading private key-store ok....");
         } catch (Exception ex) {
             Logger.trace("not loaded cause is: " + ex.getMessage());
             throw new IllegalStateException("not loaded keys", ex);
@@ -769,14 +725,16 @@ public class UnicHornResponderUtil {
      */
     public static void loadActualPrivTrust() {
         try {
-            File trustFile = new File(UnicHornResponderUtil.APP_DIR_TRUST, "trustListPrivate" + ".xml");
-            TrustListLoader loader = new TrustListLoader();
+            Logger.trace("Before loading private trust list....");
+            File trustFile = new File(APP_DIR_TRUST, "privateTrust" + ".xml");
+            TrustListLoader loader = new TrustListLoader(true);
             if (trustFile.exists()) {
                 TrustListManager manager = loader.getManager(trustFile);
                 X509Certificate[] array = manager.getAllCerts()
                         .toArray(new X509Certificate[manager.getAllCerts().size()]);
                 CertificateChainUtil.addToCertificateList(array, workingData.get().getCertificateList());
             }
+            Logger.trace("loading private trust list ok....");
         } catch (Exception ex) {
             Logger.trace("not loaded cause is: " + ex.getMessage());
             throw new IllegalStateException("not loaded keys", ex);
@@ -789,7 +747,7 @@ public class UnicHornResponderUtil {
      * @return the input stream of the CRL
      */
     public static InputStream loadActualCRL() {
-        File crlFile = new File(UnicHornResponderUtil.APP_DIR_TRUST, "privRevokation" + ".crl");
+        File crlFile = new File(APP_DIR_TRUST, "privRevokation" + ".crl");
         Logger.trace("CRL list file is: " + crlFile.getAbsolutePath());
         try {
             if (crlFile.exists()) {
@@ -814,12 +772,6 @@ public class UnicHornResponderUtil {
      * @return the certificate chain in a optional or empty if there is none.
      */
     private static Optional<X509Certificate> findSerialINPositiveList(BigInteger serial) {
-        if (predefinedChain != null) {
-            Optional<X509Certificate> opt =
-                    Arrays.asList(predefinedChain).stream().filter(e -> e.getSerialNumber().equals(serial))
-                    .findFirst();
-
-        }
         Optional<X509Certificate> opt = workingData.get().getCertificateList().stream().filter(e -> {
             X509Certificate cert = e;
             if (cert.getSerialNumber().equals(serial)) {
@@ -985,6 +937,9 @@ public class UnicHornResponderUtil {
                 if (rawObj != null) {
                     workingData.get().setPreparedResponses((HashMap) rawObj);
                 }
+                input.close();
+            } else {
+                Logger.trace("Prepared responses file not found");
             }
         } catch (Exception ex) {
             Logger.trace("read HashTable failed: " +  ex.getMessage());

@@ -1,8 +1,5 @@
 package org.harry.security.util.trustlist;
 
-import com.google.common.base.Charsets;
-import iaik.utils.Base64Exception;
-import iaik.utils.Util;
 import iaik.x509.X509Certificate;
 import org.etsi.uri._02231.v2_.*;
 import org.pmw.tinylog.Configurator;
@@ -33,15 +30,18 @@ public class TrustListManager {
     
     private List<DigitalIdentityType> listDigi = new ArrayList();
 
-    public TrustListManager(TrustStatusListType trustList) {
+    public TrustListManager(TrustStatusListType trustList, boolean calledFromService) {
         this.trustList = trustList;
-        Configurator.defaultConfig().level(Level.TRACE).writer(new ConsoleWriter()).activate();
+        if (!calledFromService) {
+            Configurator.defaultConfig().level(Level.TRACE).writer(new ConsoleWriter()).activate();
+        }
         preLoad();
     }
 
     public void preLoad() {
         tspList = trustList.getTrustServiceProviderList().
                 getTrustServiceProvider();
+        Logger.trace("About to read trust service provider  ....");
         for (TSPType type : tspList) {
             TSPServicesListType serviceList = type.getTSPServices();
             if (serviceList !=null ) {
@@ -50,12 +50,15 @@ public class TrustListManager {
                     flattenTspServiceList.addAll(list);
                 }
             }
+            Logger.trace("Read trust service provider ok ....");
 
 
         }
+        Logger.trace("Read service list....");
         for(TSPServiceType serviceType: flattenTspServiceList) {
             flattenTspServiceInfoList.add(serviceType.getServiceInformation());
         }
+        Logger.trace("Read service list ok ....");
         for(TSPServiceInformationType infoType: flattenTspServiceInfoList) {
             List<DigitalIdentityType> digitIdList = getServiceDigitalId(infoType);
             for (DigitalIdentityType id:digitIdList) {

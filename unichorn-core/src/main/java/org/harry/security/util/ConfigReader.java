@@ -232,7 +232,7 @@ public class ConfigReader {
                 if (trustFile.getName().contains(".xml")) {
                     in = new FileInputStream(trustFile);
                 TrustStatusListType trustList = TrustListLoader.loadTrust(in);
-                TrustListManager walker = new TrustListManager(trustList);
+                TrustListManager walker = new TrustListManager(trustList, false);
                 theTrusts.add(walker);
                 }
             }

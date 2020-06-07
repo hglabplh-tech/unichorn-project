@@ -20,6 +20,11 @@ public class CommonConst {
     public static String APP_DIR_DLL;
 
     /**
+     * The working directory used by responder
+     */
+    public static String APP_DIR_WORKING;
+
+    /**
      * The file-name of the application properties
      */
     public static final String PROP_APPLICATAION_PROPERTIES = "application.properties";
@@ -82,8 +87,13 @@ public class CommonConst {
         if (!dirDll.exists()) {
             dirDll.mkdirs();
         }
+        File dirWorking = new File(userDir, "working");
+        if (!dirWorking.exists()) {
+            dirWorking.mkdirs();
+        }
         APP_DIR_TRUST = dirTrust.getAbsolutePath();
         APP_DIR_DLL = dirDll.getAbsolutePath();
+        APP_DIR_WORKING = dirWorking.getAbsolutePath();
         APP_DIR= userDir;
     }
 }

@@ -123,6 +123,27 @@ public class VerifyUtilTest extends TestBase {
         vutil.verifyCadesSignature(input, in);
     }
 
+    @Test
+    public void checkCertOKCAdESQualified() throws Exception{
+        KeyStore store = KeyStoreTool.loadAppStore();
+        Tuple<PrivateKey, X509Certificate[]> keys = KeyStoreTool.getAppKeyEntry(store);
+        SigningUtil util = new SigningUtil();
+        URL url = this.getClass().getResource("/data/certificate(1).pem");
+        URL sigURL = this.getClass().getResource("/data/certificate(1).pem.pkcs7");
+        File urlFile = new File(url.toURI());
+        File urlFileIN = new File(sigURL.toURI());
+        InputStream in;
+        SigningBean bean = setBean(keys.getSecond(), keys.getFirst(), urlFileIN, urlFile, false);
+        bean.setCheckPathOcsp(true).setCheckOcspUseAltResponder(true);
+        InputStream input = new FileInputStream(urlFileIN);
+        assertNotNull(input);
+        List<TrustListManager> walkers = ConfigReader.loadAllTrusts();
+        in = this.getClass().getResourceAsStream("/data/pom.xml");
+        VerifyUtil vutil = new VerifyUtil(walkers, bean);
+        vutil.verifyCadesSignature(input, in);
+    }
+
+
 
     @Test
     public void checkCertOKCAdESExplicit() throws Exception{

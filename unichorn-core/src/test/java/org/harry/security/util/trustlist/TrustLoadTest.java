@@ -16,6 +16,6 @@ public class TrustLoadTest {
         File trustFile = new File(APP_DIR_TRUST, "dtag-corporate-pki.xml");
         InputStream in = new FileInputStream(trustFile);
         TrustStatusListType trustList = TrustListLoader.loadTrust(in);
-        TrustListManager manager = new TrustListManager(trustList);
+        TrustListManager manager = new TrustListManager(trustList, false);
     }
 }

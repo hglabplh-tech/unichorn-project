@@ -47,7 +47,7 @@ public class TrustListEditCtrl implements ControllerInit {
     @FXML
     public void selectFile(ActionEvent event) throws Exception  {
         trustListFile = Miscellaneous.showOpenDialog(event, "trustFile");
-        loader = new TrustListLoader();
+        loader = new TrustListLoader(false);
         manager = loader.getManager(trustListFile);
         List<Vector<String>> paths = manager.collectPaths();
         ComboBox pathBox = Miscellaneous.getComboBoxByFXID("paths");
@@ -65,7 +65,7 @@ public class TrustListEditCtrl implements ControllerInit {
         HttpClientConnection.sendGetForResources(connectUrl, "trust", out);
         out.flush();
         out.close();
-        loader = new TrustListLoader();
+        loader = new TrustListLoader(false);
         manager = loader.getManager(trustListFile);
         List<Vector<String>> paths = manager.collectPaths();
         ComboBox pathBox = Miscellaneous.getComboBoxByFXID("paths");

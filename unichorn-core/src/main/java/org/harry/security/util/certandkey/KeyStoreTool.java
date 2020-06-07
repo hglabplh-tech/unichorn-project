@@ -69,9 +69,10 @@ public class KeyStoreTool {
             FileInputStream resource = new FileInputStream(new File(TRUSTSTORE_LOC));
             store.load(resource, "changeit".toCharArray());
             resource.close();
-
+            Logger.trace("Trust store " + TRUSTSTORE_LOC + " is loaded");
             return store;
         } catch (Exception ex) {
+            Logger.trace(ex);
             throw new IllegalStateException("cannot load keystore", ex);
         }
     }

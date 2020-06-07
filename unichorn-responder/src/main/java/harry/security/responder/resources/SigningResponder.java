@@ -44,6 +44,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 import static harry.security.responder.resources.UnicHornResponderUtil.*;
+import static org.harry.security.CommonConst.*;
 import static org.harry.security.util.CertificateWizzard.PROP_STORE_NAME;
 import static org.harry.security.util.CertificateWizzard.PROP_TRUST_NAME;
 
@@ -262,7 +263,7 @@ public class SigningResponder extends HttpServlet {
                    chain[2] = keys.getSecond()[1];
                    chain[1] = keys.getSecond()[0];
                    chain[0] = userCert;
-                   File keyFile = new File(UnicHornResponderUtil.APP_DIR_TRUST, "privKeystore" + ".p12");
+                   File keyFile = new File(APP_DIR_TRUST, "privKeystore" + ".p12");
                    File tempKeyFile = File.createTempFile("keystore", ".p12");
                    tempKeyFile.delete();
                    String passwd = decryptPassword("pwdFile");
@@ -323,7 +324,7 @@ public class SigningResponder extends HttpServlet {
                    found = true;
                }
            } else {
-               File keyFile = new File(UnicHornResponderUtil.APP_DIR_TRUST, "privKeystore" + ".p12");
+               File keyFile = new File(APP_DIR_TRUST, "privKeystore" + ".p12");
                Logger.trace("CRL list file is: " + keyFile.getAbsolutePath());
 
                store = KeyStoreTool

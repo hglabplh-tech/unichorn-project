@@ -39,6 +39,7 @@ import java.security.Security;
 import java.util.*;
 
 import static harry.security.responder.resources.UnicHornResponderUtil.*;
+import static org.harry.security.CommonConst.APP_DIR_TRUST;
 import static org.harry.security.CommonConst.OCSP_URL;
 import static org.harry.security.util.HttpsChecker.loadKey;
 import static org.hamcrest.CoreMatchers.is;
@@ -91,10 +92,8 @@ public class ResponderTest  {
                     ReqCert.certID, ocspUrlOrig, true);
 
             ByteArrayInputStream stream = new ByteArrayInputStream(request.getEncoded());
-            ResponseGenerator respGen = null;
-            AlgorithmID sigAlg =  null;
             OCSPResponse response = UnicHornResponderUtil.generateResponse(request,
-                    stream, respGen, sigAlg);
+                    stream);
             client.parseOCSPResponse(response, false);
 
         }
@@ -126,16 +125,50 @@ public class ResponderTest  {
                     ReqCert.certID, null, true);
 
             ByteArrayInputStream stream = new ByteArrayInputStream(request.getEncoded());
-            ResponseGenerator respGen = null;
-            AlgorithmID sigAlg =  null;
-            Map<String, String> msg = new HashMap<>();
             OCSPResponse response = UnicHornResponderUtil.generateResponse(request,
-                    stream, respGen, sigAlg);
+                    stream);
             client.parseOCSPResponse(response, false);
 
         }
 
     }
+
+    @Test
+    public void nativeCallerSignedQualifiedStore() throws Exception {
+        List<X509Certificate []> certList= new ArrayList<>();
+        Tuple<PrivateKey, X509Certificate[]> keys = null;
+
+        InputStream
+                keyStore = ResponderTest.class.getResourceAsStream("/qualified.p12");
+        KeyStore userStore = KeyStoreTool.loadStore(keyStore, "geheim".toCharArray(), "PKCS12");
+        Enumeration<String> aliases = userStore.aliases();
+        while (aliases.hasMoreElements()) {
+            String alias = aliases.nextElement();
+            Tuple<PrivateKey, X509Certificate[]> userKeys = KeyStoreTool.getKeyEntry(userStore, alias, "geheim".toCharArray());
+            certList.add(userKeys.getSecond());
+        }
+        KeyStore store = KeyStoreTool.loadAppStore();
+        keys = KeyStoreTool.getAppKeyEntry(store);
+        X509Certificate[] certs = new X509Certificate[2];
+        certs = keys.getSecond();
+        for (X509Certificate[] certChain : certList) {
+            if (certChain.length >= 2) {
+                String ocspURL = OCSPCRLClient.getOCSPUrl(certChain[0]);
+                OCSPCRLClient client = new OCSPCRLClient();
+                OCSPRequest request = client.createOCSPRequest(keys.getFirst(),
+                        certs, certChain,
+                        ReqCert.certID, null, true);
+
+                ByteArrayInputStream stream = new ByteArrayInputStream(request.getEncoded());
+                OCSPResponse response = UnicHornResponderUtil.generateResponse(request,
+                        stream);
+                client.parseOCSPResponse(response, false);
+            }
+
+        }
+
+    }
+
 
     @Test
     public void nativeCallerSigned2() throws Exception {
@@ -166,11 +199,8 @@ public class ResponderTest  {
                         ReqCert.certID, ocspURL, true);
 
                 ByteArrayInputStream stream = new ByteArrayInputStream(request.getEncoded());
-                ResponseGenerator respGen = null;
-                AlgorithmID sigAlg = null;
-                Map<String, String> msg = new HashMap<>();
                 OCSPResponse response = UnicHornResponderUtil.generateResponse(request,
-                        stream, respGen, sigAlg);
+                        stream);
                 client.parseOCSPResponse(response, false);
             }
 
@@ -463,11 +493,8 @@ public class ResponderTest  {
                                     ReqCert.certID, ocspUrlOrig, true);
 
                             ByteArrayInputStream stream = new ByteArrayInputStream(request.getEncoded());
-                            ResponseGenerator respGen = null;
-                            AlgorithmID sigAlg =  null;
-                            Map<String, String> msg = new HashMap<>();
                             response = UnicHornResponderUtil.generateResponse(request,
-                                    stream, respGen, sigAlg);
+                                    stream);
                         }
                         int oldStatus = responseStatus;
                         responseStatus = client.parseOCSPResponse(response, true);
@@ -504,7 +531,7 @@ public class ResponderTest  {
         KeyStore storeToApply = KeyStoreTool.loadStore(p12Stream,
                 passwd.toCharArray(), "PKCS12");
         Logger.trace("Before calling merge");
-        File keyFile = new File(UnicHornResponderUtil.APP_DIR_TRUST, "privKeystore" + ".p12");
+        File keyFile = new File(APP_DIR_TRUST, "privKeystore" + ".p12");
 
         applyKeyStore(keyFile, storeToApply, passwd, "PKCS12");
         assertThat("file does not exist", keyFile.exists(), is(true));

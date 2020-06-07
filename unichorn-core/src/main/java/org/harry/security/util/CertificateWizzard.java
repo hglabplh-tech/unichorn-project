@@ -42,7 +42,7 @@ import java.security.cert.CertificateException;
 import java.security.spec.AlgorithmParameterSpec;
 import java.util.*;
 
-import static org.harry.security.CommonConst.OCSP_URL;
+import static org.harry.security.CommonConst.*;
 
 /**
  * This is a class for generating valid certificate chains and add the
@@ -51,7 +51,7 @@ import static org.harry.security.CommonConst.OCSP_URL;
  *
  */
 public class CertificateWizzard {
-    private TrustListLoader loader = new TrustListLoader();
+    private TrustListLoader loader = new TrustListLoader(false);
     private TrustListManager manager = null;
     private KeyPair ca_rsa;
     private KeyPair inter_rsa;
@@ -68,28 +68,8 @@ public class CertificateWizzard {
     private KeyStore store = null;
 
 
-    public static String APP_DIR;
-
-    public static String APP_DIR_TRUST;
-
     public static final String PROP_STORE_NAME = "application.p12";
     public static final String PROP_TRUST_NAME = "privateTrust.xml";
-
-
-    static {
-        String userDir = System.getProperty("user.home");
-        userDir = userDir + "\\AppData\\Local\\MySigningApp";
-        File dir = new File(userDir);
-        if (!dir.exists()){
-            dir.mkdirs();
-        }
-        File dirTrust = new File(userDir, "trustedLists");
-        if (!dirTrust.exists()) {
-            dirTrust.mkdirs();
-        }
-        APP_DIR_TRUST = dirTrust.getAbsolutePath();
-        APP_DIR= userDir;
-    }
 
 
     /**

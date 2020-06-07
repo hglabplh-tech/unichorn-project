@@ -38,6 +38,7 @@ import java.util.Locale;
 import java.util.Map;
 
 import static harry.security.responder.resources.UnicHornResponderUtil.*;
+import static org.harry.security.CommonConst.APP_DIR_TRUST;
 
 
 public class UnichornResponder extends HttpServlet {
@@ -48,14 +49,7 @@ public class UnichornResponder extends HttpServlet {
 
 
 
-    /**
-     * Use an OCSP ResponseGenerator for request parsing / response generation.
-     */
-    private ResponseGenerator responseGenerator;
-    /**
-     * Algorithm to be used for signing the response.
-	 */
-    private AlgorithmID signatureAlgorithm = AlgorithmID.sha1WithRSAEncryption;
+
 
 
 
@@ -91,7 +85,7 @@ public class UnichornResponder extends HttpServlet {
 
             Logger.trace( "request read");
             OCSPResponse response = UnicHornResponderUtil.generateResponse(ocspRequest,
-                    copyTo(ocspRequest), responseGenerator, signatureAlgorithm);
+                    copyTo(ocspRequest));
             Logger.trace("Write stream");
             response.writeTo(servletResponse.getOutputStream());
             Logger.trace("written stream");
@@ -119,11 +113,11 @@ public class UnichornResponder extends HttpServlet {
     public void doPut(HttpServletRequest request, HttpServletResponse response) throws IOException {
        try {
            init ();
-           File trustFile = new File(UnicHornResponderUtil.APP_DIR_TRUST, "trustListPrivate" + ".xml");
+           File trustFile = new File(APP_DIR_TRUST, "trustListPrivate" + ".xml");
            Logger.trace("Trust file is: " + trustFile.getAbsolutePath());
-           File crlFile = new File(UnicHornResponderUtil.APP_DIR_TRUST, "privRevokation" + ".crl");
+           File crlFile = new File(APP_DIR_TRUST, "privRevokation" + ".crl");
            Logger.trace("CRL list file is: " + crlFile.getAbsolutePath());
-           File keyFile = new File(UnicHornResponderUtil.APP_DIR_TRUST, "privKeystore" + ".p12");
+           File keyFile = new File(APP_DIR_TRUST, "privKeystore" + ".p12");
            Logger.trace("Key Store file is: " + keyFile.getAbsolutePath());
            String type = request.getHeader("fileType");
            if (type.equals("crl")) {
@@ -192,7 +186,7 @@ public class UnichornResponder extends HttpServlet {
                 OCSPRequest ocspRequest = new OCSPRequest(encoded);
                 Logger.trace("After getting request" + ocspRequest.toString(true));
                 OCSPResponse response = UnicHornResponderUtil.generateResponse(ocspRequest,
-                        copyTo(ocspRequest), responseGenerator, signatureAlgorithm);
+                        copyTo(ocspRequest));
                 Logger.trace("Write stream");
                 response.writeTo(servletResponse.getOutputStream());
                 Logger.trace("written stream");
@@ -229,7 +223,7 @@ public class UnichornResponder extends HttpServlet {
                 }
 
         } else if (type.equals("trust")){
-            File trustFile = new File(UnicHornResponderUtil.APP_DIR_TRUST, "trustListPrivate" + ".xml");
+            File trustFile = new File(APP_DIR_TRUST, "trustListPrivate" + ".xml");
             if (trustFile.exists()) {
                 try {
                     FileInputStream stream = new FileInputStream(trustFile);
@@ -244,7 +238,7 @@ public class UnichornResponder extends HttpServlet {
                 }
             }
         } else if (type.equals("pkcs12")){
-            File keyFile = new File(UnicHornResponderUtil.APP_DIR_TRUST, "privKeystore" + ".p12");
+            File keyFile = new File(APP_DIR_TRUST, "privKeystore" + ".p12");
             if (keyFile.exists()) {
                 try {
                     FileInputStream stream = new FileInputStream(keyFile);

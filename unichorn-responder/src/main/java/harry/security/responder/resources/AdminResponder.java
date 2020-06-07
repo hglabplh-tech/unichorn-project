@@ -58,6 +58,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
 import static harry.security.responder.resources.UnicHornResponderUtil.*;
+import static org.harry.security.CommonConst.*;
 import static org.harry.security.util.CertificateWizzard.PROP_STORE_NAME;
 import static org.harry.security.util.CertificateWizzard.PROP_TRUST_NAME;
 

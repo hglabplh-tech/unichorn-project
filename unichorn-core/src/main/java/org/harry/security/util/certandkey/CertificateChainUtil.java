@@ -174,23 +174,26 @@ public class CertificateChainUtil {
     }
 
 
-    public static void addToCertificateList(X509Certificate[] chain, List<X509Certificate> temp) {
+    public static List<X509Certificate> addToCertificateList(X509Certificate[] chain, List<X509Certificate> temp) {
         for (X509Certificate certificate : chain) {
             temp.add(certificate);
         }
+        return temp;
     }
 
-    public static void loadTrustCerts(List<X509Certificate> certificates) {
+    public static List<X509Certificate> loadTrustCerts(List<X509Certificate> certificates) {
         try {
             KeyStore trustStore = KeyStoreTool.loadTrustStore();
             Enumeration<String> aliases = trustStore.aliases();
             while(aliases.hasMoreElements()) {
                 String alias = aliases.nextElement();
+                Logger.trace("load alias: " + alias);
                 X509Certificate cert = KeyStoreTool.getCertificateEntry(trustStore, alias);
                 X509Certificate[] chain = new X509Certificate[1];
                 chain[0] = cert;
                 addToCertificateList(chain, certificates);
             }
+            return certificates;
         } catch (Exception ex) {
             Logger.trace("not loaded cause is: " + ex.getMessage());
             throw new IllegalStateException("not loaded keys", ex);

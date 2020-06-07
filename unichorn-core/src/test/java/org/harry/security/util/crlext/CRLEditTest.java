@@ -49,7 +49,7 @@ public class CRLEditTest extends TestBase {
         InputStream stream = CRLEditTest.class.getResourceAsStream("/crl/unichorn.crl");
         InputStream streamTrust = CRLEditTest.class.getResourceAsStream("/crl/privateTrust.xml");
         TrustStatusListType trustList = TrustListLoader.loadTrust(streamTrust);
-        TrustListManager trustGetter = new TrustListManager(trustList);
+        TrustListManager trustGetter = new TrustListManager(trustList, false);
         assertNotNull(stream);
         CRLEdit editor = new CRLEdit(stream);
         for (X509Certificate trustCert: trustGetter.getAllCerts()) {
