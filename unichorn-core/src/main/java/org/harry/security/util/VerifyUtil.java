@@ -113,6 +113,7 @@ public class VerifyUtil {
                 }
                 signedData.setInputStream(data);
             }
+
             //cadesSig.verifySignatureValue(0);
             SigningUtil.eatStream(signedData.getInputStream());
             SignerInfo [] signerInfos;
@@ -182,7 +183,9 @@ public class VerifyUtil {
                             results.addSignatureResult("sigMathOk",
                                     new Tuple<>("signature is math incorrect", Outcome.FAILED));
                         }
-                        CertChecker.checkQualified(signCert, results);
+                        if (bean.isCheckForQualified()) {
+                            CertChecker.checkQualified(signCert, results);
+                        }
                         checkAttributeCertIfThere(certificateSet, results);
                         vResult.addSignersInfo(signCert.getSubjectDN().getName(), results);
                         results.addSignatureResult("signature value",
@@ -300,6 +303,8 @@ public class VerifyUtil {
                     AlgorithmID digestAlg = info.getDigestAlgorithm();
                     SignerInfoCheckResults results = new SignerInfoCheckResults();
                     results.setInfo(info);
+                    results.addFormatResult("sigFormatOk",
+                            new Tuple<>("the signature is well formed", Outcome.SUCCESS));
                     results.addSignatureResult("signature algorithm",
                             new Tuple<>(sigAlg.getImplementationName(), Outcome.SUCCESS));
                     results.addSignatureResult("digest algorithm",
@@ -307,16 +312,22 @@ public class VerifyUtil {
                     for (X509Certificate signCert : signCertList) {
                         algPathChecker.checkSignatureAlgorithm(sigAlg, signCert.getPublicKey(), results);
                         if (info.isSignerCertificate(signCert)) {
-                            CertChecker.checkQualified(signCert, results);
+                            if (bean.isCheckForQualified()) {
+                                CertChecker.checkQualified(signCert, results);
+                            }
                             vResult.addSignersInfo(signCert.getSubjectDN().getName(), results);
                             try {
                                 if (info.verifySignature(signCert.getPublicKey())) {
+                                    results.addSignatureResult("sigMathOk",
+                                            new Tuple<>("signature is math correct", Outcome.SUCCESS));
                                     results.addSignatureResult(signCert.getSubjectDN().getName(),
                                             new Tuple<>("signature base check succeded", Outcome.SUCCESS));
 
                                     algPathChecker.detectChain(signCert, null, results);
 
                                 } else {
+                                    results.addSignatureResult("sigMathOk",
+                                            new Tuple<>("signature is math incorrect", Outcome.FAILED));
                                     results.addSignatureResult(signCert.getSubjectDN().getName(),
                                             new Tuple<>("signature check failed", Outcome.FAILED));
                                 }

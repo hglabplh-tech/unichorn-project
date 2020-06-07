@@ -60,6 +60,8 @@ public class SigningBean {
     private String tspURL;
     private File dataINPath;
 
+    private boolean checkForQualified = false;
+
     private AttributeCertificate attributeCertificate;
 
     List<TrustListManager> walker = new ArrayList<>();
@@ -290,6 +292,15 @@ public class SigningBean {
 
     public SigningBean setCheckOcspUseAltResponder(boolean checkOcspUseAltResponder) {
         this.checkOcspUseAltResponder = checkOcspUseAltResponder;
+        return this;
+    }
+
+    public boolean isCheckForQualified() {
+        return checkForQualified;
+    }
+
+    public SigningBean setCheckForQualified(boolean checkForQualified) {
+        this.checkForQualified = checkForQualified;
         return this;
     }
 }
