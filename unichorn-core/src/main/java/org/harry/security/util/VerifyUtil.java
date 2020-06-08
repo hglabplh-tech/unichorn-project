@@ -652,7 +652,9 @@ public class VerifyUtil {
         }
 
         public Tuple<String, Outcome> getSignatureAlgorithm() {
-            Tuple<String, Outcome> result = signatureResults.get("sigAlg");
+            Tuple<String, Outcome> algName = signatureResults.get("sigAlg");
+            Tuple<String, Outcome> resultCheck =  signatureResults.get("check_signature_algorithm");
+            Tuple<String, Outcome> result = new Tuple<>(algName.getFirst(), resultCheck.getSecond());
             return result;
         }
 

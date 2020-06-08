@@ -3,24 +3,19 @@ package org.harry.security.util;
 import iaik.asn1.ObjectID;
 import iaik.utils.Util;
 import iaik.x509.X509Certificate;
-import iaik.x509.X509ExtensionInitException;
 import iaik.x509.extensions.ExtendedKeyUsage;
-import iaik.x509.extensions.KeyUsage;
-import no.difi.xsd.asic.model._1.Certificate;
+
 import oasis.names.tc.dss._1_0.core.schema.*;
 import oasis.names.tc.dss_x._1_0.profiles.verificationreport.schema_.*;
 import oasis.names.tc.dss_x._1_0.profiles.verificationreport.schema_.ObjectFactory;
-import oasis.names.tc.opendocument.xmlns.manifest._1.Algorithm;
 import org.etsi.uri._01903.v1_3.IdentifierType;
 import org.etsi.uri._01903.v1_3.ObjectIdentifierType;
 import org.etsi.uri._01903.v1_3.QualifierType;
 
 
 import javax.xml.bind.JAXBElement;
-import javax.xml.registry.infomodel.InternationalString;
 import java.math.BigInteger;
 import java.util.ArrayList;
-import java.util.Enumeration;
 import java.util.List;
 
 public class VerifyReporter {

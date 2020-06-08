@@ -10,6 +10,8 @@ import iaik.x509.ocsp.BasicOCSPResponse;
 import iaik.x509.ocsp.OCSPResponse;
 import iaik.x509.ocsp.ReqCert;
 import iaik.x509.ocsp.SingleResponse;
+import oasis.names.tc.opendocument.xmlns.manifest._1.Algorithm;
+import org.harry.security.util.algoritms.AlgorithmCatalog;
 import org.harry.security.util.bean.SigningBean;
 import org.harry.security.util.certandkey.CertificateChainUtil;
 import org.harry.security.util.ocsp.HttpOCSPClient;
@@ -17,6 +19,7 @@ import org.harry.security.util.ocsp.OCSPCRLClient;
 import org.harry.security.util.trustlist.TrustListManager;
 
 
+import java.math.BigInteger;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.util.*;
@@ -138,7 +141,8 @@ public class AlgorithmPathChecker {
             checkRSAKeyAlg(pubKeyRSA, results);
             checkRSAPadding(sigAlg, results);
         } else if(pubKey instanceof DSAPublicKey) {
-
+            DSAPublicKey dsaKey = (DSAPublicKey)pubKey;
+            checkDSAKeyAlg(dsaKey, results);
         } else if (pubKey instanceof AbstractECPublicKey) {
 
         }
@@ -153,12 +157,41 @@ public class AlgorithmPathChecker {
 
     }
 
-    public void checkRSAKeyAlg(RSAPublicKey pubKey, VerifyUtil.SignerInfoCheckResults results) {
-        int lenght = pubKey.getModulus().bitLength();
-        if (lenght >= 4096) {
-            results.addSignatureResult("check signature algorithm", new Tuple<>("algorithm", VerifyUtil.Outcome.SUCCESS));
+    public void checkDSAKeyAlg(DSAPublicKey publicKey, VerifyUtil.SignerInfoCheckResults results) {
+        Date today = new Date();
+        BigInteger p = publicKey.getParams().getP();
+        BigInteger q = publicKey.getParams().getQ();
+        Optional<AlgorithmCatalog.DSADefinition> definition = Optional.empty();
+        for (AlgorithmCatalog.DSADefinition e : AlgorithmCatalog.dsaDefinitions) {
+            if (e.getP() <= p.longValueExact() && e.getQ() <= q.longValueExact()) {
+                definition = Optional.of(e);
+                break;
+            }
+        }
+        if (definition.isPresent()) {
+            if (definition.get().getEndDate().compareTo(today) > 0) {
+                results.addSignatureResult("check_signature_algorithm", new Tuple<>("algorithm check ok", VerifyUtil.Outcome.SUCCESS));
+            } else {
+                results.addSignatureResult("check_signature_algorithm", new Tuple<>("algorithm check failed", VerifyUtil.Outcome.FAILED));
+            }
         } else {
-            results.addSignatureResult("check signature algorithm", new Tuple<>("algorithm", VerifyUtil.Outcome.INDETERMINED));
+            results.addSignatureResult("check_signature_algorithm", new Tuple<>("algorithm check N/A", VerifyUtil.Outcome.INDETERMINED));
+        }
+
+    }
+    public void checkRSAKeyAlg(RSAPublicKey pubKey, VerifyUtil.SignerInfoCheckResults results) {
+        Date today = new Date();
+        int length = pubKey.getModulus().bitLength();
+        Optional <AlgorithmCatalog.RSADefinition> definition =
+        AlgorithmCatalog.rsaDefinitions.stream().filter(e -> (e.getMinLength() < length && e.getMaxLength() > length)).findFirst();
+        if (definition.isPresent()) {
+            if (definition.get().getEndDate().compareTo(today) > 0) {
+                results.addSignatureResult("check_signature_algorithm", new Tuple<>("algorithm check ok", VerifyUtil.Outcome.SUCCESS));
+            } else {
+                results.addSignatureResult("check_signature_algorithm", new Tuple<>("algorithm check failed", VerifyUtil.Outcome.FAILED));
+            }
+        } else {
+            results.addSignatureResult("check_signature_algorithm", new Tuple<>("algorithm check N/A", VerifyUtil.Outcome.INDETERMINED));
         }
     }
 

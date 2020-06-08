@@ -132,10 +132,10 @@ public class CertificateWizzard {
         issuer.addRDN(ObjectID.commonName ,commonName +"RSA" );
             String addONString = "";
             if (rsaPSS) {
-                ca_rsa = generateKeyPairRSAPSS("RSASSA-PSS", 2048);
+                ca_rsa = generateKeyPairRSAPSS("RSASSA-PSS", 4096);
                 addONString = " RSA-PSS";
             } else {
-                ca_rsa = generateKeyPair("RSA", 2048);
+                ca_rsa = generateKeyPair("RSA", 4096);
             }
         caRSA = createCertificate(issuer,
                 ca_rsa.getPublic(),
@@ -206,10 +206,10 @@ public class CertificateWizzard {
             subject.addRDN(ObjectID.commonName ,commonName + "RSA_Inter");
             String addONString = "";
             if (rsaPSS) {
-                inter_rsa = generateKeyPairRSAPSS("RSASSA-PSS", 2048);
+                inter_rsa = generateKeyPairRSAPSS("RSASSA-PSS", 4096);
                 addONString = " RSA-PSS";
             } else {
-                inter_rsa = generateKeyPair("RSA", 2048);
+                inter_rsa = generateKeyPair("RSA", 4096);
             }
             intermediateRSA = createCertificate(subject,
                     inter_rsa.getPublic(),
@@ -282,10 +282,10 @@ public class CertificateWizzard {
             KeyPair userKeys = null;
             String addONString = "";
             if (rsaPSS) {
-                userKeys = generateKeyPairRSAPSS("RSASSA-PSS", 2048);
+                userKeys = generateKeyPairRSAPSS("RSASSA-PSS", 4096);
                 addONString = " RSA-PSS";
             } else {
-                userKeys = generateKeyPair("RSA", 2048);
+                userKeys = generateKeyPair("RSA", 4096);
             }
             KeyUsage usage = signUsage();
              X509Certificate userCert = createCertificate(subject,
