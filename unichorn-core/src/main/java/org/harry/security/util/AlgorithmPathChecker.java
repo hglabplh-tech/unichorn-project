@@ -115,12 +115,12 @@ public class AlgorithmPathChecker {
                             .getResponse();
                     SingleResponse singleResponse = basicOCSPResponse.getSingleResponses()[0];
                     results.addOcspResult("ocspResult",
-                            new Tuple<String, VerifyUtil.Outcome>(singleResponse.getCertStatus().toString(), VerifyUtil.Outcome.SUCCESS));
+                            new Tuple<OCSPResponse, VerifyUtil.Outcome>(response, VerifyUtil.Outcome.SUCCESS));
                 } else if (responseStatus == OCSPResponse.tryLater) {
-                    results.addOcspResult(resultName, new Tuple<String, VerifyUtil.Outcome>(response.getResponseStatusName(),
+                    results.addOcspResult(resultName, new Tuple<OCSPResponse, VerifyUtil.Outcome>(response,
                             VerifyUtil.Outcome.INDETERMINED));
                 } else {
-                    results.addOcspResult(resultName, new Tuple<String, VerifyUtil.Outcome>(response.getResponseStatusName(),
+                    results.addOcspResult(resultName, new Tuple<OCSPResponse, VerifyUtil.Outcome>(response,
                             VerifyUtil.Outcome.FAILED));
                 }
             }

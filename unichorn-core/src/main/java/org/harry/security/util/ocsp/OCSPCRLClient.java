@@ -524,6 +524,17 @@ public class OCSPCRLClient {
         }
     }
 
+    public static String extractResponseStatusName(OCSPResponse ocspResponse) {
+        if (ocspResponse.getResponseStatus() == OCSPResponse.successful) {
+            BasicOCSPResponse basicOCSPResponse = (BasicOCSPResponse) ocspResponse
+                    .getResponse();
+            SingleResponse single = basicOCSPResponse.getSingleResponses()[0];
+            return single.getCertStatus().getCertStatusName();
+        } else {
+            return "bad";
+        }
+    }
+
 
 
 }

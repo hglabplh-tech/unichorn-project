@@ -10,6 +10,7 @@ import iaik.security.provider.IAIKMD;
 import iaik.security.random.MetaSeedGenerator;
 import iaik.security.random.SeedGenerator;
 import iaik.x509.X509Certificate;
+import iaik.x509.ocsp.OCSPResponse;
 import org.harry.security.util.*;
 import org.harry.security.util.bean.SigningBean;
 import org.harry.security.util.certandkey.CertWriterReader;
@@ -211,8 +212,8 @@ public class CMSSigner {
                             }
                         }
 
-                        Collection<Tuple<String, VerifyUtil.Outcome>> ocspRes = result.getOcspResult().values();
-                        for (Tuple<String, VerifyUtil.Outcome> tuple : ocspRes) {
+                        Collection<Tuple<OCSPResponse, VerifyUtil.Outcome>> ocspRes = result.getOcspResult().values();
+                        for (Tuple<OCSPResponse, VerifyUtil.Outcome> tuple : ocspRes) {
                             if (!tuple.getSecond().equals(VerifyUtil.Outcome.SUCCESS)
                             && !tuple.getSecond().equals(VerifyUtil.Outcome.INDETERMINED)) {
                                 success = false;

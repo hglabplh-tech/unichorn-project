@@ -1,21 +1,29 @@
 package org.harry.security.util;
 
+import com.sun.org.apache.xerces.internal.jaxp.datatype.XMLGregorianCalendarImpl;
 import iaik.asn1.ObjectID;
 import iaik.utils.Util;
 import iaik.x509.X509Certificate;
 import iaik.x509.extensions.ExtendedKeyUsage;
 
+import iaik.x509.ocsp.BasicOCSPResponse;
+import iaik.x509.ocsp.OCSPResponse;
+import iaik.x509.ocsp.SingleResponse;
 import oasis.names.tc.dss._1_0.core.schema.*;
 import oasis.names.tc.dss_x._1_0.profiles.verificationreport.schema_.*;
 import oasis.names.tc.dss_x._1_0.profiles.verificationreport.schema_.ObjectFactory;
 import org.etsi.uri._01903.v1_3.IdentifierType;
 import org.etsi.uri._01903.v1_3.ObjectIdentifierType;
 import org.etsi.uri._01903.v1_3.QualifierType;
+import org.harry.security.util.ocsp.OCSPCRLClient;
 
 
 import javax.xml.bind.JAXBElement;
+import javax.xml.datatype.XMLGregorianCalendar;
 import java.math.BigInteger;
 import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.List;
 
 public class VerifyReporter {
@@ -84,13 +92,13 @@ public class VerifyReporter {
             JAXBElement<OCSPValidityType> element = factory.createIndividualOCSPReport(ocspResult);
             OCSPContentType.Responses responses = factory.createOCSPContentTypeResponses();
             SingleResponseType singleResp = factory.createSingleResponseType();
-            Tuple<String, VerifyUtil.Outcome> ocsp = results.getOCSPResult();
+            Tuple<OCSPResponse, VerifyUtil.Outcome> ocsp = results.getOCSPResult();
             String resultMajor;
             String message;
             if (ocsp != null) {
                 if (ocsp.getSecond() == VerifyUtil.Outcome.SUCCESS)  {
                     resultMajor = MAJORCODE_PASS;
-                    message = ocsp.getFirst();
+                    message = OCSPCRLClient.extractResponseStatusName(ocsp.getFirst());
                 } else {
                     resultMajor = MAJORCODE_FAIL;
                     message = "ocsp request failed";
@@ -102,7 +110,23 @@ public class VerifyReporter {
             VerificationResultType result = generateVerificationResult(resultMajor, message);
             singleResp.setCertStatus(result);
             responses.getSingleResponse().add(singleResp);
-            OCSPContentType content = factory.createOCSPContentType(); // todo place real response in result
+            OCSPContentType content = factory.createOCSPContentType();
+            OCSPResponse realResponse = ocsp.getFirst();
+            BasicOCSPResponse basic = (BasicOCSPResponse) realResponse.getResponse();
+            XMLGregorianCalendar xmlCal = new XMLGregorianCalendarImpl();
+            Date prodAt = basic.getProducedAt();
+            Calendar temp = Calendar.getInstance();
+            temp.setTimeInMillis(prodAt.getTime());
+            xmlCal.setTime(temp.get(Calendar.HOUR),
+                    temp.get(Calendar.MINUTE),
+                    temp.get(Calendar.SECOND),
+                    temp.get(Calendar.MILLISECOND));
+            xmlCal.setYear(temp.get(Calendar.YEAR));
+            xmlCal.setMonth(temp.get(Calendar.MONTH));
+            xmlCal.setDay(temp.get(Calendar.DAY_OF_MONTH));
+            content.setProducedAt(xmlCal);
+            content.setResponderID(basic.getResponderID().toString());
+            content.setVersion(BigInteger.valueOf(basic.getVersion()));
             content.setResponses(responses);
             ocspResult.setOCSPContent(content);
             ocspResultList.add(element);

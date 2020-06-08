@@ -1,6 +1,7 @@
 package org.harald.security.fx;
 
 import iaik.x509.X509Certificate;
+import iaik.x509.ocsp.OCSPResponse;
 import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
@@ -13,6 +14,7 @@ import org.harry.security.util.VerifyPDFUtil;
 import org.harry.security.util.VerifyUtil;
 import org.harry.security.util.bean.SigningBean;
 import org.harry.security.util.certandkey.KeyStoreTool;
+import org.harry.security.util.ocsp.OCSPCRLClient;
 import org.harry.security.util.trustlist.TrustListManager;
 
 import java.io.*;
@@ -83,15 +85,16 @@ public class VerifierCtrl implements ControllerInit {
                 for (VerifyUtil.SignerInfoCheckResults entry : set) {
                     X509Certificate[] signerChain = entry.getSignerChain();
                     Map<String, Tuple<String, VerifyUtil.Outcome>> sigResult = entry.getSignatureResult();
-                    Map<String, Tuple<String, VerifyUtil.Outcome>> ocspResult = entry.getOcspResult();
+                    Map<String, Tuple<OCSPResponse, VerifyUtil.Outcome>> ocspResult = entry.getOcspResult();
                     for (Map.Entry<String, Tuple<String, VerifyUtil.Outcome>> sigEntry : sigResult.entrySet()) {
                         ResultEntry propEntry = new ResultEntry(sigEntry.getKey(), sigEntry.getValue().getFirst(),
                                 sigEntry.getValue().getSecond().name());
                         entryList.add(propEntry);
                     }
 
-                    for (Map.Entry<String, Tuple<String, VerifyUtil.Outcome>> ocspEntry : ocspResult.entrySet()) {
-                        ResultEntry propEntry = new ResultEntry(ocspEntry.getKey(), ocspEntry.getValue().getFirst(),
+                    for (Map.Entry<String, Tuple<OCSPResponse, VerifyUtil.Outcome>> ocspEntry : ocspResult.entrySet()) {
+                        ResultEntry propEntry = new ResultEntry(ocspEntry.getKey(),
+                                OCSPCRLClient.extractResponseStatusName(ocspEntry.getValue().getFirst()),
                                 ocspEntry.getValue().getSecond().name());
                         entryList.add(propEntry);
                     }
@@ -114,15 +117,16 @@ public class VerifierCtrl implements ControllerInit {
                 for (VerifyUtil.SignerInfoCheckResults entry : set) {
                     X509Certificate[] signerChain = entry.getSignerChain();
                     Map<String, Tuple<String, VerifyUtil.Outcome>> sigResult = entry.getSignatureResult();
-                    Map<String, Tuple<String, VerifyUtil.Outcome>> ocspResult = entry.getOcspResult();
+                    Map<String, Tuple<OCSPResponse, VerifyUtil.Outcome>> ocspResult = entry.getOcspResult();
                     for (Map.Entry<String, Tuple<String, VerifyUtil.Outcome>> sigEntry : sigResult.entrySet()) {
                         ResultEntry propEntry = new ResultEntry(sigEntry.getKey(), sigEntry.getValue().getFirst(),
                                 sigEntry.getValue().getSecond().name());
                         entryList.add(propEntry);
                     }
 
-                    for (Map.Entry<String, Tuple<String, VerifyUtil.Outcome>> ocspEntry : ocspResult.entrySet()) {
-                        ResultEntry propEntry = new ResultEntry(ocspEntry.getKey(), ocspEntry.getValue().getFirst(),
+                    for (Map.Entry<String, Tuple<OCSPResponse, VerifyUtil.Outcome>> ocspEntry : ocspResult.entrySet()) {
+                        ResultEntry propEntry = new ResultEntry(ocspEntry.getKey(),
+                                OCSPCRLClient.extractResponseStatusName(ocspEntry.getValue().getFirst()),
                                 ocspEntry.getValue().getSecond().name());
                         entryList.add(propEntry);
                     }
@@ -148,15 +152,16 @@ public class VerifierCtrl implements ControllerInit {
                 for (VerifyUtil.SignerInfoCheckResults entry : set) {
                     X509Certificate[] signerChain = entry.getSignerChain();
                     Map<String, Tuple<String, VerifyUtil.Outcome>> sigResult = entry.getSignatureResult();
-                    Map<String, Tuple<String, VerifyUtil.Outcome>> ocspResult = entry.getOcspResult();
+                    Map<String, Tuple<OCSPResponse, VerifyUtil.Outcome>> ocspResult = entry.getOcspResult();
                     for (Map.Entry<String, Tuple<String, VerifyUtil.Outcome>> sigEntry : sigResult.entrySet()) {
                         ResultEntry propEntry = new ResultEntry(sigEntry.getKey(), sigEntry.getValue().getFirst(),
                                 sigEntry.getValue().getSecond().name());
                         entryList.add(propEntry);
                     }
 
-                    for (Map.Entry<String, Tuple<String, VerifyUtil.Outcome>> ocspEntry : ocspResult.entrySet()) {
-                        ResultEntry propEntry = new ResultEntry(ocspEntry.getKey(), ocspEntry.getValue().getFirst(),
+                    for (Map.Entry<String, Tuple<OCSPResponse, VerifyUtil.Outcome>> ocspEntry : ocspResult.entrySet()) {
+                        ResultEntry propEntry = new ResultEntry(ocspEntry.getKey(),
+                                OCSPCRLClient.extractResponseStatusName(ocspEntry.getValue().getFirst()),
                                 ocspEntry.getValue().getSecond().name());
                         entryList.add(propEntry);
                     }

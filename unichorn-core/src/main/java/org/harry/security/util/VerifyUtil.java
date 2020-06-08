@@ -589,7 +589,7 @@ public class VerifyUtil {
     public static class SignerInfoCheckResults {
         Map<String, Tuple<String, Outcome>> formatResults = new HashMap<>();
         Map<String, Tuple<String, Outcome>> signatureResults = new HashMap<>();
-        Map<String, Tuple<String, Outcome>> ocspResults = new HashMap<>();
+        Map<String, Tuple<OCSPResponse, Outcome>> ocspResults = new HashMap<>();
         X509Certificate [] signerChain = null;
         SignerInfo info = null;
         Map<Tuple<String, Outcome>, List<X509Certificate>> signersChain = new HashMap<>();
@@ -619,7 +619,7 @@ public class VerifyUtil {
             return signatureResults;
         }
 
-        public Map<String, Tuple<String, Outcome>> getOcspResult() {
+        public Map<String, Tuple<OCSPResponse, Outcome>> getOcspResult() {
             return ocspResults;
         }
 
@@ -637,7 +637,7 @@ public class VerifyUtil {
             return this;
         }
 
-        public SignerInfoCheckResults addOcspResult(String resultName, Tuple<String, Outcome> ocspResult) {
+        public SignerInfoCheckResults addOcspResult(String resultName, Tuple<OCSPResponse, Outcome> ocspResult) {
             this.ocspResults.put(resultName, ocspResult);
             return this;
         }
@@ -658,8 +658,8 @@ public class VerifyUtil {
             return result;
         }
 
-        public Tuple<String, Outcome> getOCSPResult() {
-            Tuple<String, Outcome> result = ocspResults.get("ocspResult");
+        public Tuple<OCSPResponse, Outcome> getOCSPResult() {
+            Tuple<OCSPResponse, Outcome> result = ocspResults.get("ocspResult");
             return result;
         }
 
@@ -688,8 +688,8 @@ public class VerifyUtil {
                     overall = Outcome.FAILED;
                 }
             }
-            for (Map.Entry<String, Tuple<String, Outcome>> entry: ocspResults.entrySet()) {
-                Tuple<String, Outcome> toCheck = ocspResults.get(entry.getKey());
+            for (Map.Entry<String, Tuple<OCSPResponse, Outcome>> entry: ocspResults.entrySet()) {
+                Tuple<OCSPResponse, Outcome> toCheck = ocspResults.get(entry.getKey());
                 if (toCheck.getSecond() == Outcome.FAILED) {
                     overall = Outcome.FAILED;
                 }
