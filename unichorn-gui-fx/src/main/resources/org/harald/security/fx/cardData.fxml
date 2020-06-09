@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import java.lang.*?>
+<?import javafx.scene.layout.*?>
+
+<VBox maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="800.0" prefWidth="1200.0" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.harald.security.fx.CardManagerCtrl">
+   <children>
+      <ScrollPane prefHeight="803.0" prefWidth="1200.0">
+        <content>
+          <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="794.0" prefWidth="1163.0">
+               <children>
+                  <FlowPane layoutX="14.0" layoutY="53.0" prefHeight="200.0" prefWidth="200.0">
+                     <children>
+                        <GridPane>
+                          <columnConstraints>
+                            <ColumnConstraints hgrow="SOMETIMES" maxWidth="101.0" minWidth="10.0" prefWidth="101.0" />
+                            <ColumnConstraints hgrow="SOMETIMES" maxWidth="100.0" minWidth="10.0" prefWidth="99.0" />
+                              <ColumnConstraints hgrow="SOMETIMES" maxWidth="100.0" minWidth="10.0" prefWidth="100.0" />
+                              <ColumnConstraints hgrow="SOMETIMES" maxWidth="100.0" minWidth="10.0" prefWidth="100.0" />
+                              <ColumnConstraints hgrow="SOMETIMES" maxWidth="100.0" minWidth="10.0" prefWidth="100.0" />
+                              <ColumnConstraints hgrow="SOMETIMES" maxWidth="100.0" minWidth="10.0" prefWidth="100.0" />
+                          </columnConstraints>
+                          <rowConstraints>
+                              <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+                            <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+                            <RowConstraints maxHeight="33.0" minHeight="1.0" prefHeight="33.0" vgrow="SOMETIMES" />
+                            <RowConstraints maxHeight="59.0" minHeight="10.0" prefHeight="27.0" vgrow="SOMETIMES" />
+                              <RowConstraints maxHeight="59.0" minHeight="10.0" prefHeight="27.0" vgrow="SOMETIMES" />
+                              <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+                              <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+                              <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+                              <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+                          </rowConstraints>
+                           <children>
+                              <Label text="Label" />
+                              <Label text="Label" GridPane.rowIndex="1" />
+                              <Label text="Label" GridPane.rowIndex="2" />
+                              <Label text="Label" GridPane.rowIndex="3" />
+                              <Label text="Label" GridPane.rowIndex="4" />
+                           </children>
+                        </GridPane>
+                     </children>
+                  </FlowPane>
+                  <ListView fx:id="privateKey" layoutX="7.0" layoutY="514.0" prefHeight="273.0" prefWidth="374.0" />
+                  <ListView fx:id="publicKey" layoutX="386.0" layoutY="514.0" prefHeight="282.0" prefWidth="346.0" />
+                  <ListView fx:id="certificates" layoutX="736.0" layoutY="515.0" prefHeight="279.0" prefWidth="393.0" />
+                  <TextArea fx:id="content" layoutX="7.0" layoutY="241.0" prefHeight="236.0" prefWidth="1130.0" />
+                  <Button fx:id="cardLoad" layoutX="636.0" layoutY="210.0" mnemonicParsing="false" onAction="#cardLoad" text="Load  from Card" />
+                  <Label layoutX="677.0" layoutY="184.0" text="Card PIN" />
+                  <PasswordField fx:id="pinField" layoutX="780.0" layoutY="179.0" />
+                  <Label layoutX="34.0" layoutY="493.0" text="PrivKeys" />
+                  <Label layoutX="386.0" layoutY="493.0" text="PublicKeys" />
+                  <Label layoutX="736.0" layoutY="493.0" text="Certificates" />
+               </children>
+            </AnchorPane>
+        </content>
+      </ScrollPane>
+   </children>
+</VBox>

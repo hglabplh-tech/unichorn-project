@@ -145,6 +145,11 @@ public class CertToolCtrl implements ControllerInit {
     }
 
     @FXML
+    private void manageCard(ActionEvent event) throws IOException {
+        SecHarry.setRoot("cardData", SecHarry.CSS.UNICHORN);
+    }
+
+    @FXML
     private void createAttrCert(ActionEvent event) throws IOException {
         SecHarry.setRoot("attrCert", SecHarry.CSS.UNICHORN);
     }

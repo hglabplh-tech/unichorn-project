@@ -30,7 +30,7 @@ public class CardManagerTest {
                 .setSigningMode(SigningBean.Mode.EXPLICIT);
         CardManager signer = new CardManager();
         String cardPIN  = getSmartCardPIN();
-        signer.readCardData();
+        signer.readCardData(cardPIN);
         signer.getKeyStore(cardPIN);
         List<TrustListManager> walkers = ConfigReader.loadAllTrusts();
         DataSource ds = signer.sign(signingBean, false, walkers);
@@ -50,7 +50,7 @@ public class CardManagerTest {
                 .setSigningMode(SigningBean.Mode.EXPLICIT);
         CardManager signer = new CardManager();
         String cardPIN  = getSmartCardPIN();
-        signer.readCardData();
+        signer.readCardData(cardPIN);
         signer.getKeyStore(cardPIN);
         List<TrustListManager> walkers = ConfigReader.loadAllTrusts();
         DataSource ds = signer.sign(signingBean, false, walkers);
@@ -79,7 +79,7 @@ public class CardManagerTest {
                 .setSigningMode(SigningBean.Mode.EXPLICIT);
         CardManager signer = new CardManager();
         String cardPIN  = getSmartCardPIN();
-        signer.readCardData();
+        signer.readCardData(cardPIN);
         signer.getKeyStore(cardPIN);
         List<TrustListManager> walkers = ConfigReader.loadAllTrusts();
         DataSource ds = signer.sign(signingBean, false, walkers);
@@ -104,7 +104,7 @@ public class CardManagerTest {
     public void testReadCardData() throws Exception {
         CardManager signer = new CardManager();
         String cardPIN  = getSmartCardPIN();
-        signer.readCardData();
+        signer.readCardData(cardPIN);
         List<X509Certificate> certs = signer.getCertificates();
         List<AttributeCertificate> attrCerts = signer.getAttrCertificates();
         List<iaik.pkcs.pkcs11.objects.PublicKey> pubKeys = signer.getPublicKeys();

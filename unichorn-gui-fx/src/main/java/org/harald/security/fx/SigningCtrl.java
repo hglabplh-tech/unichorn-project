@@ -1,9 +1,7 @@
 package org.harald.security.fx;
 
 import iaik.pdf.parameters.PadesBESParameters;
-import iaik.security.provider.IAIK;
 import iaik.utils.Util;
-import iaik.x509.X509CRL;
 import iaik.x509.X509Certificate;
 import iaik.x509.attr.AttributeCertificate;
 import javafx.event.ActionEvent;
@@ -138,7 +136,7 @@ public class SigningCtrl implements ControllerInit {
                 String cardPin = getSmartCardPIN();
                 boolean reallySign = (cardPin != null && cardPin.length() == 6);
                 CardManager signer = new CardManager();
-                signer.readCardData();
+                signer.readCardData(cardPin);
                 if (reallySign) {
                     signer.getKeyStore(cardPin);
                     DataSource signed = signer.sign(signingBean, addArchiveInfo, signingBean.getWalker());

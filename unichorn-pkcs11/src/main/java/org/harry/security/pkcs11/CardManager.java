@@ -15,6 +15,7 @@ import iaik.pkcs.pkcs11.provider.IAIKPkcs11;
 import iaik.pkcs.pkcs11.provider.TokenKeyStore;
 import iaik.pkcs.pkcs11.provider.TokenManager;
 import iaik.security.provider.IAIK;
+import iaik.security.rsa.RSAPublicKey;
 import iaik.x509.X509Certificate;
 import iaik.x509.attr.AttributeCertificate;
 import iaik.x509.extensions.ExtendedKeyUsage;
@@ -84,6 +85,8 @@ public class CardManager {
 
     protected List<iaik.pkcs.pkcs11.objects.PublicKey> publicKeys = new ArrayList<>();
 
+    protected List<iaik.pkcs.pkcs11.objects.PrivateKey> privateKeys = new ArrayList<>();
+
 
 
     /**
@@ -124,11 +127,12 @@ public class CardManager {
         session.setPIN(cardPINOld.toCharArray(), cardPINNew.toCharArray());
     }
 
-    public void readCardData() throws Exception {
+    public void readCardData(String pin) throws Exception {
         TokenManager manager = pkcs11Provider_.getTokenManager();
 
         Session session = manager.getToken().openSession(Token.SessionType.SERIAL_SESSION,
                 Token.SessionReadWriteBehavior.RO_SESSION, null, null);
+        session.login(Session.UserType.USER, pin.toCharArray());
         SessionInfo sessionInfo = session.getSessionInfo();
         System.out.println(" using session:");
         System.out.println(sessionInfo);
@@ -139,9 +143,9 @@ public class CardManager {
                 if (obj instanceof X509PublicKeyCertificate) {
                     X509Certificate certificate = getCertificate(obj);
                     System.out.println(certificate.toString(true));
+                    certificates.add(certificate);
                     if (checkCertificate(certificate)) {
                         signerCertificate_ = certificate;
-                        certificates.add(certificate);
                     }
                 } else if (obj instanceof X509AttributeCertificate) {
                     AttributeCertificate certificate = getAttrCertificate(obj);
@@ -157,6 +161,9 @@ public class CardManager {
                 }else if(obj instanceof iaik.pkcs.pkcs11.objects.PublicKey) {
                     System.out.println("Public key found");
                     publicKeys.add((iaik.pkcs.pkcs11.objects.PublicKey) obj);
+                }else if(obj instanceof iaik.pkcs.pkcs11.objects.PrivateKey) {
+                    System.out.println("Public key found");
+                    privateKeys.add((iaik.pkcs.pkcs11.objects.PrivateKey) obj);
                 } else {
                     if(Object.getVendorDefinedObjectBuilder() != null) {
                         Object.VendorDefinedObjectBuilder builder = Object.getVendorDefinedObjectBuilder();
@@ -497,5 +504,9 @@ public class CardManager {
 
     public List<iaik.pkcs.pkcs11.objects.PublicKey> getPublicKeys() {
         return publicKeys;
+    }
+
+    public List<iaik.pkcs.pkcs11.objects.PrivateKey> getPrivateKeys() {
+        return privateKeys;
     }
 }
