@@ -9,42 +9,55 @@ import iaik.pkcs.pkcs10.CertificateRequest;
 import iaik.pkcs.pkcs8.EncryptedPrivateKeyInfo;
 import iaik.pkcs.pkcs9.ChallengePassword;
 import iaik.pkcs.pkcs9.ExtensionRequest;
+import iaik.x509.X509Certificate;
+import iaik.x509.extensions.ExtendedKeyUsage;
 import iaik.x509.extensions.KeyUsage;
+import iaik.x509.extensions.SubjectKeyIdentifier;
 import org.apache.commons.io.IOUtils;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.entity.ContentType;
-import org.apache.http.entity.FileEntity;
 import org.apache.http.entity.mime.MultipartEntityBuilder;
 import org.apache.http.entity.mime.content.FileBody;
 import org.apache.http.entity.mime.content.InputStreamBody;
 import org.apache.http.entity.mime.content.StringBody;
 import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClients;
 import org.harry.security.util.CertificateWizzard;
+import org.harry.security.util.Tuple;
+import org.pmw.tinylog.Logger;
 
 import java.io.*;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
-import java.security.KeyPair;
-import java.security.NoSuchAlgorithmException;
-import java.security.PrivateKey;
+import java.security.*;
 import java.util.Base64;
+import java.util.Enumeration;
 
-import static org.harry.security.CommonConst.ADMIN_URL;
-import static org.harry.security.CommonConst.SIGNING_URL;
+import static org.harry.security.CommonConst.*;
 import static org.harry.security.util.CertificateWizzard.addQualifiedExtension;
 import static org.harry.security.util.httpclient.ClientFactory.createSSLClient;
 
+/**
+ * Class for handling servlet requests and CSR Requests
+ */
 public class CSRHandler {
-    public static void signCert(Name subject, String path) throws Exception {
+
+    /**
+     * Sign the certificate with the CSR remote
+     * @param subject the subject Name
+     * @param path the output path
+     * @param keyUsage the key-usage
+     * @param ocspSigning flag for ocsp-signing
+     * @throws Exception error case
+     */
+    public static void signCert(Name subject, String path, KeyUsage keyUsage, boolean ocspSigning) throws Exception {
         String password = getPassCode();
         String token = getToken();
         KeyPair pair = CertificateWizzard.generateKeyPair("RSA", 2048);
         InputStream
-                certReqStream = createCertificateRequestStream(subject, pair, password);
+                certReqStream = createCertificateRequestStream(subject, pair, password, keyUsage, ocspSigning);
 
         InputStream privKeyEncr = createPrivKeyEncr(pair.getPrivate(), password);
 
@@ -80,6 +93,11 @@ public class CSRHandler {
 
     }
 
+    /**
+     * Sets the keystore as signing key-store for remote signing
+     * @param keyStore the keystore
+     * @throws Exception error case
+     */
     public static void setSigningCert(File keyStore) throws Exception {
         String token = getTokenAdmin();
         URL ocspUrl= new URL(ADMIN_URL);
@@ -106,6 +124,11 @@ public class CSRHandler {
         CloseableHttpResponse response = httpClient.execute(post);
     }
 
+    /**
+     * set the application properties
+     * @param propFile the properties-file
+     * @throws Exception error case
+     */
     public static void setAppProperties(File propFile) throws Exception {
         String token = getTokenAdmin();
         URL ocspUrl= new URL(ADMIN_URL);
@@ -132,6 +155,10 @@ public class CSRHandler {
         CloseableHttpResponse response = httpClient.execute(post);
     }
 
+    /**
+     * Initialize the application key-store and trust-list on server side
+     * @throws Exception error case
+     */
     public static void initAppKeystore() throws Exception {
         String token = getTokenAdmin();
         URL ocspUrl= new URL(ADMIN_URL);
@@ -156,6 +183,10 @@ public class CSRHandler {
         CloseableHttpResponse response = httpClient.execute(post);
     }
 
+    /**
+     * sign the Certificate revocation list
+     * @throws Exception error case
+     */
     public static void resignCRL() throws Exception {
         String token = getTokenAdmin();
         URL ocspUrl= new URL(ADMIN_URL);
@@ -180,6 +211,10 @@ public class CSRHandler {
         CloseableHttpResponse response = httpClient.execute(post);
     }
 
+    /**
+     * cleanup of the prepared responses to get dynamic responses again from responder
+     * @throws Exception error case
+     */
     public static void cleanupPreparedResp() throws Exception {
         String token = getTokenAdmin();
         URL ocspUrl= new URL(ADMIN_URL);
@@ -205,9 +240,19 @@ public class CSRHandler {
     }
 
 
-
-
-    public static InputStream createCertificateRequestStream(Name subject, KeyPair pair, String password) throws Exception {
+    /**
+     * create a CSR
+     * @param subject the subject for the new certificate
+     * @param pair key-pair of the new certificate
+     * @param password the challenge password
+     * @param keyUsage the key-usage
+     * @param ocspSigning the ocsp-signing usage indicator
+     * @return the InputStream containing the request
+     * @throws Exception error case
+     */
+    public static InputStream createCertificateRequestStream(Name subject, KeyPair pair,
+                                                             String password, KeyUsage keyUsage,
+                                                             boolean ocspSigning) throws Exception {
 
 
 
@@ -216,12 +261,17 @@ public class CSRHandler {
                 subject);
         // and define some attributes
         Attribute[] attributes = new Attribute[2];
-        // add a ExtensionRequest attribute for KeyUsage digitalSignature and nonRepudiation
-        KeyUsage keyUsage = new KeyUsage(KeyUsage.digitalSignature
-                | KeyUsage.nonRepudiation);
+
         ExtensionRequest extensionRequest = new ExtensionRequest();
         extensionRequest.addExtension(keyUsage);
         extensionRequest.addExtension(addQualifiedExtension());
+        if (ocspSigning) {
+            ExtendedKeyUsage extKeyUsage = new ExtendedKeyUsage();
+            extKeyUsage.addKeyPurposeID(ExtendedKeyUsage.ocspSigning);
+            extKeyUsage.addKeyPurposeID(ExtendedKeyUsage.timeStamping);
+            extensionRequest.addExtension(extKeyUsage);
+        }
+
 
         attributes[0] = new Attribute(extensionRequest);
         // and an challenge password
@@ -229,6 +279,7 @@ public class CSRHandler {
         attributes[1] = new Attribute(challengePassword);
         // now set the attributes
         request.setAttributes(attributes);
+
         // sign the request
         request.sign(AlgorithmID.sha3_256WithRSAEncryption, pair.getPrivate());
         System.out.println("Request generated:");
@@ -241,6 +292,13 @@ public class CSRHandler {
         return input;
     }
 
+    /**
+     * encrypt a private key for sending it to peer
+     * @param privateKey the private key to encrypt
+     * @param password the password
+     * @return the encrypted key
+     * @throws NoSuchAlgorithmException error case
+     */
     public static InputStream createPrivKeyEncr(PrivateKey privateKey, String password) throws NoSuchAlgorithmException {
         // wrap, encrypt, encode
         EncryptedPrivateKeyInfo epki = new EncryptedPrivateKeyInfo(
@@ -251,6 +309,11 @@ public class CSRHandler {
         return result;
     }
 
+    /**
+     * get the passcode for a new request
+     * @return the new passcode
+     * @throws Exception error case
+     */
     public static String getPassCode() throws Exception {
         URL ocspUrl= new URL(SIGNING_URL);
         // create closable http client and assign the certificate interceptor
@@ -265,6 +328,11 @@ public class CSRHandler {
         return text;
     }
 
+    /**
+     * get a new security token
+     * @return the fresh token
+     * @throws Exception error case
+     */
     public static String getToken() throws Exception {
         URL ocspUrl= new URL(SIGNING_URL);
         // create closable http client and assign the certificate interceptor
@@ -282,6 +350,11 @@ public class CSRHandler {
         return text;
     }
 
+    /**
+     * get security token for admin-service
+     * @return the fresh token
+     * @throws Exception error case
+     */
     public static String getTokenAdmin() throws Exception {
         URL ocspUrl= new URL(ADMIN_URL);
         // create closable http client and assign the certificate interceptor
@@ -299,4 +372,76 @@ public class CSRHandler {
         return text;
     }
 
+    /**
+     * execute the certificate signing request
+     * @param certReq the request
+     * @param userKey the user-private key
+     * @return the private key and the fresh new chain
+     */
+    public static Tuple<PrivateKey , X509Certificate[]> certSigning(CertificateRequest certReq, PrivateKey userKey)  {
+       try {
+
+           PublicKey pubKey = certReq.getPublicKey();
+           Name subject = certReq.getSubject();
+           KeyStore store = KeyStoreTool.loadAppStore();
+           Enumeration<String> aliases = store.aliases();
+           Tuple<PrivateKey, X509Certificate[]> keys = null;
+           while(aliases.hasMoreElements()) {
+               String alias = aliases.nextElement();
+               if (alias.contains("Intermediate")) {
+                   keys =
+                           KeyStoreTool.getKeyEntry(store,alias, "geheim".toCharArray());
+                   Logger.trace("Keys found for alias: " + alias);
+               }
+           }
+           if (keys != null) {
+               // look for a ChallengePassword attribute
+               ChallengePassword challengePassword = (ChallengePassword) certReq
+                       .getAttributeValue(ChallengePassword.oid);
+               if (challengePassword != null) {
+                   System.out.println("Certificate request contains a challenge password: \""
+                           + challengePassword.getPassword() + "\".");
+               }
+               X509Certificate userCert = null;
+               Logger.trace("Check challenge password: " + challengePassword.getPassword());
+               File pwdFile = new File(APP_DIR_WORKING, challengePassword.getPassword());
+               if (!pwdFile.exists()) {
+                   Logger.trace("Check challenge password failed");
+                   return null;
+               } else {
+                   pwdFile.delete();
+               }
+               Logger.trace("Create certificate");
+               Name issuer = (Name)keys.getSecond()[0].getSubjectDN();
+               ExtensionRequest extensionRequest = (ExtensionRequest) certReq
+                       .getAttributeValue(ExtensionRequest.oid);
+               if (extensionRequest != null) {
+                   // we know that KeyUsage is included
+                   KeyUsage keyUsage = (KeyUsage) extensionRequest.getExtension(KeyUsage.oid);
+                   SubjectKeyIdentifier subjectKeyID = new SubjectKeyIdentifier(keys.getSecond()[0].getPublicKey());
+                   userCert = CertificateWizzard.createCertificate(subject,
+                           pubKey, issuer,
+                           keys.getFirst(),
+                           certReq.getSignatureAlgorithmID(),
+                           subjectKeyID.get(),
+                           keyUsage);
+                   Logger.trace("Create certificate success");
+               }
+               if (userKey != null && userCert != null) {
+                   Logger.trace("Add key to trusted");
+                   X509Certificate[] chain = new X509Certificate[3];
+                   chain[2] = keys.getSecond()[1];
+                   chain[1] = keys.getSecond()[0];
+                   chain[0] = userCert;
+                   return new Tuple<PrivateKey, X509Certificate[]>(userKey,chain);
+               }
+           }
+       } catch (Exception ex) {
+           Logger.trace("error during certificate signing");
+           Logger.trace(ex);
+           throw new IllegalStateException(
+                   "error during certificate signing", ex);
+       }
+       return null;
+    }
 }

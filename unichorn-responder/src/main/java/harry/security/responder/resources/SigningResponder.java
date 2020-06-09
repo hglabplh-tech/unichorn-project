@@ -1,27 +1,25 @@
 package harry.security.responder.resources;
 
 import com.google.gson.Gson;
-import com.sun.net.httpserver.BasicAuthenticator;
+import iaik.asn1.ObjectID;
 import iaik.asn1.structures.AlgorithmID;
-import iaik.asn1.structures.Name;
+import iaik.asn1.structures.Attribute;
+import iaik.asn1.structures.AttributeValue;
 import iaik.cms.SignedData;
 import iaik.pdf.parameters.PadesBESParameters;
 import iaik.pkcs.pkcs10.CertificateRequest;
 import iaik.pkcs.pkcs8.EncryptedPrivateKeyInfo;
 import iaik.pkcs.pkcs9.ChallengePassword;
-import iaik.pkcs.pkcs9.ExtensionRequest;
 import iaik.utils.Util;
-import iaik.x509.X509CRL;
 import iaik.x509.X509Certificate;
 import iaik.x509.attr.AttributeCertificate;
-import iaik.x509.extensions.KeyUsage;
-import iaik.x509.extensions.SubjectKeyIdentifier;
 import iaik.x509.ocsp.utils.ResponseGenerator;
 import org.apache.commons.io.IOUtils;
 import org.harry.security.util.*;
 import org.harry.security.util.algoritms.DigestAlg;
 import org.harry.security.util.algoritms.SignatureAlg;
 import org.harry.security.util.bean.SigningBean;
+import org.harry.security.util.certandkey.CSRHandler;
 import org.harry.security.util.certandkey.CertWriterReader;
 import org.harry.security.util.certandkey.GSON;
 import org.harry.security.util.certandkey.KeyStoreTool;
@@ -35,18 +33,14 @@ import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.*;
 import javax.ws.rs.core.Response;
 import java.io.*;
-import java.net.PasswordAuthentication;
 import java.security.*;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
 
 import static harry.security.responder.resources.UnicHornResponderUtil.*;
 import static org.harry.security.CommonConst.*;
-import static org.harry.security.util.CertificateWizzard.PROP_STORE_NAME;
-import static org.harry.security.util.CertificateWizzard.PROP_TRUST_NAME;
 
 @WebServlet
 @MultipartConfig(
@@ -95,7 +89,7 @@ public class SigningResponder extends HttpServlet {
 
 
    @Override
-    public void doPost(HttpServletRequest servletRequest, HttpServletResponse servletResponse) throws ServletException, IOException {
+    public void doPost(HttpServletRequest servletRequest, HttpServletResponse servletResponse) throws IOException, ServletException   {
        init ();
         String output = "Jersey say : ";
         Logger.trace("Hallo here I am");
@@ -116,7 +110,50 @@ public class SigningResponder extends HttpServlet {
        } else if (jInput.parmType.equals("docCompress")) {
            docSigning(servletRequest, servletResponse, jInput);
        } else if (jInput.parmType.equals("certSign")) {
-           certSigning(servletRequest, servletResponse, jInput);
+           Part part = servletRequest.getPart("data_to_sign");
+           CertificateRequest certReq = new CertificateRequest(part.getInputStream());
+           Part info = servletRequest.getPart("info");
+           InputStream infoStream = null;
+           if (info != null) {
+               Logger.trace("Read private key encrypted");
+               infoStream = info.getInputStream();
+           }
+           PrivateKey userKey = null;
+           Logger.trace("Check challenge password success");
+           if (infoStream != null) {
+               Logger.trace("Read private key encrypted");
+               ByteArrayOutputStream infoOut = new ByteArrayOutputStream();
+               IOUtils.copy(infoStream, infoOut);
+               // decode, decrypt, unwrap
+               EncryptedPrivateKeyInfo epki =
+                       new EncryptedPrivateKeyInfo(infoOut.toByteArray());
+
+               ChallengePassword challengePassword = (ChallengePassword)
+                       certReq.getAttributeValue(ObjectID.challengePassword);
+               userKey = epki.decrypt(challengePassword.getPassword());
+               Logger.trace("private key decrypted success");
+           }
+           InputStream input = part.getInputStream();
+           Tuple<PrivateKey, X509Certificate[]> resultInfo  = CSRHandler.certSigning(certReq, userKey);
+           String passwd = decryptPassword("pwdFile");
+           File keyFile = new File(APP_DIR_TRUST, "privKeystore" + ".p12");
+           File tempKeyFile = File.createTempFile("keystore", ".p12");
+           tempKeyFile.delete();
+           applyKeyStore(keyFile, resultInfo.getFirst(),
+                   resultInfo.getSecond(),
+                   passwd, "PKCS12");
+           applyKeyStore(tempKeyFile, resultInfo.getFirst(),
+                   resultInfo.getSecond(),
+                   "changeit", "PKCS12");
+           FileInputStream keyStore = new FileInputStream(tempKeyFile);
+
+           if (keyStore != null) {
+               IOUtils.copy(keyStore, servletResponse.getOutputStream());
+               servletResponse.setStatus(Response.Status.CREATED.getStatusCode());
+           } else {
+               servletResponse.setStatus(Response.Status.FORBIDDEN.getStatusCode());
+               Logger.trace("challenge password wrong");
+           }
        }
 
    } catch (Exception ex) {
@@ -191,102 +228,6 @@ public class SigningResponder extends HttpServlet {
             }
         }
     }
-
-    private void certSigning(HttpServletRequest servletRequest, HttpServletResponse servletResponse, GSON.Params jInput) throws KeyStoreException, IOException, ServletException {
-       try {
-           Part part = servletRequest.getPart("data_to_sign");
-           CertificateRequest certReq = new CertificateRequest(part.getInputStream());
-           PublicKey pubKey = certReq.getPublicKey();
-           Name subject = certReq.getSubject();
-           KeyStore store = KeyStoreTool.loadAppStore();
-           Enumeration<String> aliases = store.aliases();
-           Tuple<PrivateKey, X509Certificate[]> keys = null;
-           while(aliases.hasMoreElements()) {
-               String alias = aliases.nextElement();
-               if (alias.contains("Intermediate")) {
-                   keys =
-                           KeyStoreTool.getKeyEntry(store,alias, "geheim".toCharArray());
-                   Logger.trace("Keys found for alias: " + alias);
-               }
-           }
-           if (keys != null) {
-               // look for a ChallengePassword attribute
-               ChallengePassword challengePassword = (ChallengePassword) certReq
-                       .getAttributeValue(ChallengePassword.oid);
-               if (challengePassword != null) {
-                   System.out.println("Certificate request contains a challenge password: \""
-                           + challengePassword.getPassword() + "\".");
-               }
-               PrivateKey userKey = null;
-               X509Certificate userCert = null;
-               Logger.trace("Check challenge password: " + challengePassword.getPassword());
-               File pwdFile = new File(APP_DIR_WORKING, challengePassword.getPassword());
-               if (!pwdFile.exists()) {
-                   Logger.trace("Check challenge password failed");
-                   servletResponse.setStatus(Response.Status.FORBIDDEN.getStatusCode());
-                   return;
-               } else {
-                   Logger.trace("Check challenge password success");
-                   Part info = servletRequest.getPart("info");
-                   if (info != null) {
-                       Logger.trace("Read private key encrypted");
-                       InputStream infoStream = info.getInputStream();
-                       ByteArrayOutputStream infoOut = new ByteArrayOutputStream();
-                       IOUtils.copy(infoStream, infoOut);
-                       // decode, decrypt, unwrap
-                       EncryptedPrivateKeyInfo epki =
-                               new EncryptedPrivateKeyInfo(infoOut.toByteArray());
-
-                       userKey = epki.decrypt(challengePassword.getPassword());
-                       Logger.trace("private key decrypted success");
-                   }
-                   pwdFile.delete();
-               }
-               Logger.trace("Create certificate");
-               Name issuer = (Name)keys.getSecond()[0].getSubjectDN();
-               ExtensionRequest extensionRequest = (ExtensionRequest) certReq
-                       .getAttributeValue(ExtensionRequest.oid);
-               if (extensionRequest != null) {
-                   // we know that KeyUsage is included
-                   KeyUsage keyUsage = (KeyUsage) extensionRequest.getExtension(KeyUsage.oid);
-                   SubjectKeyIdentifier subjectKeyID = new SubjectKeyIdentifier(keys.getSecond()[0].getPublicKey());
-                   userCert = CertificateWizzard.createCertificate(subject,
-                           pubKey, issuer,
-                           keys.getFirst(), AlgorithmID.sha256WithRSAEncryption,
-                           subjectKeyID.get(),
-                           keyUsage);
-                   Logger.trace("Create certificate success");
-               }
-               if (userKey != null && userCert != null) {
-                   Logger.trace("Add key to trusted");
-                   X509Certificate[] chain = new X509Certificate[3];
-                   chain[2] = keys.getSecond()[1];
-                   chain[1] = keys.getSecond()[0];
-                   chain[0] = userCert;
-                   File keyFile = new File(APP_DIR_TRUST, "privKeystore" + ".p12");
-                   File tempKeyFile = File.createTempFile("keystore", ".p12");
-                   tempKeyFile.delete();
-                   String passwd = decryptPassword("pwdFile");
-                   applyKeyStore(keyFile, userKey,
-                           chain,
-                           passwd, "PKCS12");
-                   applyKeyStore(tempKeyFile, userKey,
-                           chain,
-                           "changeit", "PKCS12");
-                   FileInputStream keyStore = new FileInputStream(tempKeyFile);
-                   IOUtils.copy(keyStore, servletResponse.getOutputStream());
-                   servletResponse.setStatus(Response.Status.CREATED.getStatusCode());
-                   Logger.trace("Add key to trusted success");
-               }
-           }
-       } catch (Exception ex) {
-           Logger.trace("error during cedrtificate signing");
-           Logger.trace(ex);
-           throw new IllegalStateException(
-                   "error during cedrtificate signing", ex);
-       }
-    }
-
 
 
     private void docSigning(HttpServletRequest servletRequest, HttpServletResponse servletResponse, GSON.Params jInput) throws KeyStoreException, IOException, ServletException {

@@ -4,7 +4,7 @@
 <?import java.lang.*?>
 <?import javafx.scene.layout.*?>
 
-<VBox maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="400.0" prefWidth="600.0" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.harald.security.fx.CSRCtrl">
+<VBox maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="800.0" prefWidth="1200.0" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.harald.security.fx.CSRCtrl">
    <children>
       <GridPane>
         <columnConstraints>
@@ -15,6 +15,7 @@
           <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
           <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
           <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+            <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
             <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
             <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
             <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
@@ -31,9 +32,40 @@
             <TextField fx:id="org" GridPane.columnIndex="1" GridPane.rowIndex="2" />
             <TextField fx:id="orgunit" GridPane.columnIndex="1" GridPane.rowIndex="3" />
             <TextField fx:id="locality" GridPane.columnIndex="1" GridPane.rowIndex="4" />
-            <Button fx:id="back" mnemonicParsing="false" onAction="#back" text="Go Back" GridPane.rowIndex="5" />
-            <Button fx:id="sendCSR" mnemonicParsing="false" onAction="#sendCSR" text="Send CSR" GridPane.columnIndex="1" GridPane.rowIndex="5" />
-            <Button fx:id="setSigning" mnemonicParsing="false" onAction="#setSigning" text="Set as signing keystore" GridPane.rowIndex="6" />
+         </children>
+      </GridPane>
+      <GridPane>
+        <columnConstraints>
+            <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0" />
+            <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0" />
+          <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0" />
+          <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0" />
+        </columnConstraints>
+        <rowConstraints>
+          <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+          <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+          <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+            <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+            <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+            <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+            <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+            <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+        </rowConstraints>
+         <children>
+            <CheckBox fx:id="keyAgreement" mnemonicParsing="false" text="keyAgreement" GridPane.rowIndex="1" />
+            <CheckBox fx:id="digitalSignature" mnemonicParsing="false" text="digitalSignature" />
+            <CheckBox fx:id="nonRepudiation" mnemonicParsing="false" text="nonRepudiation" GridPane.columnIndex="1" />
+            <CheckBox fx:id="keyEncipherment" mnemonicParsing="false" text="keyEncipherment" GridPane.columnIndex="2" />
+            <CheckBox fx:id="dataEncipherment" mnemonicParsing="false" text="dataEncipherment" GridPane.columnIndex="3" />
+            <CheckBox fx:id="keyCertSign" mnemonicParsing="false" text="keyCertSign" GridPane.columnIndex="1" GridPane.rowIndex="1" />
+            <CheckBox fx:id="cRLSign" mnemonicParsing="false" text="cRLSign" GridPane.columnIndex="2" GridPane.rowIndex="1" />
+            <CheckBox fx:id="encipherOnly" mnemonicParsing="false" text="encipherOnly" GridPane.columnIndex="3" GridPane.rowIndex="1" />
+            <CheckBox fx:id="decipherOnly" mnemonicParsing="false" text="decipherOnly" GridPane.rowIndex="2" />
+            <CheckBox fx:id="OCSPSigning" mnemonicParsing="false" text="OCSPSigning" GridPane.columnIndex="1" GridPane.rowIndex="2" />
+            <Button fx:id="sendCSR" mnemonicParsing="false" onAction="#sendCSR" text="Send CSR" GridPane.rowIndex="7" />
+            <Button fx:id="setSigning" mnemonicParsing="false" onAction="#setSigning" text="Set as signing keystore" GridPane.columnIndex="1" GridPane.rowIndex="7" />
+            <Button fx:id="back" mnemonicParsing="false" onAction="#back" text="Go Back" GridPane.columnIndex="3" GridPane.rowIndex="7" />
+            <Button fx:id="signLocal" mnemonicParsing="false" onAction="#signLocal" text="Local CSR / Generate Chain" GridPane.columnIndex="2" GridPane.rowIndex="7" />
          </children>
       </GridPane>
       <TextArea fx:id="cert_descr" prefHeight="200.0" prefWidth="200.0" />

@@ -137,13 +137,13 @@ public class CertificateWizzard {
             } else {
                 ca_rsa = generateKeyPair("RSA", 4096);
             }
-        caRSA = createCertificate(issuer,
-                ca_rsa.getPublic(),
-                issuer,
-                ca_rsa.getPrivate(),
-                (AlgorithmID)AlgorithmID.sha256WithRSAEncryption.clone(),
-                null,
-                usage);
+        caRSA = newBuilder().setIssuer(issuer)
+                .setPublicKey(ca_rsa.getPublic())
+                .setSubject(issuer)
+                .setPrivateKey(ca_rsa.getPrivate())
+                .setAlgorithm((AlgorithmID)AlgorithmID.sha256WithRSAEncryption.clone())
+                .setKeyID(null)
+                .setKeyUsage(usage).build();
             caRSA.verify();
             // set the CA cert as trusted root
             verifier.addTrustedCertificate(caRSA);
@@ -155,13 +155,14 @@ public class CertificateWizzard {
             issuer.removeRDN(ObjectID.commonName);
             issuer.addRDN(ObjectID.commonName ,properties.getCommonName() +"_EC" );
             ca_ec = generateKeyPairECC(571);
-            caEC = createCertificate(issuer,
-                    ca_ec.getPublic(),
-                    issuer,
-                    ca_ec.getPrivate(),
-                    (AlgorithmID)AlgorithmID.ecdsa.clone(),
-                    null,
-                    usage);
+            caEC = newBuilder().setIssuer(issuer)
+                    .setPublicKey(ca_ec.getPublic())
+                    .setSubject(issuer)
+                    .setPrivateKey(ca_ec.getPrivate())
+                    .setAlgorithm((AlgorithmID)AlgorithmID.ecdsa.clone())
+                    .setKeyID(null)
+                    .setKeyUsage(usage).build();
+
             caEC.verify();
             // set the CA cert as trusted root
             verifier.addTrustedCertificate(caEC);
@@ -366,6 +367,8 @@ public class CertificateWizzard {
                                                     KeyUsage keyUsage) {
 
         // create a new certificate
+        KeyUsage usage = new KeyUsage();
+
         X509Certificate cert = new X509Certificate();
 
         try {
@@ -932,5 +935,68 @@ public class CertificateWizzard {
         return qcStatementsExt;
 
 
+    }
+
+    public static  CertificateBuilder newBuilder() {
+        return new CertificateBuilder();
+    }
+
+    public static class CertificateBuilder {
+        Name subject;
+        PublicKey publicKey;
+        Name issuer;
+        PrivateKey privateKey;
+        AlgorithmID algorithm;
+        byte[] keyID;
+        KeyUsage keyUsage;
+
+        public CertificateBuilder() {
+
+        }
+
+        public CertificateBuilder setSubject(Name subject) {
+            this.subject = subject;
+            return this;
+        }
+
+        public CertificateBuilder setPublicKey(PublicKey publicKey) {
+            this.publicKey = publicKey;
+            return this;
+        }
+
+        public CertificateBuilder setIssuer(Name issuer) {
+            this.issuer = issuer;
+            return this;
+        }
+
+        public CertificateBuilder setPrivateKey(PrivateKey privateKey) {
+            this.privateKey = privateKey;
+            return this;
+        }
+
+        public CertificateBuilder setAlgorithm(AlgorithmID algorithm) {
+            this.algorithm = algorithm;
+            return this;
+        }
+
+        public CertificateBuilder setKeyID(byte[] keyID) {
+            this.keyID = keyID;
+            return this;
+        }
+
+        public CertificateBuilder setKeyUsage(KeyUsage keyUsage) {
+            this.keyUsage = keyUsage;
+            return this;
+        }
+
+        public X509Certificate build () {
+            return createCertificate(this.subject,
+                    this.publicKey,
+                    this.issuer,
+                    this.privateKey,
+                    this.algorithm,
+                    this.keyID,
+                    this.keyUsage);
+        }
     }
 }
