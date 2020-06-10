@@ -2,6 +2,8 @@ package org.harry.security.util;
 
 import com.itextpdf.signatures.*;
 import com.itextpdf.signatures.BouncyCastleDigest;
+import com.itextpdf.signatures.CertificateVerifier;
+import com.itextpdf.signatures.OCSPVerifier;
 import com.itextpdf.text.DocumentException;
 import com.itextpdf.text.Jpeg;
 import com.itextpdf.text.Rectangle;
@@ -9,6 +11,7 @@ import com.itextpdf.text.pdf.*;
 import com.itextpdf.text.pdf.PdfSignatureAppearance;
 import com.itextpdf.text.pdf.security.*;
 import com.itextpdf.text.pdf.security.DigestAlgorithms;
+import com.itextpdf.text.pdf.security.OcspClientBouncyCastle;
 import com.itextpdf.text.pdf.security.PrivateKeySignature;
 import com.itextpdf.text.pdf.security.ProviderDigest;
 import iaik.pdf.itext.OcspClientIAIK;
@@ -88,6 +91,7 @@ public class SignPDFUtil {
 
         PrivateKey pk = privKey;
         Certificate[] chain = certChain;
+
 
 
         // include OCSP response

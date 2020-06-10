@@ -547,37 +547,37 @@ public class UnicHornResponderUtil {
                     return nonceExt;
                 }
                 Logger.trace("Signature ok from request signer " + signerCert.getSubjectDN());
-                try {
-                    nonce = ocspRequest.getNonce();
-                    if (nonce != null) {
-                        nonceExt = new Nonce();
-                        nonceExt.setValue(nonce);
-                        Logger.trace("Nonce is set to request");
-                    } else {
-                        Logger.trace("Nonce is NOT set to request");
-                    }
-                    ObjectID[] types = ocspRequest.getAccepatableResponseTypes();
-                    if (types != null) {
-                        boolean typeFound = false;
-                        for (ObjectID type : types) {
-                            if (type == ObjectID.basicOcspResponse) {
-                                typeFound = true;
-                            }
-                        }
-                        if (!typeFound) {
-                            Logger.trace("accepted type not set");
-                            return nonceExt;
-                        } else {
-                            Logger.trace("accepted type set");
-                            return nonceExt;
-                        }
-
-                    }
-                    return nonceExt;
-
-                } catch (Exception ex) {
-                    return nonceExt;
+            }
+            try {
+                nonce = ocspRequest.getNonce();
+                if (nonce != null) {
+                    nonceExt = new Nonce();
+                    nonceExt.setValue(nonce);
+                    Logger.trace("Nonce is set to request");
+                } else {
+                    Logger.trace("Nonce is NOT set to request");
                 }
+                ObjectID[] types = ocspRequest.getAccepatableResponseTypes();
+                if (types != null) {
+                    boolean typeFound = false;
+                    for (ObjectID type : types) {
+                        if (type == ObjectID.basicOcspResponse) {
+                            typeFound = true;
+                        }
+                    }
+                    if (!typeFound) {
+                        Logger.trace("accepted type not set");
+                        return nonceExt;
+                    } else {
+                        Logger.trace("accepted type set");
+                        return nonceExt;
+                    }
+
+                }
+                return nonceExt;
+
+            } catch (Exception ex) {
+                return nonceExt;
             }
         }
         return null;

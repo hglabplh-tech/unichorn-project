@@ -271,6 +271,7 @@ public class CSRHandler {
             extKeyUsage.addKeyPurposeID(ExtendedKeyUsage.timeStamping);
             extensionRequest.addExtension(extKeyUsage);
         }
+        extensionRequest.addExtension(CertificateWizzard.createOCSPUrl(null, OCSP_URL));
 
 
         attributes[0] = new Attribute(extensionRequest);

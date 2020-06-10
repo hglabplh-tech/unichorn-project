@@ -405,7 +405,7 @@ public class CertificateWizzard {
                 extKeyUsage.setCritical(true);
                 cert.addExtension(extKeyUsage);
                 cert.addExtension(keyUsage);
-                setOCSPUrl(cert, OCSP_URL);
+                cert.addExtension(createOCSPUrl(cert, OCSP_URL));
 
             }
             String explicitText = "This certificate may be used for testing purposes only";
@@ -850,11 +850,11 @@ public class CertificateWizzard {
      * @throws X509ExtensionInitException error case
      * @throws MalformedURLException error case
      */
-    public static void setOCSPUrl(X509Certificate cert, String url) throws X509ExtensionException, MalformedURLException {
+    public static AuthorityInfoAccess createOCSPUrl(X509Certificate cert, String url) throws X509ExtensionException, MalformedURLException {
         AccessDescription description = new AccessDescription(ObjectID.ocsp, url);
         AuthorityInfoAccess access = new AuthorityInfoAccess(description);
         access.setCritical(false);
-        cert.addExtension(access);
+        return access;
     }
 
     public static boolean isCertificateSelfSigned(X509Certificate certificate) {
