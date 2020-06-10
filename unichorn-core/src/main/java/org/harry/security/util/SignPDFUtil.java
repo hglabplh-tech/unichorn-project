@@ -18,6 +18,7 @@ import iaik.pdf.itext.OcspClientIAIK;
 import iaik.pdf.itext.TSAClientIAIK;
 import iaik.pdf.parameters.PadesBESParameters;
 import org.harry.security.util.bean.SigningBean;
+import org.harry.security.util.ocsp.UnichornOcspClient;
 
 import javax.activation.DataSource;
 import java.io.*;
@@ -95,7 +96,7 @@ public class SignPDFUtil {
 
 
         // include OCSP response
-        OcspClient ocspClient = new OcspClientIAIK();
+        OcspClient ocspClient = new UnichornOcspClient();
 
 
         // extract URL to timestamp server from certificate

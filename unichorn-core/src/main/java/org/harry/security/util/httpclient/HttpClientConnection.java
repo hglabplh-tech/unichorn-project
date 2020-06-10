@@ -17,14 +17,12 @@ import org.apache.http.entity.mime.MultipartEntityBuilder;
 import org.apache.http.entity.mime.content.InputStreamBody;
 import org.apache.http.entity.mime.content.StringBody;
 import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClients;
 import org.harry.security.util.certandkey.GSON;
 
 import java.io.*;
 import java.net.URL;
 import java.util.Base64;
 import java.util.Vector;
-import java.util.concurrent.TimeUnit;
 
 import static org.harry.security.CommonConst.OCSP_URL;
 import static org.harry.security.CommonConst.SIGNING_URL;
@@ -57,7 +55,7 @@ public class HttpClientConnection {
         }
     }
 
-    public static void sendPutData(InputStream data, String fileType) throws Exception {
+    public static void sendPutData(InputStream data, String fileType, String userPWD) throws Exception {
         URL ocspUrl= new URL(OCSP_URL);
         // create closable http client and assign the certificate interceptor
         CloseableHttpClient httpClient = createSSLClient();
@@ -67,6 +65,9 @@ public class HttpClientConnection {
         byte [] encoded = Base64.getEncoder().encode("geheim".getBytes());
         String encodeString = new String(encoded);
         put.setHeader("passwd",encodeString);
+        encoded = Base64.getEncoder().encode(userPWD.getBytes());
+        encodeString = new String(encoded);
+        put.setHeader("passwdUser",encodeString);
         put.setHeader("storeType", "PKCS12");
         HttpEntity entity = new InputStreamEntity(data);
         put.setEntity(entity);

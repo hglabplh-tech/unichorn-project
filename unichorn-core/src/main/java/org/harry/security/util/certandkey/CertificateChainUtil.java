@@ -176,6 +176,7 @@ public class CertificateChainUtil {
 
     public static List<X509Certificate> addToCertificateList(X509Certificate[] chain, List<X509Certificate> temp) {
         for (X509Certificate certificate : chain) {
+            Logger.trace("add certificate with serial: " + certificate.getSerialNumber());
             temp.add(certificate);
         }
         return temp;

@@ -84,6 +84,7 @@ public class SignPDFUtilTest extends TestBase {
 
         fin = new FileInputStream(out);
         List<TrustListManager> walkers = ConfigReader.loadAllTrusts();
+        bean = bean.setCheckPathOcsp(true);
         VerifyPDFUtil vutil = new VerifyPDFUtil(walkers, bean);
         vutil.verifySignedPdf(fin);
     }

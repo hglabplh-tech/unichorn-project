@@ -16,13 +16,15 @@ public class WorkerThread implements Runnable {
     private final File keyFile;
     private final KeyStore storeToApply;
     private final String passwd;
+    private final String passwdUser;
     private final String storeType;
 
-    public WorkerThread(File keyFile, KeyStore storeToApply, String passwd, String storeType) {
+    public WorkerThread(File keyFile, KeyStore storeToApply, String passwd, String passwdUser ,String storeType) {
         this.keyFile = keyFile;
         this.storeToApply= storeToApply;
         this.passwd = passwd;
         this.storeType = storeType;
+        this.passwdUser = passwdUser;
     }
     @Override
     public void run() {
@@ -39,7 +41,7 @@ public class WorkerThread implements Runnable {
                 String alias = aliases.nextElement();
                 try {
                     Tuple<PrivateKey, X509Certificate[]> tuple = KeyStoreTool.
-                            getKeyEntry(storeToApply, alias, passwd.toCharArray());
+                            getKeyEntry(storeToApply, alias, passwdUser.toCharArray());
                     Logger.trace("collect key with alias :" + alias);
                     KeyStoreTool.addKey(privStore, tuple.getFirst(),
                             passwd.toCharArray(), tuple.getSecond(), alias);

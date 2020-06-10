@@ -116,7 +116,7 @@ public class CertRevokEditCtrl implements ControllerInit {
         editCRL.signCRL(keys.getSecond()[0], keys.getFirst());
         editCRL.storeCRL(new FileOutputStream(editTemp));
         FileInputStream input = new FileInputStream(editTemp);
-        HttpClientConnection.sendPutData(input, "crl");
+        HttpClientConnection.sendPutData(input, "crl", "geheim");
         CSRHandler.resignCRL();
     }
 

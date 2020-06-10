@@ -288,7 +288,10 @@ public class UnicHornResponderUtil {
                     AlgorithmID hashAlg = certID.getHashAlgorithm();
                     Date rDate = null;
                     X509Certificate actualCert = getX509Certificate(serial);
-                    X509CRL crlAlterntative = OCSPCRLClient.getCRLOfCert(actualCert);
+                    X509CRL crlAlterntative = null;
+                    if (actualCert != null) {
+                        crlAlterntative = OCSPCRLClient.getCRLOfCert(actualCert);
+                    }
                     if (crlAlterntative != null) {
                         rDate = OCSPCRLClient.checkRevocation(crlAlterntative, serial);
                     } else {
@@ -351,6 +354,7 @@ public class UnicHornResponderUtil {
             return null;
         } catch (Exception ex) {
             Logger.trace( "Message is: generator is NOT created due to: " + ex.getMessage());
+            Logger.trace(ex);
             return null;
         }
     }
@@ -533,8 +537,7 @@ public class UnicHornResponderUtil {
         if (ocspRequest.containsSignature()) {
             Logger.trace("Request is signed.");
 
-            byte[] nonce;
-            Nonce nonceExt = null;
+
 
             boolean signatureOk = false;
             X509Certificate signerCert = null;
@@ -544,43 +547,44 @@ public class UnicHornResponderUtil {
                     signerCert = ocspRequest.verify();
                 } catch (Exception ex) {
                     Logger.trace("Signature not ok from request signer ");
-                    return nonceExt;
+                    return null;
                 }
                 Logger.trace("Signature ok from request signer " + signerCert.getSubjectDN());
             }
-            try {
-                nonce = ocspRequest.getNonce();
-                if (nonce != null) {
-                    nonceExt = new Nonce();
-                    nonceExt.setValue(nonce);
-                    Logger.trace("Nonce is set to request");
-                } else {
-                    Logger.trace("Nonce is NOT set to request");
-                }
-                ObjectID[] types = ocspRequest.getAccepatableResponseTypes();
-                if (types != null) {
-                    boolean typeFound = false;
-                    for (ObjectID type : types) {
-                        if (type == ObjectID.basicOcspResponse) {
-                            typeFound = true;
-                        }
-                    }
-                    if (!typeFound) {
-                        Logger.trace("accepted type not set");
-                        return nonceExt;
-                    } else {
-                        Logger.trace("accepted type set");
-                        return nonceExt;
-                    }
-
-                }
-                return nonceExt;
-
-            } catch (Exception ex) {
-                return nonceExt;
-            }
         }
-        return null;
+        byte[] nonce;
+        Nonce nonceExt = null;
+        try {
+            nonce = ocspRequest.getNonce();
+            if (nonce != null) {
+                nonceExt = new Nonce();
+                nonceExt.setValue(nonce);
+                Logger.trace("Nonce is set to request");
+            } else {
+                Logger.trace("Nonce is NOT set to request");
+            }
+            ObjectID[] types = ocspRequest.getAccepatableResponseTypes();
+            if (types != null) {
+                boolean typeFound = false;
+                for (ObjectID type : types) {
+                    if (type == ObjectID.basicOcspResponse) {
+                        typeFound = true;
+                    }
+                }
+                if (!typeFound) {
+                    Logger.trace("accepted type not set");
+                    return nonceExt;
+                } else {
+                    Logger.trace("accepted type set");
+                    return nonceExt;
+                }
+
+            }
+            return nonceExt;
+
+        } catch (Exception ex) {
+            return nonceExt;
+        }
     }
 
     /**
@@ -774,6 +778,7 @@ public class UnicHornResponderUtil {
     private static Optional<X509Certificate> findSerialINPositiveList(BigInteger serial) {
         Optional<X509Certificate> opt = workingData.get().getCertificateList().stream().filter(e -> {
             X509Certificate cert = e;
+            Logger.trace("Search for: " + serial.toString(10) +  " in --> " + cert.toString(true));
             if (cert.getSerialNumber().equals(serial)) {
                 return true;
             }
@@ -789,10 +794,10 @@ public class UnicHornResponderUtil {
      * @param passwd the store password
      * @param storeType the store type
      */
-    public static void applyKeyStore(File keyFile, KeyStore storeToApply, String passwd, String storeType) {
+    public static void applyKeyStore(File keyFile, KeyStore storeToApply, String passwd, String passwdUser,String storeType) {
         try {
             ExecutorService executor = Executors.newFixedThreadPool(5);
-            Future<?> task = executor.submit(new WorkerThread(keyFile, storeToApply, passwd, storeType));
+            Future<?> task = executor.submit(new WorkerThread(keyFile, storeToApply, passwd, passwdUser,storeType));
             task.get(10, TimeUnit.MINUTES);
             executor.shutdown();
         } catch (Exception ex) {
@@ -1097,23 +1102,29 @@ public class UnicHornResponderUtil {
         public OCSPRespToStore(OCSPResponse response, BigInteger serial) throws Exception {
             try {
                 Logger.trace("Step 1");
-                BasicOCSPResponse basicResp = new BasicOCSPResponse(response.getResponse().getEncoded());
+                BasicOCSPResponse basicResp = (BasicOCSPResponse)response.getResponse();
                 Logger.trace("Step 2");
-                SingleResponse singleResponse = basicResp.getSingleResponses()[0];
-                Logger.trace("Step 3");
-                int status = singleResponse.getCertStatus().getCertStatus();
-                Logger.trace("Step 4");
-                certEncoded = basicResp.getCertificates()[0].getEncoded();
-                Logger.trace("Step 5");
-                this.status = RespStatus.getByStatus(status);
-                Logger.trace("Step 6");
-                respCode = response.getResponseStatus();
-                Logger.trace("Step 7");
-                if (basicResp.getCertificates() != null && basicResp.getCertificates().length >= 1) {
-                    signerCertEncoded = basicResp.getCertificates()[0].getEncoded();
+                int status = 0;
+                if (basicResp != null) {
+                    SingleResponse singleResponse = basicResp.getSingleResponses()[0];
+                    if (singleResponse != null) {
+                        Logger.trace("Step 3");
+                        status = singleResponse.getCertStatus().getCertStatus();
+                        Logger.trace("Step 4");
+                        certEncoded = basicResp.getCertificates()[0].getEncoded();
+                    }
+                    Logger.trace("Step 5");
+                    this.status = RespStatus.getByStatus(status);
+                    Logger.trace("Step 6");
+                    respCode = response.getResponseStatus();
+                    Logger.trace("Step 7");
+                    if (basicResp.getCertificates() != null && basicResp.getCertificates().length >= 1) {
+                        signerCertEncoded = basicResp.getCertificates()[0].getEncoded();
+                    }
+                    Logger.trace("Step 8");
                 }
-                Logger.trace("Step 8");
                 this.serial = serial;
+
             } catch(Exception ex) {
                 Logger.trace("Construction of serializable failed"
                         + ex.getMessage() + " type "

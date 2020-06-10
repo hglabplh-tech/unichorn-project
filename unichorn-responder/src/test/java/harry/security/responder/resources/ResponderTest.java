@@ -101,6 +101,28 @@ public class ResponderTest  {
     }
 
     @Test
+    public void nativeCallerSigningStore() throws Exception {
+        InputStream keystoreIN = ResponderTest.class.getResourceAsStream("/signing.p12");
+        KeyStore store = KeyStoreTool.loadStore(keystoreIN, "changeit".toCharArray(), "PKCS12");
+        Enumeration<String> aliases = store.aliases();
+        Tuple<PrivateKey, X509Certificate[]> keys = null;
+        if (aliases.hasMoreElements()) {
+            keys = KeyStoreTool.getKeyEntry(store, aliases.nextElement(), "changeit".toCharArray());
+        }
+        String ocspURL = OCSPCRLClient.getOCSPUrl(keys.getSecond()[0]);
+        OCSPCRLClient client = new OCSPCRLClient();
+        OCSPRequest request = client.createOCSPRequest(null,
+                null, keys.getSecond(),
+                ReqCert.certID, null, true);
+
+        ByteArrayInputStream stream = new ByteArrayInputStream(request.getEncoded());
+        OCSPResponse response = UnicHornResponderUtil.generateResponse(request,
+                stream);
+        client.parseOCSPResponse(response, false);
+
+    }
+
+    @Test
     public void nativeCallerSigned() throws Exception {
         List<X509Certificate> certList= new ArrayList<>();
         X509Certificate certificate = new X509Certificate(ResponderTest.class.getResourceAsStream("/hglabplh.cer"));
@@ -533,7 +555,7 @@ public class ResponderTest  {
         Logger.trace("Before calling merge");
         File keyFile = new File(APP_DIR_TRUST, "privKeystore" + ".p12");
 
-        applyKeyStore(keyFile, storeToApply, passwd, "PKCS12");
+        applyKeyStore(keyFile, storeToApply, passwd, passwd, "PKCS12");
         assertThat("file does not exist", keyFile.exists(), is(true));
     }
 

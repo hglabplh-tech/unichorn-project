@@ -135,7 +135,8 @@ public class CertToolCtrl implements ControllerInit {
 
     @FXML
     private void uploadStore(ActionEvent event) throws Exception {
-        HttpClientConnection.sendPutData(new FileInputStream(keyStoreFile), "pkcs12");
+        TextField passwd= getTextFieldByFXID("keyStorePass");
+        HttpClientConnection.sendPutData(new FileInputStream(keyStoreFile), "pkcs12", passwd.getText());
 
     }
 

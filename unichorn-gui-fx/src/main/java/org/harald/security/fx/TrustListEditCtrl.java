@@ -106,7 +106,7 @@ public class TrustListEditCtrl implements ControllerInit {
             FileOutputStream out = new FileOutputStream(trustListFileOut);
             loader.storeTrust(out);
             FileInputStream input = new FileInputStream(trustListFileOut);
-            HttpClientConnection.sendPutData(input, "trust");
+            HttpClientConnection.sendPutData(input, "trust", "geheim");
             SecHarry.setRoot("main", SecHarry.CSS.ABBY);
         } catch(Exception ex) {
             throw new IllegalStateException("save trust failed", ex);

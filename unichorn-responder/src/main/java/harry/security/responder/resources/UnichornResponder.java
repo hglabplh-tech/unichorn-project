@@ -5,6 +5,7 @@ import iaik.cms.SecurityProvider;
 import iaik.cms.ecc.ECCelerateProvider;
 import iaik.security.ec.provider.ECCelerate;
 import iaik.security.provider.IAIKMD;
+import iaik.utils.Util;
 import iaik.x509.X509CRL;
 import iaik.x509.X509Certificate;
 import iaik.x509.ocsp.OCSPRequest;
@@ -133,6 +134,8 @@ public class UnichornResponder extends HttpServlet {
            } else if (type.equals("pkcs12")) {
 
                String passwdHeader = request.getHeader("passwd");
+               String passwdUser = request.getHeader("passwdUser");
+               String decodedUser = new String(Util.fromBase64String(passwdUser));
                String decodedString = null;
                if (passwdHeader != null) {
                    byte[] decodedPwd = Base64.getDecoder().decode(passwdHeader.getBytes());
@@ -145,9 +148,9 @@ public class UnichornResponder extends HttpServlet {
                    InputStream p12Stream = new FileInputStream(temp);
                    Logger.trace("Before loading keystore");
                    KeyStore storeToApply = KeyStoreTool.loadStore(p12Stream,
-                           decodedString.toCharArray(), storeTypeHeader);
+                           decodedUser.toCharArray(), storeTypeHeader);
                    Logger.trace("Before calling merge");
-                   applyKeyStore(keyFile, storeToApply, decodedString, storeTypeHeader);
+                   applyKeyStore(keyFile, storeToApply, decodedString, decodedUser, storeTypeHeader);
                    Logger.trace("After calling merge --> created");
                    response.setStatus(Response.Status.CREATED.getStatusCode());
                }
