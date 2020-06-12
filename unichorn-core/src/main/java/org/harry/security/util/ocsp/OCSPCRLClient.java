@@ -12,10 +12,7 @@ import iaik.x509.extensions.AuthorityInfoAccess;
 import iaik.x509.extensions.CRLDistributionPoints;
 import iaik.x509.extensions.ExtendedKeyUsage;
 import iaik.x509.ocsp.*;
-import iaik.x509.ocsp.extensions.ArchiveCutoff;
-import iaik.x509.ocsp.extensions.CrlID;
-import iaik.x509.ocsp.extensions.PreferredSignatureAlgorithms;
-import iaik.x509.ocsp.extensions.ServiceLocator;
+import iaik.x509.ocsp.extensions.*;
 import iaik.x509.ocsp.utils.TrustedResponders;
 import org.harry.security.util.CertificateWizzard;
 
@@ -452,9 +449,9 @@ public class OCSPCRLClient {
             }
 
             // nonce check
-            byte[] respondedNonce = basicOCSPResponse.getNonce();
+            Nonce respondedNonce = (Nonce)basicOCSPResponse.getExtension(ObjectID.ocspExt_Nonce);
             if (respondedNonce != null) {
-                if (!CryptoUtils.secureEqualsBlock(this.nonce, respondedNonce)) {
+                if (!CryptoUtils.secureEqualsBlock(this.nonce, respondedNonce.getValue())) {
                     System.out.println("Error!!! Nonce values do not match!");
                 }
             } else {

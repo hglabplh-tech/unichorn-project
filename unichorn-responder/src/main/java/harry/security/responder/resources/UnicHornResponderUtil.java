@@ -219,7 +219,7 @@ public class UnicHornResponderUtil {
                                                 AlgorithmID signatureAlgorithm,
                                                 Tuple<PrivateKey,
                                                         X509Certificate[]> keys,
-                                                Nonce nonce) {
+                                                Nonce nonce) throws Exception {
         Logger.trace("before create response internal");// changed public key setting
         Calendar cal = Calendar.getInstance();
         cal.add(Calendar.YEAR, 1);
@@ -232,6 +232,8 @@ public class UnicHornResponderUtil {
         extensions[1] = nonce;
         OCSPResponse response = responseGenerator.createOCSPResponse(ocspReqInput,
                 keys.getSecond()[0].getPublicKey(), signatureAlgorithm, extensions);
+        ((BasicOCSPResponse)response.getResponse()).addExtension(nonce);
+        ((BasicOCSPResponse)response.getResponse()).sign(signatureAlgorithm,keys.getFirst());
         Logger.trace("after create internal");
         Logger.trace("Message is: output ok");
         return response;

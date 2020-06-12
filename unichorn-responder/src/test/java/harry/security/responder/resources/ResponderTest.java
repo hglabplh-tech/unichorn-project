@@ -118,7 +118,7 @@ public class ResponderTest  {
         ByteArrayInputStream stream = new ByteArrayInputStream(request.getEncoded());
         OCSPResponse response = UnicHornResponderUtil.generateResponse(request,
                 stream);
-        client.parseOCSPResponse(response, false);
+        client.parseOCSPResponse(response, true);
 
     }
 

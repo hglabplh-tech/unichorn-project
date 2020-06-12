@@ -129,6 +129,7 @@ public class BrowserTabCtrl  {
             public void changed(ObservableValue<? extends Worker.State> observable, Worker.State oldValue, Worker.State newValue) {
                 Label label = status;
                 nextUrlString = engine.getLocation();
+                Worker.State p = observable.getValue();
                 address.setText(nextUrlString);
 
                 if (newValue == Worker.State.SUCCEEDED) {
@@ -140,20 +141,23 @@ public class BrowserTabCtrl  {
                     // hide progress bar then page is ready
 
                     progress.setVisible(false);
-                } else if (newValue == Worker.State.RUNNING) {
-                    String base64 = getBasicAuth(nextUrlString);
-                    engine.setUserAgent("foo\nAuthorization: Basic " + base64);
+                } else if (newValue == Worker.State.SCHEDULED) {
+                    try {
+                        nextUrl = new URL(nextUrlString);
+                    } catch (MalformedURLException e) {
+                        e.printStackTrace();
+                    }
+                    if (isHostLocal(nextUrl.getHost())) {
+                        String base64 = getBasicAuth(nextUrlString);
+                        engine.setUserAgent("foo\nAuthorization: Basic " + base64);
+                    }
                     progress.progressProperty().bind(engine.getLoadWorker().progressProperty());
                     // Do the same with your trust store this time
 // Adapt how you load the keystore to your needs
 
 
                     try {
-                        try {
-                            nextUrl = new URL(nextUrlString);
-                        } catch (MalformedURLException e) {
-                            e.printStackTrace();
-                        }
+
                        // if (!isHostLocal(nextUrl.getHost())) {
                             KeyStore keyStore = KeyStore.getInstance("Windows-ROOT");
                             keyStore.load(null, null);
@@ -215,22 +219,20 @@ public class BrowserTabCtrl  {
                         }
                     };
 
-                    SSLContext sc = null;
-                    /*try {
 
-
-                        //sc = SSLContext.getInstance("TLS");
+                    SSLContext sslContext = null;
+                    try {
+                        sslContext = SSLContext.getInstance("TLS");
+                        sslContext.init(null, new TrustManager[]{trm}, null);
                     } catch (NoSuchAlgorithmException e) {
                         e.printStackTrace();
-                    }
-                   // try {
-                       // sc.init(null, new TrustManager[] { trm }, null);
                     } catch (KeyManagementException e) {
                         e.printStackTrace();
-                    }*/
+                    }
 
-                   if (isHostLocal(nextUrl.getHost())) {
-                        //HttpsURLConnection.setDefaultSSLSocketFactory(sc.getSocketFactory());
+                    HttpsURLConnection.setDefaultSSLSocketFactory(sslContext.getSocketFactory());
+                    if (isHostLocal(nextUrl.getHost())) {
+                        HttpsURLConnection.setDefaultSSLSocketFactory(sslContext.getSocketFactory());
                         HttpsURLConnection.setDefaultHostnameVerifier(new HostnameVerifier() {
                             @Override
                             public boolean verify(String s, SSLSession sslSession) {
@@ -238,6 +240,7 @@ public class BrowserTabCtrl  {
                             }
                         });
                     }
+
                     progress.setVisible(true);
 
                     try {
@@ -247,8 +250,22 @@ public class BrowserTabCtrl  {
                     }
                 }
             }
+
         });
-        //engine.load(nextUrlString);
+        engine.getLoadWorker().exceptionProperty().addListener(new ChangeListener<Throwable>() {
+            @Override
+            public void changed(ObservableValue<? extends Throwable> observableValue, Throwable throwable, Throwable t1) {
+                if (throwable != null) {
+                    System.err.println(throwable.getMessage());
+                    throwable.printStackTrace();
+                }
+                if (t1 != null) {
+                    System.err.println(t1.getMessage());
+                    t1.printStackTrace();
+                }
+            }
+        });
+        engine.load(nextUrlString);
 
     }
 
@@ -374,10 +391,6 @@ public class BrowserTabCtrl  {
 
     public void startChecker () throws ExecutionException, InterruptedException {
         task = new HttpsCheckerTask(nextUrlString, ocspCheck.isSelected());
-       /* ExecutorService executorService
-                = Executors.newFixedThreadPool(1);
-        executorService.execute(task);
-        executorService.shutdown(); */
         Platform.runLater(task);
     }
 
