@@ -96,4 +96,13 @@ public class CommonConst {
         APP_DIR_WORKING = dirWorking.getAbsolutePath();
         APP_DIR= userDir;
     }
+
+    public static String getOsName()
+    {
+        return System.getProperty("os.name");
+    }
+    public static boolean isWindows()
+    {
+        return (getOsName() != null) && getOsName().startsWith("Windows");
+    }
 }

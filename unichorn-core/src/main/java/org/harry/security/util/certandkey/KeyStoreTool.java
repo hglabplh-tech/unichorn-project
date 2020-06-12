@@ -79,7 +79,7 @@ public class KeyStoreTool {
 
     public static KeyStore loadStore(InputStream resource, char[] passwd, String type) {
         try {
-            KeyStore store = KeyStore.getInstance(type, IAIK.getInstance());
+            KeyStore store = KeyStore.getInstance(type);
             store.load(resource, passwd);
 
 

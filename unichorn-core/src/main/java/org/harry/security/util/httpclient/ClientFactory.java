@@ -26,6 +26,8 @@ import org.harry.security.util.certandkey.CertificateChainUtil;
 import org.harry.security.util.certandkey.KeyStoreTool;
 
 import javax.net.ssl.*;
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.net.URL;
 import java.security.*;
@@ -33,6 +35,8 @@ import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.util.ArrayList;
 import java.util.List;
+
+import static org.harry.security.CommonConst.isWindows;
 
 public class ClientFactory {
 
@@ -185,9 +189,21 @@ public class ClientFactory {
     private static KeyStore readStore()  {
         return KeyStoreTool.loadAppStore();
     }
+
+
     private static KeyStore readTrustStore() throws Exception {
-        KeyStore keyStore = KeyStore.getInstance("Windows-ROOT");
-        keyStore.load(null, null);
+        KeyStore keyStore = null;
+        if (isWindows()) {
+            keyStore = KeyStore.getInstance("Windows-ROOT");
+            keyStore.load(null, null);
+        } else {
+            String path = System.getProperty("java.home") + "\\lib\\security\\cacerts";
+            File cacerts = new File(path);
+            if (cacerts.exists()) {
+                keyStore = KeyStoreTool.loadStore(new FileInputStream(cacerts),
+                        "changeit".toCharArray(), "JKS");
+            }
+        }
         return keyStore;
     }
 
