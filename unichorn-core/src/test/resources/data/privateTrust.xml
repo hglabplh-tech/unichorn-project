@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE properties SYSTEM "http://java.sun.com/dtd/properties.dtd">
+<properties>
+<comment>master pw store</comment>
+<entry key="aHR0cHM6Ly9hbnkuY29t">MIAGCSqGSIb3DQEHBqCAMFgCAQAwUwYJKoZIhvcNAQcBMBwGCiqGSIb3DQEMAQMw&#13;
+DgQITM/GVD+H7wACAgfQgCgNcsA9QyGjG6ccGEFZqEY8F/jekOrIZ8FsN22/fasX&#13;
+EADFEV8PYbPDAAAAAA==</entry>
+<entry key="aHR0cHM6Ly93aGF0LmlzLnR2">MIAGCSqGSIb3DQEHBqCAMGACAQAwWwYJKoZIhvcNAQcBMBwGCiqGSIb3DQEMAQMw&#13;
+DgQIDPSsf8faCEgCAgfQgDA4l3VWRjZWInmVqOsqHtZOwrWISOCr6TLXu+DzohKD&#13;
+7/cc2KzLo+utA7y6DrK3ZFMAAAAA</entry>
+<entry key="aHR0cHM6Ly9sb2NhbGhvc3QvbWFuYWdlci9odG1s">MIAGCSqGSIb3DQEHBqCAMEgCAQAwQwYJKoZIhvcNAQcBMBwGCiqGSIb3DQEMAQMw&#13;
+DgQIDVz4QVVImnQCAgfQgBgcz/Prl1ngPsCJOVZG+NnxIHKrhDfJBeAAAAAA</entry>
+<entry key="aHR0cDovL3d3dy51bmljLmNvbQ==">MIAGCSqGSIb3DQEHBqCAMHACAQAwawYJKoZIhvcNAQcBMBwGCiqGSIb3DQEMAQMw&#13;
+DgQI/cc+gp/KxCYCAgfQgEBGrAsAcc+T5o1iN5u478711tgGhn6x4a/KixcViAMj&#13;
+vxN+puTv8UWrIbbilmg01gWFOI8IoELbr0BADMLQ1nToAAAAAA==</entry>
+</properties>

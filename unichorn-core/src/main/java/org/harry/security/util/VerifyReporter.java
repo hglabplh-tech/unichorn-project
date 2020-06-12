@@ -1,6 +1,6 @@
 package org.harry.security.util;
 
-import com.sun.org.apache.xerces.internal.jaxp.datatype.XMLGregorianCalendarImpl;
+
 import iaik.asn1.ObjectID;
 import iaik.utils.Util;
 import iaik.x509.X509Certificate;
@@ -19,6 +19,8 @@ import org.harry.security.util.ocsp.OCSPCRLClient;
 
 
 import javax.xml.bind.JAXBElement;
+import javax.xml.datatype.DatatypeConfigurationException;
+import javax.xml.datatype.DatatypeFactory;
 import javax.xml.datatype.XMLGregorianCalendar;
 import java.math.BigInteger;
 import java.util.ArrayList;
@@ -84,7 +86,7 @@ public class VerifyReporter {
         return report;
     }
 
-    public List<JAXBElement<OCSPValidityType>> generateOcspReport() {
+    public List<JAXBElement<OCSPValidityType>> generateOcspReport() throws DatatypeConfigurationException {
         List<JAXBElement<OCSPValidityType>> ocspResultList = new ArrayList<>();
         ObjectFactory factory = new ObjectFactory();
         for (VerifyUtil.SignerInfoCheckResults results : infoResult) {
@@ -113,7 +115,7 @@ public class VerifyReporter {
             OCSPContentType content = factory.createOCSPContentType();
             OCSPResponse realResponse = ocsp.getFirst();
             BasicOCSPResponse basic = (BasicOCSPResponse) realResponse.getResponse();
-            XMLGregorianCalendar xmlCal = new XMLGregorianCalendarImpl();
+            XMLGregorianCalendar xmlCal = DatatypeFactory.newInstance().newXMLGregorianCalendar();
             Date prodAt = basic.getProducedAt();
             Calendar temp = Calendar.getInstance();
             temp.setTimeInMillis(prodAt.getTime());

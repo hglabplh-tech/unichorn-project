@@ -30,13 +30,32 @@
         <dependency>
             <groupId>org.openjfx</groupId>
             <artifactId>javafx-controls</artifactId>
-            <version>11.0.2</version>
+            <version>14</version>
         </dependency>
         <dependency>
             <groupId>org.openjfx</groupId>
             <artifactId>javafx-fxml</artifactId>
-            <version>11.0.2</version>
+            <version>14</version>
         </dependency>
+        <dependency>
+            <groupId>org.openjfx</groupId>
+            <artifactId>javafx-web</artifactId>
+            <version>14</version>
+        </dependency>
+        <!-- https://mvnrepository.com/artifact/org.openjfx/javafx-maven-plugin -->
+        <dependency>
+            <groupId>org.openjfx</groupId>
+            <artifactId>javafx-maven-plugin</artifactId>
+            <version>0.0.4</version>
+        </dependency>
+        <!-- https://mvnrepository.com/artifact/com.sun.webkit/webview-deps -->
+        <dependency>
+            <groupId>com.sun.webkit</groupId>
+            <artifactId>webview-deps</artifactId>
+            <version>1.3.2</version>
+            <type>pom</type>
+        </dependency>
+
         <!-- https://mvnrepository.com/artifact/org.jetbrains.kotlin/kotlin-stdlib -->
         <dependency>
             <groupId>org.jetbrains.kotlin</groupId>
@@ -159,19 +178,49 @@
 
 
             </plugin>
-           <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-javadoc-plugin</artifactId>
-                <version>3.2.0</version>
-                <executions>
-                    <execution>
-                        <id>attach-javadocs</id>
-                        <goals>
-                            <goal>jar</goal>
-                        </goals>
-                    </execution>
-                </executions>
+            <plugin>
+                <groupId>com.zenjava</groupId>
+                <artifactId>javafx-maven-plugin</artifactId>
+                <version>1.2</version>
+                <configuration>
+
+                    <!-- executable JAR file is built by default (not optional at this stage) -->
+                    <mainClass>org.harald.security.fx.SecHarry</mainClass>
+
+                    <!-- optionally override settings (such as jar file name, html file, etc) -->
+                    <jarFileName>fx-unichorn.jar</jarFileName>
+
+                    <!-- optionally sign the jar file if security is needed -->
+                    <!--
+                        to create keystore use command line:
+                            keytool -genkey -alias example-user -keystore keystore.jks
+                    -->
+
+
+                    <!-- optionally build webstart bundle -->
+                    <webstart>
+                        <requiresAllPermissions>true</requiresAllPermissions>
+                    </webstart>
+
+                    <!-- optionally build native installers -->
+                    <nativeInstallers/>
+
+                </configuration>
             </plugin>
+
+            <!--<plugin>
+                 <groupId>org.apache.maven.plugins</groupId>
+                 <artifactId>maven-javadoc-plugin</artifactId>
+                 <version>3.2.0</version>
+                 <executions>
+                     <execution>
+                         <id>attach-javadocs</id>
+                         <goals>
+                             <goal>jar</goal>
+                         </goals>
+                     </execution>
+                 </executions>
+             </plugin> -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-source-plugin</artifactId>

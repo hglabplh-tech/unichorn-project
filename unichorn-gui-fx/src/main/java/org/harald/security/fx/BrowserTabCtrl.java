@@ -1,6 +1,8 @@
 package org.harald.security.fx;
 
 
+import iaik.security.provider.IAIK;
+import iaik.security.provider.IAIKMD;
 import iaik.utils.Util;
 import iaik.x509.X509Certificate;
 import javafx.application.Platform;
@@ -22,6 +24,7 @@ import javafx.util.Callback;
 import org.harry.security.util.HttpsChecker;
 import org.harry.security.util.Tuple;
 import org.harry.security.util.certandkey.KeyStoreTool;
+import org.harry.security.util.httpclient.ClientFactory;
 import org.harry.security.util.pwdmanager.PasswordManager;
 
 import javax.net.ssl.*;
@@ -29,9 +32,10 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.net.MalformedURLException;
-import java.net.URL;
+import java.net.*;
 import java.security.KeyManagementException;
+import java.security.KeyStore;
+import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateException;
 import java.util.List;
@@ -70,6 +74,7 @@ public class BrowserTabCtrl  {
     @FXML
     protected void initialize() {
 
+        IAIKMD.addAsProvider();
 
         loadBookmarks();
         File keyFile = new File(APP_DIR, KEYSTORE_FNAME);
@@ -77,6 +82,7 @@ public class BrowserTabCtrl  {
         System.setProperty("javax.net.ssl.keyStorePassword","geheim");
         WebView webViewer = browser;
         engine = webViewer.getEngine();
+
 
         engine.setCreatePopupHandler(new Callback<PopupFeatures, WebEngine>() {
 
@@ -96,13 +102,7 @@ public class BrowserTabCtrl  {
                 System.out.println("alert: " + arg0);
             }
         });
-        Worker<Void> worker = engine.getLoadWorker();
-        engine.getLoadWorker().progressProperty().addListener(new ChangeListener<Number>() {
-            @Override
-            public void changed(ObservableValue<? extends Number> arg0, Number arg1, Number arg2) {
-                System.out.println("Process changed: " + arg0 + ", arg1: " + arg1 + ", arg2: " + arg2);
-            }
-        });
+
 
         final WebHistory webHistory = engine.getHistory();
         webHistory.getEntries().addListener(new     ListChangeListener<WebHistory.Entry>() {
@@ -123,21 +123,8 @@ public class BrowserTabCtrl  {
 
 
 
-        engine.getLoadWorker().exceptionProperty().addListener(new ChangeListener<Throwable>() {
-            @Override
-            public void changed(ObservableValue<? extends Throwable> arg0, Throwable arg1, Throwable arg2) {
-                System.out.println(arg0);
-                if (arg1 != null) {
-                    System.out.println(arg1);
-                    arg1.printStackTrace();
-                }
-                if (arg2 != null) {
-                    System.out.println(arg2);
-                    arg2.printStackTrace();
-                }
-            }
-        });
-        worker.stateProperty().addListener(new ChangeListener<Worker.State>() {
+
+        engine.getLoadWorker().stateProperty().addListener(new ChangeListener<Worker.State>() {
             @Override
             public void changed(ObservableValue<? extends Worker.State> observable, Worker.State oldValue, Worker.State newValue) {
                 Label label = status;
@@ -147,19 +134,6 @@ public class BrowserTabCtrl  {
                 if (newValue == Worker.State.SUCCEEDED) {
                     try {
                         startChecker();
-                       /* if (nextUrl.getProtocol().startsWith("https") && !isHostLocal(nextUrl.getHost())) {
-                            Tuple<Integer, List<X509Certificate>> tuple =
-                                    HttpsChecker.checkHttpsCertValidity(nextUrlString, ocspCheck.isSelected(), false);
-                            if (tuple.getFirst() == 0) {
-                                if (ocspCheck.isSelected()) {
-                                    label.setText("web-site is secure");
-                                } else {
-                                    label.setText("identity checked ok");
-                                }
-                            } else {
-                                label.setText("no security info available");
-                            }
-                        } */
                     } catch (Exception ex) {
                         throw new IllegalStateException("load failed", ex);
                     }
@@ -170,7 +144,61 @@ public class BrowserTabCtrl  {
                     String base64 = getBasicAuth(nextUrlString);
                     engine.setUserAgent("foo\nAuthorization: Basic " + base64);
                     progress.progressProperty().bind(engine.getLoadWorker().progressProperty());
-                    TrustManager trm = new X509TrustManager() {
+                    // Do the same with your trust store this time
+// Adapt how you load the keystore to your needs
+
+
+                    try {
+                        try {
+                            nextUrl = new URL(nextUrlString);
+                        } catch (MalformedURLException e) {
+                            e.printStackTrace();
+                        }
+                       // if (!isHostLocal(nextUrl.getHost())) {
+                            KeyStore keyStore = KeyStore.getInstance("Windows-ROOT");
+                            keyStore.load(null, null);
+                            TrustManagerFactory tmf = TrustManagerFactory
+                                    .getInstance(TrustManagerFactory.getDefaultAlgorithm());
+                            tmf.init(keyStore);
+                            // Get hold of the default trust manager
+                            X509TrustManager myTm = null;
+                            for (TrustManager tm : tmf.getTrustManagers()) {
+                                if (tm instanceof X509TrustManager) {
+                                    myTm = (X509TrustManager) tm;
+                                    break;
+                                }
+                            }
+                            SSLContext sslContext = SSLContext.getInstance("TLS");
+                            sslContext.init(null, new TrustManager[]{myTm}, null);
+
+// You don't have to set this as the default context,
+// it depends on the library you're using.
+                            SSLContext.setDefault(sslContext);
+                        //}
+                    } catch (KeyStoreException | IOException | NoSuchAlgorithmException | CertificateException | KeyManagementException e) {
+                        e.printStackTrace();
+                    }
+                    TrustManager trm = new X509ExtendedTrustManager() {
+                        @Override
+                        public void checkClientTrusted(java.security.cert.X509Certificate[] x509Certificates, String s, Socket socket) throws CertificateException {
+
+                        }
+
+                        @Override
+                        public void checkServerTrusted(java.security.cert.X509Certificate[] x509Certificates, String s, Socket socket) throws CertificateException {
+
+                        }
+
+                        @Override
+                        public void checkClientTrusted(java.security.cert.X509Certificate[] x509Certificates, String s, SSLEngine sslEngine) throws CertificateException {
+
+                        }
+
+                        @Override
+                        public void checkServerTrusted(java.security.cert.X509Certificate[] x509Certificates, String s, SSLEngine sslEngine) throws CertificateException {
+
+                        }
+
                         @Override
                         public void checkClientTrusted(java.security.cert.X509Certificate[] x509Certificates, String s) throws CertificateException {
 
@@ -188,31 +216,28 @@ public class BrowserTabCtrl  {
                     };
 
                     SSLContext sc = null;
-                    try {
+                    /*try {
 
-                        try {
-                            nextUrl = new URL(nextUrlString);
-                        } catch (MalformedURLException e) {
-                            e.printStackTrace();
-                        }
-                        sc = SSLContext.getInstance("SSL");
+
+                        //sc = SSLContext.getInstance("TLS");
                     } catch (NoSuchAlgorithmException e) {
                         e.printStackTrace();
                     }
-                    try {
-                        sc.init(null, new TrustManager[] { trm }, null);
+                   // try {
+                       // sc.init(null, new TrustManager[] { trm }, null);
                     } catch (KeyManagementException e) {
                         e.printStackTrace();
-                    }
+                    }*/
 
-                    if (isHostLocal(nextUrl.getHost()))
-                    HttpsURLConnection.setDefaultSSLSocketFactory(sc.getSocketFactory());
-                    HttpsURLConnection.setDefaultHostnameVerifier(new HostnameVerifier() {
-                        @Override
-                        public boolean verify(String s, SSLSession sslSession) {
-                            return true;
-                        }
-                    });
+                   if (isHostLocal(nextUrl.getHost())) {
+                        //HttpsURLConnection.setDefaultSSLSocketFactory(sc.getSocketFactory());
+                        HttpsURLConnection.setDefaultHostnameVerifier(new HostnameVerifier() {
+                            @Override
+                            public boolean verify(String s, SSLSession sslSession) {
+                                return true;
+                            }
+                        });
+                    }
                     progress.setVisible(true);
 
                     try {
@@ -223,7 +248,7 @@ public class BrowserTabCtrl  {
                 }
             }
         });
-        engine.load(nextUrlString);
+        //engine.load(nextUrlString);
 
     }
 
@@ -385,6 +410,37 @@ public class BrowserTabCtrl  {
             System.out.println("Try to show alert......");
             status.setText(text);
             return null;
+        }
+    }
+
+    public static class MyURLStreamHandlerFactory implements URLStreamHandlerFactory {
+
+        public URLStreamHandler createURLStreamHandler(String protocol) {
+            System.out.println("Protocol: " + protocol);
+            if (protocol.equals("https")) {
+                return new URLStreamHandler() {
+                    @Override
+                    protected URLConnection openConnection(URL u) throws IOException {
+                        return ClientFactory.createURLConnection(u);
+                    }
+                };
+            } else if (protocol.equals("http")) {
+                    return new URLStreamHandler() {
+                        @Override
+                        protected URLConnection openConnection(URL u) throws IOException {
+                            HttpURLConnection conn = (HttpURLConnection)u.openConnection();
+                            return conn;
+                        }
+                    };
+            } else {
+                return new URLStreamHandler() {
+                    @Override
+                    protected URLConnection openConnection(URL u) throws IOException {
+                        URLConnection conn = (URLConnection)u.openConnection();
+                        return conn;
+                    }
+                };
+            }
         }
     }
 

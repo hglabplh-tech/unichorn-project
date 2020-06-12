@@ -1,6 +1,7 @@
 package org.harry.security.util.httpclient;
 
 import iaik.protocol.https.HttpsURLConnection;
+import iaik.security.provider.IAIK;
 import iaik.security.ssl.OCSPCertStatusChainVerifier;
 import iaik.security.ssl.SSLClientContext;
 import iaik.x509.X509Certificate;
@@ -37,23 +38,29 @@ public class ClientFactory {
 
     public static final String PEER_CERTIFICATES = "PEER_CERTIFICATES";
 
-    public static HttpsURLConnection createIAIKManagedClient(String url) throws Exception {
-        OCSPCertStatusChainVerifier verifier = new OCSPCertStatusChainVerifier();
-        SSLClientContext clientContext = new SSLClientContext();
-        OCSPCertStatusChainVerifier ocspCertStatusChainVerifier = new OCSPCertStatusChainVerifier();
-        clientContext.setChainVerifier(ocspCertStatusChainVerifier);
-        List<X509Certificate> trusted = new ArrayList<>();
-        CertificateChainUtil.loadTrustCerts(trusted);
-        for (X509Certificate certificate: trusted) {
-            clientContext.addTrustedCertificate(certificate);
-        }
-        URL conURL = new URL(url);
+    public static HttpsURLConnection createIAIKManagedClient(URL conURL) throws IOException {
+
+        iaik.security.ssl.SSLContext context = new SSLClientContext();
         HttpsURLConnection connection = new HttpsURLConnection(conURL);
         connection.connect();
-        connection.setSSLContext(clientContext);
+        connection.setSSLContext(context);
         connection.setDoInput(true);
         connection.setDoInput(true);
         return connection;
+    }
+
+    public static javax.net.ssl.HttpsURLConnection createURLConnection(URL conURL) throws IOException {
+
+
+            javax.net.ssl.HttpsURLConnection connection = (javax.net.ssl.HttpsURLConnection) conURL.openConnection();
+            //connection.setSSLSocketFactory(context.getSocketFactory());
+            connection.setDoInput(true);
+            connection.setDoInput(true);
+            return connection;
+
+
+
+
     }
 
     /**
@@ -134,18 +141,12 @@ public class ClientFactory {
     }
 
     public static CloseableHttpClient
-    createSSLClient() throws KeyManagementException, NoSuchAlgorithmException, KeyStoreException, UnrecoverableKeyException {
+    createSSLClient() throws Exception {
         SSLContextBuilder builder = SSLContexts.custom();
-        builder.loadTrustMaterial(null, new TrustStrategy() {
-            @Override
-            public boolean isTrusted(java.security.cert.X509Certificate[] x509Certificates, String s) throws CertificateException {
-                return true;
-            }
 
-
-        });
         SSLContext sslContext = builder
                 .loadKeyMaterial(readStore(), "geheim".toCharArray())
+                .loadTrustMaterial(readTrustStore(), null)
                 .build();
         SSLConnectionSocketFactory sslsf = new SSLConnectionSocketFactory(
                 sslContext, new X509HostnameVerifier() {
@@ -183,6 +184,11 @@ public class ClientFactory {
 
     private static KeyStore readStore()  {
         return KeyStoreTool.loadAppStore();
+    }
+    private static KeyStore readTrustStore() throws Exception {
+        KeyStore keyStore = KeyStore.getInstance("Windows-ROOT");
+        keyStore.load(null, null);
+        return keyStore;
     }
 
 }
