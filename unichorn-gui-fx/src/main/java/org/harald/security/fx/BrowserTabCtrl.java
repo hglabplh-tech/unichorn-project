@@ -1,7 +1,6 @@
 package org.harald.security.fx;
 
 
-import iaik.security.provider.IAIK;
 import iaik.security.provider.IAIKMD;
 import iaik.utils.Util;
 import iaik.x509.X509Certificate;
@@ -25,6 +24,7 @@ import org.harry.security.util.HttpsChecker;
 import org.harry.security.util.Tuple;
 import org.harry.security.util.certandkey.KeyStoreTool;
 import org.harry.security.util.httpclient.ClientFactory;
+import org.harry.security.util.httpclient.SSLUtils;
 import org.harry.security.util.pwdmanager.PasswordManager;
 
 import javax.net.ssl.*;
@@ -33,21 +33,11 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.*;
-import java.security.KeyManagementException;
-import java.security.KeyStore;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.security.cert.CertificateException;
 import java.util.List;
-import java.util.Properties;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 import static org.harald.security.fx.SecHarry.bookmarkLocal;
-import static org.harald.security.fx.util.Miscellaneous.*;
 import static org.harry.security.CommonConst.APP_DIR;
-import static org.harry.security.CommonConst.isWindows;
 import static org.harry.security.util.certandkey.KeyStoreTool.KEYSTORE_FNAME;
 
 public class BrowserTabCtrl  {
@@ -142,107 +132,29 @@ public class BrowserTabCtrl  {
                     // hide progress bar then page is ready
 
                     progress.setVisible(false);
-                } else if (newValue == Worker.State.SCHEDULED) {
+                } else if (newValue == Worker.State.FAILED || newValue == Worker.State.CANCELLED) {
+                    progress.setVisible(false);
+                } else if (newValue == Worker.State.RUNNING) {
                     try {
                         nextUrl = new URL(nextUrlString);
                     } catch (MalformedURLException e) {
                         e.printStackTrace();
                     }
-                    if (isHostLocal(nextUrl.getHost())) {
+                    if (SSLUtils.isHostLocal(nextUrl.getHost())) {
                         String base64 = getBasicAuth(nextUrlString);
-                        engine.setUserAgent("foo\nAuthorization: Basic " + base64);
+                        if (base64 != null) { // means that we have a login for this page
+                            engine.setUserAgent("foo\nAuthorization: Basic " + base64);
+                        }
                     }
-                    progress.progressProperty().bind(engine.getLoadWorker().progressProperty());
-                    // Do the same with your trust store this time
-// Adapt how you load the keystore to your needs
-
-
                     try {
-
-                       // if (!isHostLocal(nextUrl.getHost())) {
-                        KeyStore keyStore = null;
-                        if (isWindows()) {
-                            keyStore = KeyStore.getInstance("Windows-ROOT");
-                            keyStore.load(null, null);
-                        } else {
-                            String path = System.getProperty("java.home") + "\\lib\\security\\cacerts";
-                            File cacerts = new File(path);
-                            if (cacerts.exists()) {
-                                keyStore = KeyStoreTool.loadStore(new FileInputStream(cacerts),
-                                        "changeit".toCharArray(), "JKS");
-                            }
-                        }
-                            TrustManagerFactory tmf = TrustManagerFactory
-                                    .getInstance(TrustManagerFactory.getDefaultAlgorithm());
-                            tmf.init(keyStore);
-                            // Get hold of the default trust manager
-                            X509TrustManager myTm = null;
-                            for (TrustManager tm : tmf.getTrustManagers()) {
-                                if (tm instanceof X509TrustManager) {
-                                    myTm = (X509TrustManager) tm;
-                                    break;
-                                }
-                            }
-                            SSLContext sslContext = SSLContext.getInstance("TLS");
-                            sslContext.init(null, new TrustManager[]{myTm}, null);
-
-// You don't have to set this as the default context,
-// it depends on the library you're using.
-                            SSLContext.setDefault(sslContext);
-                        //}
-                    } catch (KeyStoreException | IOException | NoSuchAlgorithmException | CertificateException | KeyManagementException e) {
-                        e.printStackTrace();
-                    }
-                    TrustManager trm = new X509ExtendedTrustManager() {
-                        @Override
-                        public void checkClientTrusted(java.security.cert.X509Certificate[] x509Certificates, String s, Socket socket) throws CertificateException {
-
-                        }
-
-                        @Override
-                        public void checkServerTrusted(java.security.cert.X509Certificate[] x509Certificates, String s, Socket socket) throws CertificateException {
-
-                        }
-
-                        @Override
-                        public void checkClientTrusted(java.security.cert.X509Certificate[] x509Certificates, String s, SSLEngine sslEngine) throws CertificateException {
-
-                        }
-
-                        @Override
-                        public void checkServerTrusted(java.security.cert.X509Certificate[] x509Certificates, String s, SSLEngine sslEngine) throws CertificateException {
-
-                        }
-
-                        @Override
-                        public void checkClientTrusted(java.security.cert.X509Certificate[] x509Certificates, String s) throws CertificateException {
-
-                        }
-
-                        @Override
-                        public void checkServerTrusted(java.security.cert.X509Certificate[] x509Certificates, String s) throws CertificateException {
-
-                        }
-
-                        @Override
-                        public java.security.cert.X509Certificate[] getAcceptedIssuers() {
-                            return new java.security.cert.X509Certificate[0];
-                        }
-                    };
-
-
                     SSLContext sslContext = null;
-                    try {
-                        sslContext = SSLContext.getInstance("TLS");
-                        sslContext.init(null, new TrustManager[]{trm}, null);
-                    } catch (NoSuchAlgorithmException e) {
-                        e.printStackTrace();
-                    } catch (KeyManagementException e) {
-                        e.printStackTrace();
+                    if (SSLUtils.isHostLocal(nextUrl.getHost())) {
+                        sslContext = SSLUtils.trustReallyAllShit();
+                    } else {
+                        sslContext = SSLUtils.createStandardContext();
                     }
-
-                    HttpsURLConnection.setDefaultSSLSocketFactory(sslContext.getSocketFactory());
-                    if (isHostLocal(nextUrl.getHost())) {
+                    if (SSLUtils.isHostLocal(nextUrl.getHost())) {
+                        System.setProperty("jdk.internal.httpclient.disableHostnameVerification", "true");
                         HttpsURLConnection.setDefaultSSLSocketFactory(sslContext.getSocketFactory());
                         HttpsURLConnection.setDefaultHostnameVerifier(new HostnameVerifier() {
                             @Override
@@ -250,15 +162,17 @@ public class BrowserTabCtrl  {
                                 return true;
                             }
                         });
+                        SSLContext.setDefault(sslContext);
+                    } else {
+                        System.setProperty("jdk.internal.httpclient.disableHostnameVerification", "false");
+                        HttpsURLConnection.setDefaultSSLSocketFactory(sslContext.getSocketFactory());
+                        SSLContext.setDefault(sslContext);
                     }
-
+                } catch(Exception ex) {
+                    throw new IllegalStateException(ex.getMessage());
+                }
+                    progress.progressProperty().bind(engine.getLoadWorker().progressProperty());
                     progress.setVisible(true);
-
-                    try {
-
-                    } catch (Exception e) {
-
-                    }
                 }
             }
 
@@ -367,19 +281,17 @@ public class BrowserTabCtrl  {
         bookmark.getItems().add(key);
     }
 
-    private boolean isHostLocal(String host) {
-        return (("localhost".equals(host)) || ("127.0.0.1".equals(host)));
-    }
-
     private String getBasicAuth(String url) {
         String masterPW = masterPass.getText();
+        String base64 = null;
         PasswordManager manager = new PasswordManager(masterPW);
         Tuple<String, String> result = manager.readPassword(url);
-        String authString = "dummy";
+        String authString = null;
         if (result != null) {
             authString = String.format("%s:%s", result.getFirst(), result.getSecond());
+            base64 = Util.toBase64String(authString.getBytes());
         }
-        return Util.toBase64String(authString.getBytes());
+        return base64;
     }
 
     private void loadBookmarks() {
@@ -428,6 +340,8 @@ public class BrowserTabCtrl  {
                 } else {
                     text = "identity checked ok";
                 }
+            } else if(tuple.getFirst() == -1) {
+                text = "WebSite has no validity";
             } else {
                 text = "no security info available";
             }

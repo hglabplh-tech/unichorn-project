@@ -1,5 +1,7 @@
 package org.harry.security.util;
 
+import iaik.security.ssl.SSLClientContext;
+import iaik.security.ssl.SSLContext;
 import iaik.utils.Util;
 import iaik.x509.X509Certificate;
 import iaik.x509.X509ExtensionInitException;
@@ -29,8 +31,9 @@ public class HttpsChecker {
      * @param urlString the URL as string
      * @return return the list of certificates
      */
-    public static List<X509Certificate> getCertFromHttps(String urlString) {
+    public static Tuple<ServerInfoGetter.CertStatusValue, List<X509Certificate>> getCertFromHttps(String urlString) {
         try {
+            ServerInfoGetter.CertStatusValue result;
             List<X509Certificate> certList = new ArrayList<>();
             URL url = new URL(urlString);
             int port;
@@ -43,6 +46,8 @@ public class HttpsChecker {
                     new ServerInfoGetter(url.getHost(), port);
             Hashtable<X509Certificate, X509Certificate[]> certsTable =
                     getter.getInformation();
+            SSLClientContext context = getter.freshContext();
+            result = getter.ocspCheckStapling(url.getHost(), port, context);
             Enumeration<X509Certificate[]> elements = certsTable.elements();
             if (elements.hasMoreElements()) {
                 X509Certificate[] chain = elements.nextElement();
@@ -50,7 +55,7 @@ public class HttpsChecker {
                     certList.add(certificate);
                 }
             }
-            return certList;
+            return new Tuple<ServerInfoGetter.CertStatusValue, List<X509Certificate>>(result, certList);
         } catch (Throwable ex) {
                 System.out.println("SSL error");
                 ex.printStackTrace();
@@ -114,12 +119,17 @@ public class HttpsChecker {
     ) {
         int responseStatus = -1;
         try {
-        List<X509Certificate> certList = HttpsChecker.getCertFromHttps(checkURL);
+        Tuple<ServerInfoGetter.CertStatusValue, List<X509Certificate>> result = HttpsChecker.getCertFromHttps(checkURL);
         Map<String, X509Certificate> certMap = CertLoader.loadCertificatesFromWIN();
-        boolean success = HttpsChecker.checkCertChain(certList, certMap);
+        boolean success = HttpsChecker.checkCertChain(result.getSecond(), certMap);
         if (success) {
             System.out.println("found certificate in store");
             if (ocspCheck) {
+                if (result.getFirst().equals(ServerInfoGetter.CertStatusValue.STATUS_OK)) {
+                    return  new Tuple<Integer, List<X509Certificate>>(0, result.getSecond());
+                } else if (result.getFirst().equals(ServerInfoGetter.CertStatusValue.STATUS_NOK)) {
+                    return  new Tuple<Integer, List<X509Certificate>>(-1, result.getSecond());
+                }
 
                 Tuple<PrivateKey, X509Certificate[]> bean = loadKey();
                 X509Certificate[] certs = new X509Certificate[2];
@@ -127,7 +137,7 @@ public class HttpsChecker {
                 /*OCSPResponse response = HttpOCSPClient.sendOCSPRequest(ocspUrl, bean.getSelectedKey(),
                         certs, certList.toArray(new X509Certificate[0]), false);*/
 
-                for (X509Certificate cert : certList) {
+                for (X509Certificate cert : result.getSecond()) {
                     if (!CertificateWizzard.isCertificateSelfSigned(cert)) {
                         String ocspUrl = OCSPCRLClient.getOCSPUrl(cert);
 
@@ -137,7 +147,7 @@ public class HttpsChecker {
                         OCSPResponse response;
 
                         X509Certificate [] realChain = Util.arrangeCertificateChain(
-                                certList.toArray(new X509Certificate[0]),
+                                result.getSecond().toArray(new X509Certificate[0]),
                                 false);
                         response = HttpOCSPClient.sendOCSPRequest(ocspUrl, bean.getFirst(),
                                 certs, realChain,
@@ -161,9 +171,9 @@ public class HttpsChecker {
 
                 if (responseStatus != 0) {
                     System.out.println("Check certificates via CRL");
-                    X509Certificate [] certificates = new X509Certificate[certList.size()];
+                    X509Certificate [] certificates = new X509Certificate[result.getSecond().size()];
                     int index = 0;
-                    for (X509Certificate cert : certList) {
+                    for (X509Certificate cert : result.getSecond()) {
                         certificates[index] = cert;
                         index++;
                     }
@@ -172,9 +182,9 @@ public class HttpsChecker {
                     System.out.println("Checked certificates via CRL ended with: " + responseStatus);
                 }
 
-                return  new Tuple<Integer, List<X509Certificate>>(Integer.valueOf(responseStatus), certList);
+                return  new Tuple<Integer, List<X509Certificate>>(Integer.valueOf(responseStatus), result.getSecond());
             } else {
-                return new Tuple<Integer, List<X509Certificate>>(Integer.valueOf(OCSPResponse.successful), certList);
+                return new Tuple<Integer, List<X509Certificate>>(Integer.valueOf(OCSPResponse.successful), result.getSecond());
             }
 
 

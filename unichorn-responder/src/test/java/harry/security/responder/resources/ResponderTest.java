@@ -488,9 +488,9 @@ public class ResponderTest  {
             X509Certificate[] certs = new X509Certificate[2];
             certs = keys.getSecond();
 
-            List<X509Certificate> certList = HttpsChecker.getCertFromHttps(checkURL);
+            Tuple<ServerInfoGetter.CertStatusValue,List<X509Certificate>> result = HttpsChecker.getCertFromHttps(checkURL);
             Map<String, X509Certificate> certMap = CertLoader.loadCertificatesFromWIN();
-            boolean success = HttpsChecker.checkCertChain(certList, certMap);
+            boolean success = HttpsChecker.checkCertChain(result.getSecond(), certMap);
             if (success) {
                 System.out.println("found certificate in store");
                 if (ocspCheck) {
@@ -500,7 +500,7 @@ public class ResponderTest  {
                 /*OCSPResponse response = HttpOCSPClient.sendOCSPRequest(ocspUrl, bean.getSelectedKey(),
                         certs, certList.toArray(new X509Certificate[0]), false);*/
                     int responseStatus = 0;
-                    for (X509Certificate cert : certList) {
+                    for (X509Certificate cert : result.getSecond()) {
                         String ocspUrlOrig = OCSPCRLClient.getOCSPUrl(cert);
 
                         if (altResponder) {
@@ -511,7 +511,7 @@ public class ResponderTest  {
                         if (true) {
                             OCSPRequest request = client.createOCSPRequest(keys.getFirst(),
                                     certs,
-                                    certList.toArray(new X509Certificate[0]),
+                                    result.getSecond().toArray(new X509Certificate[0]),
                                     ReqCert.certID, ocspUrlOrig, true);
 
                             ByteArrayInputStream stream = new ByteArrayInputStream(request.getEncoded());
@@ -525,9 +525,9 @@ public class ResponderTest  {
                         }
                     }
 
-                    return  new Tuple<Integer, List<X509Certificate>>(Integer.valueOf(responseStatus), certList);
+                    return  new Tuple<Integer, List<X509Certificate>>(Integer.valueOf(responseStatus), result.getSecond());
                 } else {
-                    return new Tuple<Integer, List<X509Certificate>>(Integer.valueOf(OCSPResponse.successful), certList);
+                    return new Tuple<Integer, List<X509Certificate>>(Integer.valueOf(OCSPResponse.successful), result.getSecond());
                 }
 
 

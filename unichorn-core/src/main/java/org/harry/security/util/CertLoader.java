@@ -20,6 +20,8 @@ import java.util.Map;
  */
 public class CertLoader {
 
+    public static Map<String,X509Certificate> certMap = null;
+
     /**
      * This method is to retrieve certificates which are trusted from Windows
      * KeyStore
@@ -37,47 +39,50 @@ public class CertLoader {
             String userDir = System.getProperty("user.home") + "\\myCardCerts";
             System.out.println("User Dir is: " + userDir);
             File dir = new File(userDir);
-            if(!dir.exists()) {
+            if (!dir.exists()) {
                 dir.mkdirs();
             }
 
 
-            Map<String,X509Certificate> certMap = new HashMap<>();
+            if (certMap == null) {
+                certMap = new HashMap<>();
 
-            while (aliasEnum.hasMoreElements()) {
-                String alias = aliasEnum.nextElement();
-                System.out.println("alias is: " + alias);
-                X509Certificate cert = new X509Certificate(keyStore.getCertificate(alias).getEncoded());
-                certMap.put(alias, cert);
-            }
-            for (Map.Entry<String, X509Certificate> entry: certMap.entrySet()) {
-                X509Certificate iaikCert = new iaik.x509.X509Certificate(entry.getValue().getEncoded());
-                certMap.put(entry.getKey(), iaikCert);
+                while (aliasEnum.hasMoreElements()) {
+                    String alias = aliasEnum.nextElement();
+                    System.out.println("alias is: " + alias);
+                    X509Certificate cert = new X509Certificate(keyStore.getCertificate(alias).getEncoded());
+                    certMap.put(alias, cert);
+                }
+                for (Map.Entry<String, X509Certificate> entry : certMap.entrySet()) {
+                    X509Certificate iaikCert = new iaik.x509.X509Certificate(entry.getValue().getEncoded());
+                    certMap.put(entry.getKey(), iaikCert);
 
-                boolean selected = checkCertificate(iaikCert);
-                if (selected) {
-                    System.out.println("Write certificate with alias: " + entry.getKey() + " to disk");
-                    File certOut = new File(userDir, entry.getKey() + ".cer");
-                    FileOutputStream outStream = new FileOutputStream(certOut);
-                    iaikCert.writeTo(outStream);
-                    X509Certificate [] certs = new X509Certificate[1];
-                    certs[0] = iaikCert;
+                    boolean selected = checkCertificate(iaikCert);
+                    if (selected) {
+                        System.out.println("Write certificate with alias: " + entry.getKey() + " to disk");
+                        File certOut = new File(userDir, entry.getKey() + ".cer");
+                        FileOutputStream outStream = new FileOutputStream(certOut);
+                        iaikCert.writeTo(outStream);
+                        X509Certificate[] certs = new X509Certificate[1];
+                        certs[0] = iaikCert;
+
+                    }
+                }
+
+
+                System.out.println("Root KeyStore Windows");
+                keyStore = KeyStore.getInstance("Windows-ROOT");
+                keyStore.load(null, null);
+                aliasEnum = keyStore.aliases();
+
+                while (aliasEnum.hasMoreElements()) {
+                    String alias = aliasEnum.nextElement();
+                    System.out.println("alias is: " + alias);
+                    Certificate cert = keyStore.getCertificate(alias);
+                    X509Certificate iaikCert = new iaik.x509.X509Certificate(cert.getEncoded());
+                    certMap.put(alias, iaikCert);
 
                 }
-            }
-
-            System.out.println("Root KeyStore Windows");
-            keyStore = KeyStore.getInstance("Windows-ROOT");
-            keyStore.load(null, null);
-            aliasEnum = keyStore.aliases();
-
-            while (aliasEnum.hasMoreElements()) {
-                String alias = aliasEnum.nextElement();
-                System.out.println("alias is: " + alias);
-                Certificate cert = keyStore.getCertificate(alias);
-                X509Certificate iaikCert = new iaik.x509.X509Certificate(cert.getEncoded());
-                certMap.put(alias, iaikCert);
-
             }
             return certMap;
         } catch(Exception e) {

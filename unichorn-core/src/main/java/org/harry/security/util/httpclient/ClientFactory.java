@@ -1,10 +1,7 @@
 package org.harry.security.util.httpclient;
 
 import iaik.protocol.https.HttpsURLConnection;
-import iaik.security.provider.IAIK;
-import iaik.security.ssl.OCSPCertStatusChainVerifier;
 import iaik.security.ssl.SSLClientContext;
-import iaik.x509.X509Certificate;
 import org.apache.http.Header;
 import org.apache.http.HttpResponseInterceptor;
 import org.apache.http.client.CookieStore;
@@ -20,23 +17,12 @@ import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.protocol.HttpCoreContext;
 import org.apache.http.ssl.SSLContextBuilder;
-import org.apache.http.ssl.SSLContexts;
-import org.apache.http.ssl.TrustStrategy;
-import org.harry.security.util.certandkey.CertificateChainUtil;
-import org.harry.security.util.certandkey.KeyStoreTool;
 
 import javax.net.ssl.*;
-import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.net.URL;
 import java.security.*;
 import java.security.cert.Certificate;
-import java.security.cert.CertificateException;
-import java.util.ArrayList;
-import java.util.List;
-
-import static org.harry.security.CommonConst.isWindows;
 
 public class ClientFactory {
 
@@ -146,12 +132,7 @@ public class ClientFactory {
 
     public static CloseableHttpClient
     createSSLClient() throws Exception {
-        SSLContextBuilder builder = SSLContexts.custom();
-
-        SSLContext sslContext = builder
-                .loadKeyMaterial(readStore(), "geheim".toCharArray())
-                .loadTrustMaterial(readTrustStore(), null)
-                .build();
+        SSLContext sslContext = SSLUtils.createStandardContext();
         SSLConnectionSocketFactory sslsf = new SSLConnectionSocketFactory(
                 sslContext, new X509HostnameVerifier() {
 
@@ -186,25 +167,5 @@ public class ClientFactory {
         return httpclient;
     }
 
-    private static KeyStore readStore()  {
-        return KeyStoreTool.loadAppStore();
-    }
-
-
-    private static KeyStore readTrustStore() throws Exception {
-        KeyStore keyStore = null;
-        if (isWindows()) {
-            keyStore = KeyStore.getInstance("Windows-ROOT");
-            keyStore.load(null, null);
-        } else {
-            String path = System.getProperty("java.home") + "\\lib\\security\\cacerts";
-            File cacerts = new File(path);
-            if (cacerts.exists()) {
-                keyStore = KeyStoreTool.loadStore(new FileInputStream(cacerts),
-                        "changeit".toCharArray(), "JKS");
-            }
-        }
-        return keyStore;
-    }
 
 }

@@ -12,6 +12,8 @@ import java.security.cert.CertificateException;
 import java.util.Enumeration;
 import java.util.Hashtable;
 
+import static iaik.security.ssl.CertificateStatusRequest.STATUS_TYPE_OCSP;
+
 public class ServerInfoGetter {
 
 
@@ -41,14 +43,18 @@ public class ServerInfoGetter {
     private Throwable exception;
     private Hashtable<X509Certificate, X509Certificate[]> serverCerts;
     private boolean eccAvailable;
+    TLS13OCSPCertStatusChainVerifier chainVerifier;
+    byte [] statusReqEncoded = null;
 
     public ServerInfoGetter(String hostname, int port) {
         this.hostname = hostname;
         this.port = port;
 
         context = new SSLClientContext();
-        context.setSessionManager(null);            // no session caching
-        context.setChainVerifier(null);             // no certificate verifying at all
+        context.setSessionManager(null);
+        chainVerifier =  new TLS13OCSPCertStatusChainVerifier();;
+        // set OCSPCertStatusChainVerifier
+        context.setChainVerifier(chainVerifier);// no session caching
         // allow legacy renegotiation
         context.setAllowLegacyRenegotiation(true);
         // ECC available?
@@ -82,11 +88,34 @@ public class ServerInfoGetter {
 
     }
 
+    private void setExtensionsWithStatus(SSLContext context) throws IOException {
+
+        ExtensionList extensions = new ExtensionList();
+        if (eccAvailable) {
+            extensions.addExtension(new iaik.security.ssl.SupportedEllipticCurves());
+            extensions.addExtension(new iaik.security.ssl.SupportedPointFormats());
+        }
+        int[] allowedVersions = context.getAllowedProtocolVersions();
+
+        if (allowedVersions[1] >= SSLContext.VERSION_TLS10) {
+            SignatureSchemeList supportedSignatureAlgorithms = (SignatureSchemeList)SignatureAndHashAlgorithmList.getDefault();
+            SignatureAlgorithms signatureAlgorithms = new SignatureAlgorithms(supportedSignatureAlgorithms);
+            extensions.addExtension(signatureAlgorithms);
+        }
+        OCSPStatusRequest statusRequest = new OCSPStatusRequest();
+        CertificateStatusRequest request = new CertificateStatusRequest(OCSPStatusRequest.STATUS_TYPE, statusRequest.getEncoded());
+        statusReqEncoded = request.getStatusRequest();
+        extensions.addExtension(request);
+        context.setExtensions(extensions);
+
+    }
+
+
     /**
      * Get the SSL information of a given host
      * @return the SSL certificates HashTable
      */
-    public Hashtable<X509Certificate, X509Certificate[]> getInformation() {
+    public Hashtable<X509Certificate, X509Certificate[]> getInformation() throws IOException {
 
         ServerInfo.init();
         if (hostname.indexOf("<") != -1) {
@@ -123,7 +152,6 @@ public class ServerInfoGetter {
             CipherSuite next = (CipherSuite)e.nextElement();
             HtmlUtil.addCipherSuite(next, supportedKeyExchange, supportedCiphers, false);
         }
-
 
         try {
             socket = new SSLSocket(hostAddress, port, context);
@@ -235,8 +263,9 @@ public class ServerInfoGetter {
                     continue;
                 }
                 context.setAllowedProtocolVersions(maxVersion, maxVersion);
-                setExtensions(context);
+
                 context.setEnabledCipherSuites(new CipherSuite[] { suite });
+                setExtensions(context);
                 try {
                     context.updateCipherSuites();
                 } catch (Exception e) {
@@ -408,6 +437,100 @@ public class ServerInfoGetter {
             java.security.cert.X509Certificate v2Cert = null;
         }
     }
+    /**
+     * Creates a SSLSocket for connecting to the given server.
+     *
+     * @param serverName the server name
+     * @param serverPort the port the server is listening for connections
+     * @param context the SSLContext with the TLS client configuration
+     *
+     * @exception IOException if an error occurs when connecting to the server
+     */
+    public CertStatusValue ocspCheckStapling(String serverName, int serverPort,
+                                     SSLClientContext context) throws IOException  {
 
+        boolean verifyOK = false;
+        SSLSocket socket = null;
+        try {
+
+            // connect
+            System.out.println("Connect to " + serverName + " on port " + serverPort);
+            socket = new SSLSocket(serverName, serverPort, context);
+            // print debug info to System.out
+            socket.setDebugStream(System.out);
+            // start handshake
+            socket.startHandshake();
+            System.out.println();
+
+            // informations about the server:
+            System.out.println("TLS-Connection established. Session-Parameter:");
+            System.out.println("Active cipher suite: " + socket.getActiveCipherSuite());
+            System.out.println("Active compression method: " + socket.getActiveCompressionMethod());
+            java.security.cert.X509Certificate[] chain = socket.getPeerCertificateChain();
+            if (chain != null) {
+                System.out.println("Server certificate chain:");
+                for (int i=0; i<chain.length; i++) {
+                    System.out.println("Certificate " + i + ": " +
+                            chain[i].getSubjectDN());
+                }
+            }
+            System.out.println();
+
+            ExtensionList peerExtensions = socket.getPeerExtensions();
+            ExtensionList activeExtensions = socket.getActiveExtensions();
+
+            System.out.println("Extensions sent by the server: " + ((peerExtensions == null) ? "none" : peerExtensions.toString()));
+
+            TLS13Certificate.CertificateEntry[] tls13Certificates = new TLS13Certificate.CertificateEntry[chain.length];
+            int index = 0;
+            for (; index < tls13Certificates.length; index++) {
+                tls13Certificates[index] = new TLS13Certificate.X509CertificateEntry(chain[index]);
+            }
+            verifyOK = chainVerifier.verifyChain( tls13Certificates,
+                    socket.getTransport(), STATUS_TYPE_OCSP, statusReqEncoded);
+
+            System.out.println("Chain verification: " + Boolean.valueOf(verifyOK).toString());
+            index = 0;
+            for (; index < tls13Certificates.length; index++) {
+                ExtensionList certExtensions = tls13Certificates[index].getExtensions();
+                if (certExtensions != null) {
+                    certExtensions.toString(true);
+                }
+            }
+
+            if (verifyOK) {
+                return CertStatusValue.STATUS_OK;
+            } else {
+                return CertStatusValue.STATUS_NOK;
+            }
+        } catch( IOException e ) {
+            System.err.println("IOException:");
+            e.printStackTrace(System.err);
+            return CertStatusValue.STATUS_CHECK_GO_ON;
+        } finally {
+            if (socket != null) {
+                socket.close();
+            }
+        }
+    }
+
+    public SSLClientContext freshContext() throws IOException{
+        SSLClientContext clientContext = new SSLClientContext();
+        clientContext.setSessionManager(null);
+        chainVerifier = new TLS13OCSPCertStatusChainVerifier();
+        // set OCSPCertStatusChainVerifier
+        clientContext.setChainVerifier(chainVerifier);// no session caching
+        // allow legacy renegotiation
+        clientContext.setAllowLegacyRenegotiation(true);
+        // ECC available?
+        setExtensionsWithStatus(clientContext);
+        return clientContext;
+    }
+
+    public static enum CertStatusValue {
+        STATUS_OK,
+        STATUS_CHECK_GO_ON,
+        STATUS_NOK
+    }
 
 }

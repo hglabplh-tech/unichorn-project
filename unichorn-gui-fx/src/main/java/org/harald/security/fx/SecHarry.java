@@ -17,6 +17,8 @@ import java.net.URL;
 import java.util.List;
 import java.util.Properties;
 
+import static org.harry.security.util.httpclient.SSLUtils.installHttpHttpsProtocol;
+
 /**
  * JavaFX App
  */
@@ -32,6 +34,7 @@ public class SecHarry extends Application {
     public void start(Stage stage) throws IOException {
         //URL.setURLStreamHandlerFactory(new BrowserTabCtrl.MyURLStreamHandlerFactory());
         CMSSigner.setProviders();
+        installHttpHttpsProtocol();
         CertificateWizzard.initThis();
         List<TrustListManager> walkers = ConfigReader.loadAllTrusts();
         SigningBean context = new SigningBean().setWalker(walkers);
