@@ -12,6 +12,8 @@ import java.security.cert.CertificateEncodingException;
 import java.security.cert.CertificateException;
 import java.util.Base64;
 
+import static org.harry.security.CommonConst.APP_DIR;
+
 public class CertWriterReader {
 
     private X509Certificate certificate;
@@ -20,19 +22,9 @@ public class CertWriterReader {
 
     private final static String FOOTER = "-----END CERTIFICATE-----";
 
-    public static String APP_DIR;
+
 
     public static final String KEYSTORE_FNAME = "appKeyStore.jks";
-
-    static {
-        String userDir = System.getProperty("user.home");
-        userDir = userDir + "\\AppData\\Local\\MySigningApp";
-        File dir = new File(userDir);
-        if (!dir.exists()){
-            dir.mkdirs();
-        }
-        APP_DIR= userDir;
-    }
 
     public CertWriterReader(X509Certificate certificate) {
         this.certificate = certificate;

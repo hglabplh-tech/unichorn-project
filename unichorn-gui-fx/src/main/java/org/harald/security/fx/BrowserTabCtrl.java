@@ -209,7 +209,7 @@ public class BrowserTabCtrl  {
             nextUrlString = bookmarkLocal.get().getProperty(title);
 
         }
-        File bookmarkFile = new File(KeyStoreTool.APP_DIR, "bookmarks.properties");
+        File bookmarkFile = new File(APP_DIR, "bookmarks.properties");
         loadBookmarks();
         bookmarkLocal.get().storeToXML(new FileOutputStream(bookmarkFile), "bookmarks");
         engine.load(nextUrlString);
@@ -296,7 +296,7 @@ public class BrowserTabCtrl  {
 
     private void loadBookmarks() {
         try {
-            File bookmarkFile = new File(KeyStoreTool.APP_DIR, "bookmarks.properties");
+            File bookmarkFile = new File(APP_DIR, "bookmarks.properties");
             if (bookmarkFile.exists()) {
                 bookmarkLocal.get().loadFromXML(new FileInputStream(bookmarkFile));
                 ComboBox bookmarkCombo = bookmarks;

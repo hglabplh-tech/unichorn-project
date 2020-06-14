@@ -74,7 +74,7 @@ public class CommonConst {
 
     static {
         String userDir = System.getProperty("user.home");
-        userDir = userDir + "\\AppData\\Local\\MySigningApp";
+        userDir = userDir + "\\AppData\\Local\\UnicHornApp";
         File dir = new File(userDir);
         if (!dir.exists()){
             dir.mkdirs();

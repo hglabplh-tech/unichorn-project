@@ -22,23 +22,17 @@ import java.security.Security;
 import java.security.cert.Certificate;
 import java.util.Enumeration;
 
+import static org.harry.security.CommonConst.APP_DIR;
+
 public class KeyStoreTool {
 
-    public static String APP_DIR;
+
 
     public static final String KEYSTORE_FNAME = "application.p12";
 
     public static final String TRUSTSTORE_LOC = System.getProperty("java.home") + "/lib/security/cacerts";
 
-    static {
-        String userDir = System.getProperty("user.home");
-        userDir = userDir + "\\AppData\\Local\\MySigningApp";
-        File dir = new File(userDir);
-        if (!dir.exists()){
-            dir.mkdirs();
-        }
-        APP_DIR= userDir;
-    }
+
 
     public static KeyStore initStore(String type, String password) {
         try {

@@ -15,21 +15,17 @@ import java.security.KeyStore;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 
+import static org.harry.security.CommonConst.APP_DIR;
 import static org.harry.security.CommonConst.isWindows;
 
 public class SSLUtils {
     public static KeyStore readTrustStore() throws Exception {
         KeyStore keyStore = null;
-        if (isWindows()) {
-            keyStore = KeyStore.getInstance("Windows-ROOT");
-            keyStore.load(null, null);
-        } else {
-            String path = System.getProperty("java.home") + "\\lib\\security\\cacerts";
-            File cacerts = new File(path);
-            if (cacerts.exists()) {
-                keyStore = KeyStoreTool.loadStore(new FileInputStream(cacerts),
-                        "changeit".toCharArray(), "JKS");
-            }
+
+        File cacerts = new File(APP_DIR, "trustCerts.p12");
+        if (cacerts.exists()) {
+            keyStore = KeyStoreTool.loadStore(new FileInputStream(cacerts),
+                    "changeit".toCharArray(), "PKCS12");
         }
         return keyStore;
     }
