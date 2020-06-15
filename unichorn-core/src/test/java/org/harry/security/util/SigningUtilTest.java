@@ -1,10 +1,13 @@
 package org.harry.security.util;
 
+import iaik.asn1.ObjectID;
 import iaik.x509.X509Certificate;
 import iaik.x509.attr.AttributeCertificate;
 import org.apache.commons.io.IOUtils;
 import org.harry.security.testutils.TestBase;
 import org.harry.security.util.algoritms.CryptoAlg;
+import org.harry.security.util.algoritms.DigestAlg;
+import org.harry.security.util.algoritms.SignatureAlg;
 import org.harry.security.util.bean.AttrCertBean;
 import org.harry.security.util.bean.SigningBean;
 import org.harry.security.util.certandkey.CertWriterReader;
@@ -14,12 +17,14 @@ import org.junit.Test;
 
 import javax.activation.DataSource;
 import java.io.*;
+import java.net.URL;
 import java.security.KeyStore;
 import java.security.PrivateKey;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.harry.security.CommonConst.TSP_URL;
 
 public class SigningUtilTest extends TestBase {
 
@@ -52,7 +57,76 @@ public class SigningUtilTest extends TestBase {
     }
 
     @Test
+    public void counterSignASignatureCMS() throws Exception {
+        KeyStore store = KeyStoreTool.loadAppStore();
+        Tuple<PrivateKey, X509Certificate[]> keys = KeyStoreTool.getAppKeyEntry(store);
+        URL urlInput = SigningUtilTest.class.getResource("/data/ergo.pdf");
+        File fileInput = new File(urlInput.toURI());
+        File output = File.createTempFile("signedCMS", ".pkcs7");
+        CertWriterReader.KeyStoreBean bean = new CertWriterReader.KeyStoreBean(keys.getSecond(), keys.getFirst());
+        SigningUtil util = new SigningUtil();
+        SigningBean signingBean = new SigningBean()
+                .setSigningMode(SigningBean.Mode.EXPLICIT)
+                .setDigestAlgorithm(DigestAlg.SHA3_512)
+                .setSignatureAlgorithm(SignatureAlg.SHA3_512_WITH_RSA)
+                .setKeyStoreBean(bean)
+                .setDecryptPWD("changeit")
+                .setDataIN(new FileInputStream(fileInput))
+                .setOutputPath(output.getAbsolutePath());
+        DataSource outCome = util.signCMS(signingBean);
+        util.writeToFile(outCome, signingBean);
+        File counterOutput = File.createTempFile("counterSignedCMS", ".pkcs7");
+        signingBean = new SigningBean()
+                .setSigningMode(SigningBean.Mode.EXPLICIT)
+                .setDigestAlgorithm(DigestAlg.SHA3_512)
+                .setSignatureAlgorithm(SignatureAlg.SHA3_512_WITH_RSA)
+                .setKeyStoreBean(bean)
+                .setDecryptPWD("changeit")
+                .setDataINFile(fileInput)
+                .setDataIN(new FileInputStream(output))
+                .setOutputPath(counterOutput.getAbsolutePath());
+        outCome = util.setCounterSignature(signingBean);
+        util.writeToFile(outCome, signingBean);
+
+    }
+
+    @Test
+    public void counterSignASignatureCAdES() throws Exception {
+        KeyStore store = KeyStoreTool.loadAppStore();
+        Tuple<PrivateKey, X509Certificate[]> keys = KeyStoreTool.getAppKeyEntry(store);
+        URL urlInput = SigningUtilTest.class.getResource("/data/ergo.pdf");
+        File fileInput = new File(urlInput.toURI());
+        File output = File.createTempFile("signedCMS", ".pkcs7");
+        CertWriterReader.KeyStoreBean bean = new CertWriterReader.KeyStoreBean(keys.getSecond(), keys.getFirst());
+        SigningUtil util = new SigningUtil();
+        SigningBean signingBean = new SigningBean()
+                .setTspURL("http://zeitstempel.dfn.de")
+                .setSigningMode(SigningBean.Mode.EXPLICIT)
+                .setKeyStoreBean(bean)
+                .setDecryptPWD("changeit")
+                .setDataIN(new FileInputStream(fileInput))
+                .setOutputPath(output.getAbsolutePath());
+        DataSource outCome = util.signCAdES(signingBean, false);
+        util.writeToFile(outCome, signingBean);
+        File counterOutput = File.createTempFile("counterSignedCMS", ".pkcs7");
+        signingBean = new SigningBean()
+                .setSigningMode(SigningBean.Mode.EXPLICIT)
+                .setDigestAlgorithm(DigestAlg.SHA3_512)
+                .setSignatureAlgorithm(SignatureAlg.SHA3_512_WITH_RSA)
+                .setKeyStoreBean(bean)
+                .setDecryptPWD("changeit")
+                .setDataINFile(fileInput)
+                .setDataIN(new FileInputStream(output))
+                .setOutputPath(counterOutput.getAbsolutePath());
+        outCome = util.setCounterSignature(signingBean);
+        util.writeToFile(outCome, signingBean);
+
+    }
+
+
+    @Test
     public void encryptAndSignCMS() throws Exception {
+
         KeyStore store = KeyStoreTool.loadAppStore();
         Tuple<PrivateKey, X509Certificate[]> keys = KeyStoreTool.getAppKeyEntry(store);
         InputStream input = SigningUtilTest.class.getResourceAsStream("/data/ergo.pdf");
@@ -143,7 +217,7 @@ public class SigningUtilTest extends TestBase {
         KeyStore store = KeyStoreTool.loadAppStore();
         Tuple<PrivateKey, X509Certificate[]> keys = KeyStoreTool.getAppKeyEntry(store);
         InputStream input = SigningUtilTest.class.getResourceAsStream("/data/ergo.pdf");
-        File output = File.createTempFile("encrcms", ".pkcs7");
+        File output = File.createTempFile("countersigned", ".pkcs7");
         CertWriterReader.KeyStoreBean bean = new CertWriterReader.KeyStoreBean(keys.getSecond(), keys.getFirst());
 
         SigningUtil util = new SigningUtil();

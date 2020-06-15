@@ -1,11 +1,13 @@
 package org.harry.security.util;
 
 import iaik.asn1.CodingException;
+import iaik.asn1.DerInputException;
 import iaik.asn1.ObjectID;
 import iaik.asn1.structures.AlgorithmID;
 import iaik.asn1.structures.Attribute;
 import iaik.cms.*;
 import iaik.cms.attributes.CMSContentType;
+import iaik.cms.attributes.CounterSignature;
 import iaik.cms.attributes.SigningTime;
 import iaik.pdf.asn1objects.ArchiveTimeStampv3;
 import iaik.pdf.cmscades.CadesSignatureStream;
@@ -48,10 +50,11 @@ public class SigningUtil {
 
     /**
      * singns CMS
+     *
      * @param signingBean the parameters
      * @return the data-source with the signature
      */
-    public DataSource signCMS(SigningBean signingBean)  {
+    public DataSource signCMS(SigningBean signingBean) {
 
         try {
 
@@ -68,10 +71,11 @@ public class SigningUtil {
 
     /**
      * The method signs content with a well defined CAdES signature possibly containing time-stamps
+     *
      * @param signingBean the bean containing the parameters
      * @return the data source containing the signature
      */
-    public DataSource signCAdES(SigningBean signingBean, boolean upgradeSig)  {
+    public DataSource signCAdES(SigningBean signingBean, boolean upgradeSig) {
 
         try {
 
@@ -97,7 +101,7 @@ public class SigningUtil {
                 params.setSignatureAlgorithm(signingBean.getSignatureAlgorithm().getAlgId().getImplementationName());
             }
             Logger.trace("get store bean");
-            X509Certificate [] signer = new X509Certificate[1];
+            X509Certificate[] signer = new X509Certificate[1];
             signer = signingBean.getKeyStoreBean().getChain();
             int mode = signingBean.getSigningMode().getMode();
 
@@ -116,43 +120,44 @@ public class SigningUtil {
                 signedData.setSDSEncodeListener(new TimeStampListener(signingBean.getTspURL()));
             }
             signatureStream.encodeSignature(out);
-            ByteArrayInputStream  in = new ByteArrayInputStream(out.toByteArray());
+            ByteArrayInputStream in = new ByteArrayInputStream(out.toByteArray());
             DataSource ds = new InputStreamDataSource(in);
             stream.close();
             out.close();
             if (upgradeSig) {
-               ds = upgradeSignature(signingBean, ds);
+                ds = upgradeSignature(signingBean, ds);
             }
             return ds;
         } catch (Exception ex) {
-            Logger.trace("Error happened " + ex.getMessage() +" type " +ex.getClass().getCanonicalName());
+            Logger.trace("Error happened " + ex.getMessage() + " type " + ex.getClass().getCanonicalName());
             throw new IllegalStateException("error occured", ex);
         }
     }
 
     /**
      * Upgrade the signature with LTV data OCSP responses and timestamps for archiving
+     *
      * @param signingBean the signing bean
-     * @param ds the input data-source
+     * @param ds          the input data-source
      * @return the updated PDF
      * @throws NoSuchAlgorithmException error case
      */
     public DataSource upgradeSignature(SigningBean signingBean, DataSource ds) throws NoSuchAlgorithmException {
         ByteArrayOutputStream archivedSignatureStream;
         archivedSignatureStream = new ByteArrayOutputStream();
-        String archiveTimestampDigestAlgorithm =  ArchiveTimeStampv3.DEFAULTHASHALGORITHM.getJcaStandardName();
+        String archiveTimestampDigestAlgorithm = ArchiveTimeStampv3.DEFAULTHASHALGORITHM.getJcaStandardName();
         try {
             Logger.trace("upgrade with archTimeStamp Algorithm:" + archiveTimestampDigestAlgorithm);
             InputStream data = signingBean.getDataINFile();
             CadesSignatureStream cadesSig = new CadesSignatureStream(ds.getInputStream(), data,
-            new String[] { archiveTimestampDigestAlgorithm }, archivedSignatureStream);
+                    new String[]{archiveTimestampDigestAlgorithm}, archivedSignatureStream);
             Logger.trace("Before verifying signature");
             cadesSig.verifySignatureValue(signingBean.getKeyStoreBean().getSelectedCert());
             Logger.trace("Verifying signature succeded");
             CadesLTAParameters parameters = new CadesLTAParameters(signingBean.getTspURL(),
                     null, null);
 
-            X509Certificate [] cert = signingBean.getKeyStoreBean().getChain();
+            X509Certificate[] cert = signingBean.getKeyStoreBean().getChain();
             String url = OCSPCRLClient.getOCSPUrl(signingBean.getKeyStoreBean().getSelectedCert());
             if (url == null) {
                 url = OCSP_URL;
@@ -160,7 +165,7 @@ public class SigningUtil {
             Logger.trace("Get OCSP values from URL: " + url);
             OCSPResponse response = HttpOCSPClient.sendOCSPRequest(url, null, null,
                     cert, ReqCert.certID, false, true);
-            OCSPResponse [] responses = new OCSPResponse[1];
+            OCSPResponse[] responses = new OCSPResponse[1];
             responses[0] = response;
             parameters.addArchiveDetails(cert, null, responses);
             Logger.trace("Get OCSP values  succeded");
@@ -170,7 +175,7 @@ public class SigningUtil {
             Logger.trace("encode upgraded");
             cadesSig.encodeUpgradedSignature();
             Logger.trace("encode upgraded succeded");
-            ByteArrayInputStream  in = new ByteArrayInputStream(archivedSignatureStream.toByteArray());
+            ByteArrayInputStream in = new ByteArrayInputStream(archivedSignatureStream.toByteArray());
             InputStreamDataSource dsResult = new InputStreamDataSource(in);
             return dsResult;
         } catch (Exception ex) {
@@ -182,6 +187,7 @@ public class SigningUtil {
 
     /**
      * Encrypt data and sign it immediately afterwards
+     *
      * @param bean the signing bean with the input data
      * @return the data sources from encryption and signing
      */
@@ -193,86 +199,150 @@ public class SigningUtil {
             DataSource result = this.encryptCMS(bean);
             CopyInputStreamDataSource copyResult = new CopyInputStreamDataSource(result.getInputStream());
             bean = bean.setDataIN(result.getInputStream());
-            return new Tuple<>(copyResult,this.signCMS(bean));
-        } catch(IOException ex) {
+            return new Tuple<>(copyResult, this.signCMS(bean));
+        } catch (IOException ex) {
             throw new IllegalStateException("signing and encryption failed", ex);
         }
     }
 
     /**
      * This method signes data with a classic CM signature either IMPLICIT or EXPLICIT
+     *
      * @param signingBean the bean containing the parameters
      * @return the data-source containing the signature
-     * @throws CodingException error case
+     * @throws CodingException          error case
      * @throws NoSuchAlgorithmException error case
-     * @throws IOException error case
-     * @throws CMSException error case
-     * @throws CertificateException error case
+     * @throws IOException              error case
+     * @throws CMSException             error case
+     * @throws CertificateException     error case
      */
     private InputStreamDataSource getInputStreamSigDataSource(SigningBean signingBean)
-            throws CodingException, NoSuchAlgorithmException, IOException, CMSException, CertificateException {
-        X509Certificate[] chain = signingBean.getKeyStoreBean().getChain();
-        PrivateKey selectedKey = signingBean.getKeyStoreBean().getSelectedKey();
-        InputStream dataStream;
-        if (signingBean.getDataSource() != null) {
-            Logger.trace("Data selected from data source");
-            dataStream = signingBean.getDataSource().getInputStream();
-        } else {
-            Logger.trace("Data selected from dataIN");
-            dataStream = signingBean.getDataIN();
-        }
-        Logger.trace("create signing stream");
-        int mode = signingBean.getSigningMode().getMode();
-        SignedDataStream stream = new SignedDataStream(dataStream, mode);
-        CertificateSet certSet = new CertificateSet();
-        addCertificates(signingBean, chain, certSet);
-        stream.setCertificateSet(certSet);
-        AlgorithmID digestAlgorithm = null;
-        AlgorithmID signatureAlgorithm = null;
-        if (signingBean.getDigestAlgorithm() != null) {
-            DigestAlg alg = signingBean.getDigestAlgorithm();
-            digestAlgorithm = alg.getAlgId();
-        }
-        if (signingBean.getSignatureAlgorithm() != null) {
-            SignatureAlg alg = signingBean.getSignatureAlgorithm();
-            signatureAlgorithm = alg.getAlgId();
-        }
-        Logger.trace("Create signer info");
-        SignerInfo signerInfo = new SignerInfo(chain[0],
-                digestAlgorithm,
-                signatureAlgorithm,
-                selectedKey);
-        AlgorithmID sigAlg = signerInfo.getSignatureAlgorithm();
-        if (selectedKey.getAlgorithm().contains("EC")) {
-            sigAlg.encodeAbsentParametersAsNull(true);
-        }
-        Logger.trace("Set content attributes");
-        SigningTime signingTime = new SigningTime();
-        Attribute [] attributes = new Attribute[3];
-        SigningCertificate signingCertificate = new SigningCertificate(chain);
-        CMSContentType contentType = new CMSContentType(ObjectID.cms_data);
-        attributes[0] = new Attribute(contentType);
-        attributes[1] = new Attribute(signingTime);
-        attributes[2] = new Attribute(signingCertificate);
-        signerInfo.setSignedAttributes(attributes);
-        Logger.trace("Add signer info to signature");
-        stream.addSignerInfo(signerInfo);
-        stream.setBlockSize(2048);
-        if (mode == SignedDataStream.EXPLICIT) {
-            InputStream data_is = stream.getInputStream();
-            eatStream(data_is);
-        }
-        // create the ContentInfo
-        ContentInfoStream cis = new ContentInfoStream(stream);
-        // return the SignedData as encoded byte array with block size 2048
-        ByteArrayOutputStream os = new ByteArrayOutputStream();
+            throws CodingException, NoSuchAlgorithmException, IOException, CMSException,
+            CertificateException, SignatureException {
+        try {
 
-        Logger.trace("Really sign the thing");
-        cis.writeTo(os);
-        Logger.trace("Really signed the thing");
-        InputStream result = new ByteArrayInputStream(os.toByteArray());
-        return new InputStreamDataSource(result);
+            X509Certificate[] chain = signingBean.getKeyStoreBean().getChain();
+            PrivateKey selectedKey = signingBean.getKeyStoreBean().getSelectedKey();
+            InputStream dataStream;
+            if (signingBean.getDataSource() != null) {
+                Logger.trace("Data selected from data source");
+                dataStream = signingBean.getDataSource().getInputStream();
+            } else {
+                Logger.trace("Data selected from dataIN");
+                dataStream = signingBean.getDataIN();
+            }
+            Logger.trace("create signing stream");
+            int mode = signingBean.getSigningMode().getMode();
+            SignedDataStream stream = new SignedDataStream(dataStream, mode);
+            CertificateSet certSet = new CertificateSet();
+            addCertificates(signingBean, chain, certSet);
+            stream.setCertificateSet(certSet);
+            AlgorithmID digestAlgorithm = null;
+            AlgorithmID signatureAlgorithm = null;
+            if (signingBean.getDigestAlgorithm() != null) {
+                DigestAlg alg = signingBean.getDigestAlgorithm();
+                digestAlgorithm = alg.getAlgId();
+            }
+            if (signingBean.getSignatureAlgorithm() != null) {
+                SignatureAlg alg = signingBean.getSignatureAlgorithm();
+                signatureAlgorithm = alg.getAlgId();
+            }
+            Logger.trace("Create signer info");
+            SignerInfo signerInfo = new SignerInfo(chain[0],
+                    digestAlgorithm,
+                    signatureAlgorithm,
+                    selectedKey);
+            AlgorithmID sigAlg = signerInfo.getSignatureAlgorithm();
+            if (selectedKey.getAlgorithm().contains("EC")) {
+                sigAlg.encodeAbsentParametersAsNull(true);
+            }
+            Logger.trace("Set content attributes");
+            SigningTime signingTime = new SigningTime();
+            Attribute[] attributes = new Attribute[3];
+            SigningCertificate signingCertificate = new SigningCertificate(chain);
+            CMSContentType contentType = new CMSContentType(ObjectID.cms_data);
+            attributes[0] = new Attribute(contentType);
+            attributes[1] = new Attribute(signingTime);
+            attributes[2] = new Attribute(signingCertificate);
+
+            signerInfo.setSignedAttributes(attributes);
+            Logger.trace("Add signer info to signature");
+            stream.addSignerInfo(signerInfo);
+            stream.setBlockSize(2048);
+            if (mode == SignedDataStream.EXPLICIT) {
+                InputStream data_is = stream.getInputStream();
+                eatStream(data_is);
+            }
+            // create the ContentInfo
+            ContentInfoStream cis = new ContentInfoStream(stream);
+            // return the SignedData as encoded byte array with block size 2048
+            ByteArrayOutputStream os = new ByteArrayOutputStream();
+
+            Logger.trace("Really sign the thing");
+            cis.writeTo(os);
+            Logger.trace("Really signed the thing");
+            InputStream result = new ByteArrayInputStream(os.toByteArray());
+            return new InputStreamDataSource(result);
+        } catch (Exception ex) {
+            Logger.trace("error signing data" + ex.getMessage());
+            Logger.trace(ex);
+            throw new IllegalStateException("error signing data", ex);
+        }
     }
+
+
+    public DataSource setCounterSignature(SigningBean signingBean) {
+        try {
+            // set counter signature
+            InputStream stream = signingBean.getDataIN();
+            ContentInfoStream cis = new ContentInfoStream(stream);
+            ObjectID contentType = cis.getContentType();
+            // ok we have a signature lets have a look
+            System.out.println("object id: --> " + contentType.toString());
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            SignedDataStream signedData = new SignedDataStream(cis.getContentInputStream());
+            if (signedData.getMode() == SignedData.EXPLICIT) {
+                if (signingBean.getDataINFile() == null) {
+                    throw new IllegalStateException("data stream is null though signature is explicit");
+                }
+                signedData.setInputStream(signingBean.getDataINFile());
+            }
+            //  signedData.verify(0);
+            Attribute[] attributes = new Attribute[1];
+            CounterSignature counterSig = new CounterSignature(new IssuerAndSerialNumber(signingBean.getKeyStoreBean().getSelectedCert()),
+                    signingBean.getDigestAlgorithm().getAlgId(),
+                    signingBean.getSignatureAlgorithm().getAlgId(),
+                    signingBean.getKeyStoreBean().getSelectedKey()
+            );
+            SignerInfo signerInfo = signedData.getSignerInfos()[0];
+            counterSig.counterSign(signerInfo);
+            Attribute attr = new Attribute(counterSig);
+            attributes[0] = attr;
+            signerInfo.setUnsignedAttributes(attributes);
+            signedData.setBlockSize(2048);
+            int mode = signingBean.getSigningMode().getMode();
+            if (mode == SignedDataStream.EXPLICIT) {
+                InputStream data_is = signedData.getInputStream();
+                eatStream(data_is);
+            }
+
+            // create the ContentInfo
+            cis = new ContentInfoStream(signedData);
+            // return the SignedData as encoded byte array with block size 2048
+            ByteArrayOutputStream os = new ByteArrayOutputStream();
+
+            Logger.trace("Really sign the thing");
+            cis.writeTo(os);
+            Logger.trace("Really signed the thing");
+            InputStream result = new ByteArrayInputStream(os.toByteArray());
+            return new InputStreamDataSource(result);
+        } catch (Exception ex) {
+            Logger.trace("error occurred during set counter signature: " + ex.getMessage());
+            Logger.trace(ex);
+            throw new IllegalStateException("error occurred during set counter signature", ex);
+        }
+    }
+
 
     /**
      * Initialize the certificate set for a signature

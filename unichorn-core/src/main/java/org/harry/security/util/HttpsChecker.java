@@ -1,16 +1,21 @@
 package org.harry.security.util;
 
+import iaik.asn1.structures.AlgorithmID;
+import iaik.asn1.structures.Name;
 import iaik.security.ssl.SSLClientContext;
 import iaik.security.ssl.SSLContext;
 import iaik.utils.Util;
 import iaik.x509.X509Certificate;
 import iaik.x509.X509ExtensionInitException;
 import iaik.x509.ocsp.*;
+import org.bouncycastle.cert.ocsp.OCSPResp;
 import org.harry.security.util.certandkey.KeyStoreTool;
 import org.harry.security.util.ocsp.HttpOCSPClient;
 import org.harry.security.util.ocsp.OCSPCRLClient;
+import org.harry.security.util.ocsp.PredefinedResponses;
 
 import java.io.*;
+import java.math.BigInteger;
 import java.net.URL;
 import java.security.*;
 import java.security.cert.CertificateException;
@@ -18,6 +23,8 @@ import java.util.*;
 
 import static org.harry.security.CommonConst.*;
 import static org.harry.security.util.ocsp.OCSPCRLClient.checkCertificateForRevocation;
+import static org.harry.security.util.ocsp.PredefinedResponses.initStorePreparedResponses;
+import static org.harry.security.util.ocsp.PredefinedResponses.workingData;
 
 public class HttpsChecker {
 
@@ -119,84 +126,114 @@ public class HttpsChecker {
     ) {
         int responseStatus = -1;
         try {
-        Tuple<ServerInfoGetter.CertStatusValue, List<X509Certificate>> result = HttpsChecker.getCertFromHttps(checkURL);
-        Map<String, X509Certificate> certMap = CertLoader.loadCertificatesFromWIN();
-        boolean success = HttpsChecker.checkCertChain(result.getSecond(), certMap);
-        if (success) {
-            System.out.println("found certificate in store");
-            if (ocspCheck) {
-                if (result.getFirst().equals(ServerInfoGetter.CertStatusValue.STATUS_OK)) {
-                    return  new Tuple<Integer, List<X509Certificate>>(0, result.getSecond());
-                } else if (result.getFirst().equals(ServerInfoGetter.CertStatusValue.STATUS_NOK)) {
-                    return  new Tuple<Integer, List<X509Certificate>>(-1, result.getSecond());
-                }
-
-                Tuple<PrivateKey, X509Certificate[]> bean = loadKey();
-                X509Certificate[] certs = new X509Certificate[2];
-                certs = bean.getSecond();
-                /*OCSPResponse response = HttpOCSPClient.sendOCSPRequest(ocspUrl, bean.getSelectedKey(),
-                        certs, certList.toArray(new X509Certificate[0]), false);*/
-
-                for (X509Certificate cert : result.getSecond()) {
-                    if (!CertificateWizzard.isCertificateSelfSigned(cert)) {
-                        String ocspUrl = OCSPCRLClient.getOCSPUrl(cert);
-
-                        if (altResponder) {
-                            ocspUrl = OCSP_URL;
-                        }
-                        OCSPResponse response;
-
-                        X509Certificate [] realChain = Util.arrangeCertificateChain(
-                                result.getSecond().toArray(new X509Certificate[0]),
-                                false);
-                        response = HttpOCSPClient.sendOCSPRequest(ocspUrl, bean.getFirst(),
-                                certs, realChain,
-                                ReqCert.certID,
-                                false, true);
-
-
-
-                        responseStatus = HttpOCSPClient.getClient().parseOCSPResponse(response, true);
-
-                        if (responseStatus == OCSPResponse.successful) {
-                            BasicOCSPResponse basic = (BasicOCSPResponse) response.getResponse();
-                            SingleResponse single = basic.getSingleResponses()[0];
-                            responseStatus = single.getCertStatus().getCertStatus();
-                            collectUsedResponders(cert, response.getResponseStatusName(), single.getCertStatus().getCertStatusName());
-                        } else {
-                            collectUsedResponders(cert, response.getResponseStatusName(), null);
-                        }
+            initStorePreparedResponses();
+            Tuple<ServerInfoGetter.CertStatusValue, List<X509Certificate>> result = HttpsChecker.getCertFromHttps(checkURL);
+            Map<String, X509Certificate> certMap = CertLoader.loadCertificatesFromWIN();
+            boolean success = HttpsChecker.checkCertChain(result.getSecond(), certMap);
+            if (success) {
+                System.out.println("found certificate in store");
+                if (ocspCheck) {
+                    if (result.getFirst().equals(ServerInfoGetter.CertStatusValue.STATUS_OK)) {
+                        return  new Tuple<Integer, List<X509Certificate>>(0, result.getSecond());
+                    } else if (result.getFirst().equals(ServerInfoGetter.CertStatusValue.STATUS_NOK)) {
+                        return  new Tuple<Integer, List<X509Certificate>>(-1, result.getSecond());
                     }
-                }
 
-                if (responseStatus != 0) {
-                    System.out.println("Check certificates via CRL");
-                    X509Certificate [] certificates = new X509Certificate[result.getSecond().size()];
-                    int index = 0;
+                    Tuple<PrivateKey, X509Certificate[]> bean = loadKey();
+                    X509Certificate[] certs = new X509Certificate[2];
+                    certs = bean.getSecond();
+                    /*OCSPResponse response = HttpOCSPClient.sendOCSPRequest(ocspUrl, bean.getSelectedKey(),
+                            certs, certList.toArray(new X509Certificate[0]), false);*/
+
                     for (X509Certificate cert : result.getSecond()) {
-                        certificates[index] = cert;
-                        index++;
+                        if (!CertificateWizzard.isCertificateSelfSigned(cert)) {
+                            String ocspUrl = OCSPCRLClient.getOCSPUrl(cert);
+
+                            if (altResponder) {
+                                ocspUrl = OCSP_URL;
+                            }
+                            OCSPResponse response;
+
+                            X509Certificate [] realChain = Util.arrangeCertificateChain(
+                                    result.getSecond().toArray(new X509Certificate[0]),
+                                    false);
+                            Tuple<BigInteger, Optional<OCSPResponse>> predefResult =
+                                    searchForPredefinedResponse(new Tuple(bean.getFirst(), realChain), realChain);
+                            if (predefResult.getSecond().isPresent()) {
+                                response = predefResult.getSecond().get();
+                            } else {
+                                response = HttpOCSPClient.sendOCSPRequest(ocspUrl, bean.getFirst(),
+                                        certs, realChain,
+                                        ReqCert.certID,
+                                        false, true);
+                            }
+
+
+
+                            responseStatus = HttpOCSPClient.getClient().parseOCSPResponse(response, true);
+
+                            if (responseStatus == OCSPResponse.successful) {
+                                setResponsePersistant(response, realChain[0]);
+                                BasicOCSPResponse basic = (BasicOCSPResponse) response.getResponse();
+                                SingleResponse single = basic.getSingleResponses()[0];
+                                responseStatus = single.getCertStatus().getCertStatus();
+                                collectUsedResponders(cert, response.getResponseStatusName(), single.getCertStatus().getCertStatusName());
+                                if (!predefResult.getSecond().isPresent()) {
+                                    PredefinedResponses.writePreparedResponses();
+                                }
+                            } else {
+                                collectUsedResponders(cert, response.getResponseStatusName(), null);
+                            }
+                        }
                     }
-                    boolean ok = checkCertificateForRevocation(certificates);
-                    responseStatus = (ok) ? 0: -1;
-                    System.out.println("Checked certificates via CRL ended with: " + responseStatus);
+
+                    if (responseStatus != 0) {
+                        System.out.println("Check certificates via CRL");
+                        X509Certificate [] certificates = new X509Certificate[result.getSecond().size()];
+                        int index = 0;
+                        for (X509Certificate cert : result.getSecond()) {
+                            certificates[index] = cert;
+                            index++;
+                        }
+                        boolean ok = checkCertificateForRevocation(certificates);
+                        responseStatus = (ok) ? 0: -1;
+                        System.out.println("Checked certificates via CRL ended with: " + responseStatus);
+                    }
+
+                    return  new Tuple<Integer, List<X509Certificate>>(Integer.valueOf(responseStatus), result.getSecond());
+                } else {
+                    return new Tuple<Integer, List<X509Certificate>>(Integer.valueOf(OCSPResponse.successful), result.getSecond());
                 }
 
-                return  new Tuple<Integer, List<X509Certificate>>(Integer.valueOf(responseStatus), result.getSecond());
+
             } else {
-                return new Tuple<Integer, List<X509Certificate>>(Integer.valueOf(OCSPResponse.successful), result.getSecond());
+                return new Tuple<Integer, List<X509Certificate>>(Integer.valueOf(OCSPResponse.malformedRequest),
+                        Collections.EMPTY_LIST);
             }
-
-
-        } else {
-            return new Tuple<Integer, List<X509Certificate>>(Integer.valueOf(OCSPResponse.malformedRequest),
-                    Collections.EMPTY_LIST);
-        }
         } catch (Exception ex) {
             return new Tuple<Integer, List<X509Certificate>>(Integer.valueOf(OCSPResponse.tryLater),
                     Collections.EMPTY_LIST);
         }
 
+    }
+
+    private static Tuple<BigInteger, Optional<OCSPResponse>> searchForPredefinedResponse(Tuple keys, X509Certificate[] realChain) throws NoSuchAlgorithmException {
+        Name issuer = (Name)realChain[0].getIssuerDN();
+        ReqCert reqCert = new ReqCert(ReqCert.certID,
+                new CertID(AlgorithmID.sha256, issuer,
+                        realChain[0].getPublicKey(), realChain[0].getSerialNumber()));
+        return (Tuple<BigInteger, Optional<OCSPResponse>>) PredefinedResponses.searchResponseINMap(reqCert, keys);
+    }
+
+    private static void setResponsePersistant(OCSPResponse response, X509Certificate certificate) throws Exception {
+        Calendar instance = Calendar.getInstance();
+        instance.add(Calendar.MONTH, 1);
+        Date oneMonth = new Date();
+        oneMonth.setTime(instance.getTimeInMillis());
+        PredefinedResponses.OCSPRespToStore respToStore =
+                new PredefinedResponses.OCSPRespToStore(response, certificate.getSerialNumber());
+        workingData.get().getPreparedResponses().put(
+                certificate.getSerialNumber(), new Tuple(oneMonth, response));
     }
 
     public static String extractCNFromCert(X509Certificate cert) {

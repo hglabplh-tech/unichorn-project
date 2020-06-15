@@ -10,6 +10,7 @@ import org.harry.security.CMSSigner;
 import org.harry.security.util.CertificateWizzard;
 import org.harry.security.util.ConfigReader;
 import org.harry.security.util.bean.SigningBean;
+import org.harry.security.util.ocsp.PredefinedResponses;
 import org.harry.security.util.trustlist.TrustListManager;
 
 import java.io.IOException;
@@ -18,6 +19,7 @@ import java.util.List;
 import java.util.Properties;
 
 import static org.harry.security.util.httpclient.SSLUtils.installHttpHttpsProtocol;
+import static org.harry.security.util.ocsp.PredefinedResponses.workingData;
 
 /**
  * JavaFX App
@@ -33,6 +35,7 @@ public class SecHarry extends Application {
     @Override
     public void start(Stage stage) throws IOException {
         //URL.setURLStreamHandlerFactory(new BrowserTabCtrl.MyURLStreamHandlerFactory());
+        workingData.set(new PredefinedResponses.LocalCache());
         CMSSigner.setProviders();
         installHttpHttpsProtocol();
         CertificateWizzard.initThis();
