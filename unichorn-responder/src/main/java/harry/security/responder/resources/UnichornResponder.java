@@ -32,6 +32,7 @@ import javax.ws.rs.core.Response;
 import java.io.*;
 import java.security.KeyStore;
 import java.security.PrivateKey;
+import java.security.Provider;
 import java.security.Security;
 import java.util.Base64;
 import java.util.HashMap;
@@ -46,7 +47,7 @@ public class UnichornResponder extends HttpServlet {
 
 
 
-    public static final String ALIAS = "b998b1f7-04fe-42c6-8284-9fb21e604b60UserRSA";
+    public static boolean loggingInitialized = false;
 
 
 
@@ -56,16 +57,34 @@ public class UnichornResponder extends HttpServlet {
 
     @Override
     public void init () {
-        IAIKMD.addAsProvider();
-        ECCelerate.insertProviderAt(3);
-        SecurityProvider.setSecurityProvider(new ECCelerateProvider());
-        //
+        /* set the logging configuration */
+        if (!isLoggingInitialized()) {
+            Configurator.defaultConfig()
+                    .writer(new FileWriter("unichorn.log"))
+                    .locale(Locale.GERMANY)
+                    .level(Level.TRACE)
+                    .activate();
+        }
+        /*  register the providers*/
 
-        Configurator.defaultConfig()
-                .writer(new FileWriter("unichorn.log"))
-                .locale(Locale.GERMANY)
-                .level(Level.TRACE)
-                .activate();
+        Provider iaik = Security.getProvider("IAIK");
+        Provider iaikMD = Security.getProvider("IAIKMD");
+        Provider ecc = Security.getProvider("ECCelerate");
+
+        if (iaik == null && iaikMD == null && ecc == null) {
+            Logger.trace("register base providers IAIK / IAIKMD");
+            IAIKMD.addAsProvider();
+            Logger.trace("register ECCelerate provider");
+            ECCelerate.insertProviderAt(3);
+            Logger.trace("register ECCelerate security provider");
+            SecurityProvider.setSecurityProvider(new ECCelerateProvider());
+            Logger.trace("providers are registered");
+        } else {
+            Logger.trace("The providers are already registered");
+        }
+
+
+
     }
 
 
@@ -282,6 +301,12 @@ public class UnichornResponder extends HttpServlet {
         input.close();
         out.close();
         return tempFile;
+    }
+
+    public static boolean isLoggingInitialized() {
+        boolean result = loggingInitialized;
+        loggingInitialized = true;
+        return result;
     }
 
 

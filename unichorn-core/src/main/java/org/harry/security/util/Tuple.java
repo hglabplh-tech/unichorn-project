@@ -1,12 +1,15 @@
 package org.harry.security.util;
 
+import java.io.Serializable;
+
 /**
  * Class representing a Tuple response
  * @param <F> the first object class
  * @param <S> the second object class
  */
-public class Tuple<F,S> {
+public class Tuple<F,S> implements Serializable {
 
+    public static final long serialVersionUID = 1378900L;
     /**
      * first element
      */

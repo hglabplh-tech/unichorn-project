@@ -1,5 +1,6 @@
 package org.harry.security.util.ocsp;
 
+import iaik.asn1.ASN1Object;
 import iaik.asn1.ObjectID;
 import iaik.asn1.structures.*;
 import iaik.cms.IssuerAndSerialNumber;
@@ -15,6 +16,7 @@ import iaik.x509.ocsp.*;
 import iaik.x509.ocsp.extensions.*;
 import iaik.x509.ocsp.utils.TrustedResponders;
 import org.harry.security.util.CertificateWizzard;
+import org.pmw.tinylog.Logger;
 
 import java.math.BigInteger;
 import java.net.MalformedURLException;
@@ -329,6 +331,8 @@ public class OCSPCRLClient {
                         + ocspResponse.getResponseStatusName());
                 return responseStatus;
             }
+            ASN1Object asn1representation = ocspResponse.toASN1Object();
+            System.out.println("ASN1 formatted response:\n" + asn1representation.toString());
             // response successful
             System.out.println("Succesful OCSP response:");
             System.out.println(ocspResponse.toString());

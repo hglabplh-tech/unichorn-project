@@ -51,7 +51,7 @@
         <servlet-name>Timestamp REST Service</servlet-name>
         <url-pattern>/rest/tsp</url-pattern>
     </servlet-mapping>
-    <listener>
+   <!-- <listener>
         <listener-class>
             harry.security.responder.resources.SecurityProviderInitializer
         </listener-class>
@@ -60,7 +60,7 @@
         <listener-class>
             harry.security.responder.resources.RequestListener
         </listener-class>
-    </listener>
+    </listener> -->
     <security-constraint>
         <web-resource-collection>
             <web-resource-name>Signing REST Service</web-resource-name>

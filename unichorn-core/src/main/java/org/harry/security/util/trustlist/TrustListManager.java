@@ -72,8 +72,10 @@ public class TrustListManager {
                         allCerts.add(cert);
                     }
                     allSubjNames.add(id.getX509SubjectName());
-                } catch (CertificateException e) {
-                    e.printStackTrace();
+                } catch (Throwable ex) {
+                    Logger.trace("Error occurred creating certificate objex X509: -> " + ex.getMessage() +
+                            "\n exception class is: -> " + ex.getClass().getCanonicalName());
+                    Logger.trace(ex);
                 }
 
             }

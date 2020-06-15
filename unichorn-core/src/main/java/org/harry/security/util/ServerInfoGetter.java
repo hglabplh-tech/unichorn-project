@@ -3,6 +3,7 @@ package org.harry.security.util;
 import iaik.security.ssl.*;
 import iaik.utils.Util;
 import iaik.x509.X509Certificate;
+import org.pmw.tinylog.Logger;
 
 import java.io.*;
 import java.net.InetAddress;
@@ -489,7 +490,7 @@ public class ServerInfoGetter {
             verifyOK = chainVerifier.verifyChain( tls13Certificates,
                     socket.getTransport(), STATUS_TYPE_OCSP, statusReqEncoded);
 
-            System.out.println("Chain verification: " + Boolean.valueOf(verifyOK).toString());
+            System.out.println("Chain verificationended with : " + Boolean.valueOf(verifyOK).toString());
             index = 0;
             for (; index < tls13Certificates.length; index++) {
                 ExtensionList certExtensions = tls13Certificates[index].getExtensions();
@@ -503,9 +504,8 @@ public class ServerInfoGetter {
             } else {
                 return CertStatusValue.STATUS_NOK;
             }
-        } catch( IOException e ) {
-            System.err.println("IOException:");
-            e.printStackTrace(System.err);
+        } catch( IOException ex) {
+            Logger.trace("IOException:" + ex.getMessage());
             return CertStatusValue.STATUS_CHECK_GO_ON;
         } finally {
             if (socket != null) {

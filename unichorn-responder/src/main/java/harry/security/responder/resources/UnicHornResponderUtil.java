@@ -34,6 +34,7 @@
 //
 package harry.security.responder.resources;
 
+import iaik.asn1.ASN1Object;
 import iaik.asn1.CodingException;
 import iaik.asn1.ObjectID;
 import iaik.asn1.structures.AccessDescription;
@@ -56,6 +57,7 @@ import org.harry.security.util.bean.SigningBean;
 import org.harry.security.util.certandkey.CertificateChainUtil;
 import org.harry.security.util.certandkey.KeyStoreTool;
 import org.harry.security.util.ocsp.OCSPCRLClient;
+import org.harry.security.util.ocsp.PredefinedResponses;
 import org.harry.security.util.trustlist.TrustListLoader;
 import org.harry.security.util.trustlist.TrustListManager;
 import org.pmw.tinylog.Logger;
@@ -82,12 +84,6 @@ import static org.harry.security.util.ocsp.OCSPCRLClient.getCRLOfCert;
  */
 public class UnicHornResponderUtil {
 
-    /**
-     * The positive list of certificate chains which are known
-     */
-
-    private static ThreadLocal<LocalCache> workingData
-            = new ThreadLocal<>();
     private static SimpleChainVerifier verifier = new SimpleChainVerifier();
 
     /**
@@ -114,7 +110,7 @@ public class UnicHornResponderUtil {
     public static OCSPResponse generateResponse(OCSPRequest ocspRequest,
                                                 InputStream ocspReqInput) {
         Logger.trace("Enter generateResponse do the real work of responder.......");
-        workingData.set(new LocalCache());
+        PredefinedResponses.workingData.set(new PredefinedResponses.LocalCache());
         Logger.trace("Setting cache is ok....");
         loadActualPrivStore();
         Logger.trace("Load certificates ok....");
@@ -122,7 +118,7 @@ public class UnicHornResponderUtil {
         workingData.get().setCertificateList(temp); */
         try {
             Logger.trace("Before loading prepared....");
-            initStorePreparedResponses();
+            PredefinedResponses.initStorePreparedResponses();
             Logger.trace("loading prepared ok.....");
         } catch (IOException e) {
             Logger.trace(e);
@@ -174,7 +170,7 @@ public class UnicHornResponderUtil {
 
         Logger.trace( "Message is: before add resp entries");
         Tuple<BigInteger, Optional<OCSPResponse>> responseOpt =
-                searchResponseINMap(ocspRequest.getRequestList()[0].getReqCert(), keys);
+                PredefinedResponses.searchResponseINMap(ocspRequest.getRequestList()[0].getReqCert(), keys);
         if (responseOpt.getSecond().isPresent()) {
             Logger.trace( "Message is: prepared response found");
             return responseOpt.getSecond().get();
@@ -186,18 +182,29 @@ public class UnicHornResponderUtil {
         try {
             if (response != null) {
                 if (!responseOpt.getFirst().equals(BigInteger.valueOf(-1)) && !responseOpt.getSecond().isPresent()) {
-                    workingData.get().getPreparedResponses()
-                            .put(responseOpt.getFirst(), new OCSPRespToStore(response, responseOpt.getFirst()));
+                    Calendar instance = Calendar.getInstance();
+                    instance.add(Calendar.MONTH, 1);
+                    Date later = new Date();
+                    later.setTime(instance.getTimeInMillis());
+                    PredefinedResponses.workingData.get().getPreparedResponses().put(responseOpt.getFirst(),
+                            new Tuple(later,
+                                    new PredefinedResponses.OCSPRespToStore(response, responseOpt.getFirst())));
                 }
-                writePreparedResponses();
+                PredefinedResponses.writePreparedResponses();
                 return response;
             } else {
                 AlgorithmID preferred = lookupPrefferedSigAlg(ocspRequest);
                 response = getOcspResponse(ocspReqInput, responseGenerator, preferred, keys, nonceExt);
                 if (!responseOpt.getFirst().equals(BigInteger.valueOf(-1)) && !responseOpt.getSecond().isPresent()) {
-                    workingData.get().getPreparedResponses().put(responseOpt.getFirst(), new OCSPRespToStore(response, responseOpt.getFirst()));
+                    Calendar instance = Calendar.getInstance();
+                    instance.add(Calendar.MONTH, 1);
+                    Date later = new Date();
+                    later.setTime(instance.getTimeInMillis());
+                    PredefinedResponses.workingData.get().getPreparedResponses().put(responseOpt.getFirst(),
+                            new Tuple(later,
+                                    new PredefinedResponses.OCSPRespToStore(response, responseOpt.getFirst())));
                 }
-                writePreparedResponses();
+                PredefinedResponses.writePreparedResponses();
                 return response;
             }
         } catch (Exception ex) {
@@ -232,8 +239,8 @@ public class UnicHornResponderUtil {
         extensions[1] = nonce;
         OCSPResponse response = responseGenerator.createOCSPResponse(ocspReqInput,
                 keys.getSecond()[0].getPublicKey(), signatureAlgorithm, extensions);
-        ((BasicOCSPResponse)response.getResponse()).addExtension(nonce);
-        ((BasicOCSPResponse)response.getResponse()).sign(signatureAlgorithm,keys.getFirst());
+        ASN1Object asn1representation = response.toASN1Object();
+        Logger.trace("ASN1 formatted response:\n" + asn1representation.toString());
         Logger.trace("after create internal");
         Logger.trace("Message is: output ok");
         return response;
@@ -376,7 +383,7 @@ public class UnicHornResponderUtil {
         Date nextWeek = new Date(instance.getTimeInMillis());
 
         Optional<X509Certificate> issuer = Optional.empty();
-        issuer = CertificateChainUtil.findIssuer(actualCert, workingData.get().getCertificateList());
+        issuer = CertificateChainUtil.findIssuer(actualCert, PredefinedResponses.workingData.get().getCertificateList());
 
         boolean matches = false;
         boolean error = false;
@@ -392,7 +399,6 @@ public class UnicHornResponderUtil {
             error = true;
         }
         if (issuer.isPresent()) {
-            CertID id = (CertID)reqCert.getReqCert();
             matches = moreChecksIfPossible(reqCert, issuer.get(),actualCert);
         } else {
 
@@ -702,7 +708,7 @@ public class UnicHornResponderUtil {
      * Here the keystore holdiung the known certificates is loaded
      */
     public static void loadActualPrivStore() {
-        loadActualPrivTrust();
+        loadActualTrustLists();
         try {
             Logger.trace("Before loading private key-store....");
             String password = decryptPassword("pwdFile");
@@ -716,8 +722,8 @@ public class UnicHornResponderUtil {
                 Logger.trace("Try to read alias: " + alias);
                 X509Certificate[] chain = KeyStoreTool.getCertChainEntry(storeApp, alias);
                 List<X509Certificate> temp = CertificateChainUtil
-                        .addToCertificateList(chain, workingData.get().getCertificateList());
-                workingData.get().setCertificateList(temp);
+                        .addToCertificateList(chain, PredefinedResponses.workingData.get().getCertificateList());
+                PredefinedResponses.workingData.get().setCertificateList(temp);
             }
             Logger.trace("loading private key-store ok....");
         } catch (Exception ex) {
@@ -729,22 +735,41 @@ public class UnicHornResponderUtil {
     /**
         * Load the trusted
      */
-    public static void loadActualPrivTrust() {
+    public static void loadActualTrustLists() {
         try {
             Logger.trace("Before loading private trust list....");
-            File trustFile = new File(APP_DIR_TRUST, "privateTrust" + ".xml");
-            TrustListLoader loader = new TrustListLoader(true);
-            if (trustFile.exists()) {
-                TrustListManager manager = loader.getManager(trustFile);
-                X509Certificate[] array = manager.getAllCerts()
-                        .toArray(new X509Certificate[manager.getAllCerts().size()]);
-                CertificateChainUtil.addToCertificateList(array, workingData.get().getCertificateList());
+            File trustDir = new File(APP_DIR_TRUST);
+            if (trustDir.isDirectory()) {
+                FilenameFilter filter = new FilenameFilter() {
+                    @Override
+                    public boolean accept(File dir, String name) {
+                        if (name.endsWith("xml")) {
+                            return true;
+                        } else {
+                            return false;
+                        }
+                    }
+                };
+                File[] files = trustDir.listFiles(filter);
+                Logger.trace(files.length + " trust lists found");
+                for (File trustFile : files) {
+                    TrustListLoader loader = new TrustListLoader(true);
+                    if (trustFile.exists()) {
+                        TrustListManager manager = loader.getManager(trustFile);
+                        X509Certificate[] array = manager.getAllCerts()
+                                .toArray(new X509Certificate[manager.getAllCerts().size()]);
+                        CertificateChainUtil.addToCertificateList(array, PredefinedResponses.workingData.get().getCertificateList());
+                        Logger.trace("loading trust list:" + trustFile.getName() + " ok....");
+                    }
+
+                }
             }
-            Logger.trace("loading private trust list ok....");
+
         } catch (Exception ex) {
             Logger.trace("not loaded cause is: " + ex.getMessage());
             throw new IllegalStateException("not loaded keys", ex);
         }
+
     }
 
 
@@ -778,7 +803,7 @@ public class UnicHornResponderUtil {
      * @return the certificate chain in a optional or empty if there is none.
      */
     private static Optional<X509Certificate> findSerialINPositiveList(BigInteger serial) {
-        Optional<X509Certificate> opt = workingData.get().getCertificateList().stream().filter(e -> {
+        Optional<X509Certificate> opt = PredefinedResponses.workingData.get().getCertificateList().stream().filter(e -> {
             X509Certificate cert = e;
             Logger.trace("Search for: " + serial.toString(10) +  " in --> " + cert.toString(true));
             if (cert.getSerialNumber().equals(serial)) {
@@ -927,261 +952,6 @@ public class UnicHornResponderUtil {
             result = algArray[0].getSigIdentifier();
         }
         return result;
-    }
-
-    /**
-     * Read the responses hash-table if available
-     * @throws IOException error case
-     * @throws ClassNotFoundException error case
-     */
-    public static void initStorePreparedResponses() throws IOException, ClassNotFoundException {
-        try {
-            workingData.get().setPreparedResponses(new HashMap<BigInteger, OCSPRespToStore>());
-            File hashMapFile = new File(APP_DIR_WORKING, "responses.ser");
-            if (hashMapFile.exists()) {
-                ObjectInputStream input = new ObjectInputStream(new FileInputStream(hashMapFile));
-                Object rawObj = input.readObject();
-                if (rawObj != null) {
-                    workingData.get().setPreparedResponses((HashMap) rawObj);
-                }
-                input.close();
-            } else {
-                Logger.trace("Prepared responses file not found");
-            }
-        } catch (Exception ex) {
-            Logger.trace("read HashTable failed: " +  ex.getMessage());
-            throw new IllegalStateException("read HashTable failed", ex);
-        }
-    }
-
-    /**
-     * write the responses hash-table to disk
-     * @throws IOException error case
-     */
-    public static void writePreparedResponses() throws IOException {
-        try {
-            File hashMapFile = new File(APP_DIR_WORKING, "responses.ser");
-            ObjectOutputStream output = new ObjectOutputStream(new FileOutputStream(hashMapFile));
-            output.writeObject(workingData.get().getPreparedResponses());
-            output.flush();
-            output.close();
-        } catch (Exception ex) {
-            Logger.trace("write HashTable failed: " +  ex.getMessage());
-            throw new IllegalStateException("write HashTable failed", ex);
-        }
-    }
-
-    /**
-     * Search response in hash-table
-     * @param req the cert-req of the actual request used to get the serial
-     * @param keys the information for response signing
-     * @return a tuple of the serial and th optional of the response
-     */
-    public static Tuple<BigInteger, Optional<OCSPResponse>> searchResponseINMap(ReqCert req, Tuple<PrivateKey,
-            X509Certificate[]> keys) {
-        try {
-            BigInteger serial = null;
-            if (req.getType() == ReqCert.certID) {
-                CertID certID = (CertID) req.getReqCert();
-                serial = certID.getSerialNumber();
-            } else if (req.getType() == ReqCert.pKCert) {
-                X509Certificate cert = (X509Certificate) req.getReqCert();
-                serial = cert.getSerialNumber();
-            } else {
-                Logger.trace("Entry not found");
-                return new Tuple<>(BigInteger.valueOf(-1), Optional.empty());
-            }
-            if (serial != null) {
-                OCSPRespToStore respToStore = workingData.get().getPreparedResponses().get(serial);
-                OCSPResponse response = null;
-                if (respToStore != null) {
-                    response = transferToOCSPResponse(respToStore, keys);
-                }
-                if (response != null) {
-                    return new Tuple<>(serial, Optional.of(response));
-                } else {
-                    return new Tuple<>(serial, Optional.empty());
-                }
-            }
-            return new Tuple(serial, Optional.empty());
-        } catch (Exception ex) {
-            Logger.trace("Error during conversion: " + ex.getMessage() + " type " + ex.getClass().getCanonicalName());
-            throw new IllegalStateException("cannot convert to OCSPResponse", ex);
-        }
-
-    }
-
-    /**
-     * Method to restore a OCSPResponse object from its serializable version
-     * @param source the storable response
-     * @param keys the information for signing
-     * @return the native response object
-     * @throws Exception error case
-     */
-
-
-
-    public static OCSPResponse transferToOCSPResponse(OCSPRespToStore source,
-    Tuple<PrivateKey,
-            X509Certificate[]> keys) throws Exception {
-        BasicOCSPResponse basicResp = new BasicOCSPResponse();
-        X509Certificate certificate = new X509Certificate(source.getCertEncoded());
-        CertID id = new CertID(AlgorithmID.sha256,
-                (Name) certificate.getIssuerDN(),
-                certificate.getPublicKey(),
-                certificate.getSerialNumber());
-        ReqCert reqCert = new ReqCert(ReqCert.certID, id);
-
-        CertStatus status = null;
-        if (source.getStatus().equals(RespStatus.GOOD)) {
-            status = new CertStatus();
-        } else if (source.getStatus().equals(RespStatus.REVOKED)) {
-            status = new CertStatus(new RevokedInfo(new Date()));
-        } else {
-            status = new CertStatus(new UnknownInfo());
-        }
-        SingleResponse single = new SingleResponse(reqCert, status, new Date());
-        Calendar cal = Calendar.getInstance();
-        cal.add(Calendar.YEAR, 1);
-        Date date = new Date();
-        date.setTime(cal.getTimeInMillis());
-        single.setArchiveCutoff(date);
-        SingleResponse[] responses = new SingleResponse[1];
-        responses[0] = single;
-        basicResp.setSingleResponses(responses);
-        ResponderID responderID = new ResponderID(certificate.getPublicKey());
-        basicResp.setResponderID(responderID);
-        basicResp.setProducedAt(new Date());
-        X509Certificate[] certs = new X509Certificate[0];
-        if (source.getSignerCertEncoded() != null) {
-            certs = new X509Certificate[2];
-            certs[0] = new X509Certificate(source.getSignerCertEncoded());
-            certs[1] = certificate;
-        } else {
-            certs = new X509Certificate[1];
-            certs[0] = certificate;
-        }
-        basicResp.setCertificates(certs);
-        OCSPResponse response = new OCSPResponse(basicResp);
-        basicResp.sign(AlgorithmID.sha256WithRSAEncryption, keys.getFirst());
-
-        return response;
-    }
-
-    /**
-     * Class representing the response - status
-     */
-    public static enum RespStatus implements Serializable {
-        GOOD(0),
-        REVOKED(1),
-        UNKNOWN(2);
-
-        final int status;
-
-        RespStatus(int status) {
-            this.status = status;
-        }
-
-        public static RespStatus getByStatus(int stat) {
-            for (RespStatus status:RespStatus.values()) {
-                if (status.status == stat) {
-                    return status;
-                }
-            }
-            return RespStatus.GOOD;
-        }
-    }
-
-    /**
-     * Class representing a serializable version of a O'CSPResponse object
-     */
-    public static class OCSPRespToStore implements Serializable {
-        private RespStatus status;
-        private int respCode = 0;
-        private BigInteger serial;
-        private byte[] certEncoded;
-        private byte[] signerCertEncoded;
-        public OCSPRespToStore(OCSPResponse response, BigInteger serial) throws Exception {
-            try {
-                Logger.trace("Step 1");
-                BasicOCSPResponse basicResp = (BasicOCSPResponse)response.getResponse();
-                Logger.trace("Step 2");
-                int status = 0;
-                if (basicResp != null) {
-                    SingleResponse singleResponse = basicResp.getSingleResponses()[0];
-                    if (singleResponse != null) {
-                        Logger.trace("Step 3");
-                        status = singleResponse.getCertStatus().getCertStatus();
-                        Logger.trace("Step 4");
-                        certEncoded = basicResp.getCertificates()[0].getEncoded();
-                    }
-                    Logger.trace("Step 5");
-                    this.status = RespStatus.getByStatus(status);
-                    Logger.trace("Step 6");
-                    respCode = response.getResponseStatus();
-                    Logger.trace("Step 7");
-                    if (basicResp.getCertificates() != null && basicResp.getCertificates().length >= 1) {
-                        signerCertEncoded = basicResp.getCertificates()[0].getEncoded();
-                    }
-                    Logger.trace("Step 8");
-                }
-                this.serial = serial;
-
-            } catch(Exception ex) {
-                Logger.trace("Construction of serializable failed"
-                        + ex.getMessage() + " type "
-                        + ex.getClass().getCanonicalName());
-                throw new IllegalStateException("Construction of serializable failed", ex);
-            }
-        }
-
-        public RespStatus getStatus() {
-            return status;
-        }
-
-        public int getRespCode() {
-            return respCode;
-        }
-
-        public BigInteger getSerial() {
-            return serial;
-        }
-
-        public byte[] getCertEncoded() {
-            return certEncoded;
-        }
-
-        public byte[] getSignerCertEncoded() {
-            return signerCertEncoded;
-        }
-    }
-
-    public static class LocalCache {
-        private List<X509Certificate> certificateList = new ArrayList<>();
-
-        private Map<BigInteger, OCSPRespToStore> preparedResponses = new HashMap<>();
-
-        public LocalCache() {
-            certificateList =  new ArrayList<>();
-            preparedResponses = new HashMap<>();
-        }
-        public List<X509Certificate> getCertificateList() {
-            return certificateList;
-        }
-
-        public LocalCache setCertificateList(List<X509Certificate> chainList) {
-            this.certificateList = chainList;
-            return this;
-        }
-
-        public Map<BigInteger, OCSPRespToStore> getPreparedResponses() {
-            return preparedResponses;
-        }
-
-        public LocalCache setPreparedResponses(Map<BigInteger, OCSPRespToStore> preparedResponses) {
-            this.preparedResponses = preparedResponses;
-            return this;
-        }
     }
 
 }
