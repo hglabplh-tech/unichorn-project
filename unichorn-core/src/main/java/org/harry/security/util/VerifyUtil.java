@@ -580,10 +580,16 @@ public class VerifyUtil {
                             signerInfo)) {
                         results.addSignatureResult("counter_sig", new Tuple<String, Outcome>("counter signature verified ok",
                                 Outcome.SUCCESS));
+                        algPathChecker.checkSignatureAlgorithm(signature.getSignatureAlgorithm(),
+                                this.bean.getCounterKeyStoreBean()
+                                        .getSelectedCert()
+                                        .getPublicKey(),
+                                results);
                     } else {
                         results.addSignatureResult("counter_sig", new Tuple<String, Outcome>("counter signature verified NOT ok",
                                 Outcome.FAILED));
                     }
+
                 }
             } catch (Exception ex) {
                 // set results

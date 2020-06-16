@@ -65,10 +65,23 @@ public class SigningUtilTest extends TestBase {
     public void counterSignASignatureCMS() throws Exception {
         KeyStore store = KeyStoreTool.loadAppStore();
         Tuple<PrivateKey, X509Certificate[]> keys = KeyStoreTool.getAppKeyEntry(store);
+        InputStream counterKeyInput = SigningUtilTest.class.getResourceAsStream("/certificates/signing.p12");
+        KeyStore counterStore = KeyStoreTool.loadStore(counterKeyInput, "changeit".toCharArray(), "PKCS12");
         URL urlInput = SigningUtilTest.class.getResource("/data/ergo.pdf");
+        Tuple<PrivateKey, X509Certificate[]> counterKeys = null;
+        Enumeration<String> aliases = counterStore.aliases();
+        if (aliases.hasMoreElements()) {
+            String alias = aliases.nextElement();
+            counterKeys =
+                    KeyStoreTool.getKeyEntry(counterStore, alias, "changeit".toCharArray());
+        } else {
+            fail("no keys found for counter sign");
+        }
         File fileInput = new File(urlInput.toURI());
         File output = File.createTempFile("signedCMS", ".pkcs7");
         CertWriterReader.KeyStoreBean bean = new CertWriterReader.KeyStoreBean(keys.getSecond(), keys.getFirst());
+        CertWriterReader.KeyStoreBean counterBean =
+                new CertWriterReader.KeyStoreBean(counterKeys.getSecond(), counterKeys.getFirst());
         SigningUtil util = new SigningUtil();
         SigningBean signingBean = new SigningBean()
                 .setSigningMode(SigningBean.Mode.EXPLICIT)
@@ -86,6 +99,7 @@ public class SigningUtilTest extends TestBase {
                 .setDigestAlgorithm(DigestAlg.SHA3_512)
                 .setSignatureAlgorithm(SignatureAlg.SHA3_512_WITH_RSA)
                 .setKeyStoreBean(bean)
+                .setCounterKeyStoreBean(counterBean)
                 .setDecryptPWD("changeit")
                 .setDataINFile(fileInput)
                 .setDataIN(new FileInputStream(output))
