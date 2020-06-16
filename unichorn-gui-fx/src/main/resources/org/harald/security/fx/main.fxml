@@ -90,6 +90,7 @@
             <Button fx:id="createAttrCert" mnemonicParsing="false" onAction="#createAttrCert" text="Create Attribute Cert" GridPane.columnIndex="2" GridPane.rowIndex="10" />
             <Button fx:id="browser" mnemonicParsing="false" onAction="#browser" text="Browser" GridPane.columnIndex="3" GridPane.rowIndex="10" />
             <Button fx:id="manageCard" mnemonicParsing="false" onAction="#manageCard" text="Manage Card" GridPane.rowIndex="9" />
+            <Button fx:id="signxades" mnemonicParsing="false" onAction="#signxades" text="Sign XAdES" GridPane.rowIndex="8" />
          </children>
       </GridPane>
       <Sphere radius="0.77">

@@ -126,6 +126,11 @@ public class CertToolCtrl implements ControllerInit {
     private void cancelSigning(ActionEvent event) throws IOException {
         SecHarry.setRoot("crledit", SecHarry.CSS.ABBY);
     }
+
+    @FXML
+    public void signxades(ActionEvent event) throws IOException {
+        SecHarry.setRoot("signingXAdES", SecHarry.CSS.UNICHORN);
+    }
     @FXML
     private void selectPath(ActionEvent event) throws IOException {
         String fxId = "keyStorePath";

@@ -61,6 +61,7 @@ import java.util.*;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.nCopies;
+import static org.harry.security.CommonConst.TSP_URL;
 
 
 public class SignXAdESUtil {
@@ -150,12 +151,13 @@ public class SignXAdESUtil {
         SigningTime st = null;
         st = qfac.newSigningTime();
         SignatureProductionPlaceV2 prodPlace = null;
-        if (params.isAddProductionPlace()) {
-            prodPlace = qfac.newSignatureProductionPlaceV2("Stuttgart",
-                    "Fasanenweg 5",
-                    "Baden-Württemberg",
-                    "70771",
-                    "Germany");
+        if (params.getProductionPlace() != null) {
+            ProdPlace place = params.getProductionPlace();
+            prodPlace = qfac.newSignatureProductionPlaceV2(place.getCity(),
+                    place.getStreet(),
+                    place.getRegion(),
+                    place.getZipCode(),
+                    place.getCountry());
         }
 
 
@@ -375,9 +377,9 @@ public class SignXAdESUtil {
         private String canonMethod = CanonicalizationMethod.EXCLUSIVE;
         private String signatureAlg = XmldsigMore.SIGNATURE_RSA_SHA256;
         private String digestAlg = DigestMethod.SHA256;
-        private String TSA_URL = "http://tsp.iaik.tugraz.at/tsp/TspRequest";
+        private String TSA_URL = TSP_URL;
         private CounterSignature counterSignature = null;
-        private boolean addProductionPlace = false;
+        private ProdPlace productionPlace = null;
         private boolean genPolicy = false;
 
 
@@ -448,12 +450,12 @@ public class SignXAdESUtil {
             this.setArchiveTimeStamp = setArchiveTimeStamp;
         }
 
-        public boolean isAddProductionPlace() {
-            return addProductionPlace;
+        public ProdPlace getProductionPlace() {
+            return productionPlace;
         }
 
-        public void setAddProductionPlace(boolean addProductionPlace) {
-            this.addProductionPlace = addProductionPlace;
+        public void setProductionPlace(ProdPlace addProductionPlace) {
+            this.productionPlace = addProductionPlace;
         }
 
         public boolean isGenPolicy() {
@@ -472,6 +474,59 @@ public class SignXAdESUtil {
             this.canonMethod = canonMethod;
         }
 
+    }
+
+    public static class ProdPlace {
+        private String city;
+        private String street;
+        private String zipCode;
+        private String region;
+        private String country;
+
+        public String getCity() {
+            return city;
+        }
+
+        public ProdPlace setCity(String city) {
+            this.city = city;
+            return this;
+        }
+
+        public String getStreet() {
+            return street;
+        }
+
+        public ProdPlace setStreet(String street) {
+            this.street = street;
+            return this;
+        }
+
+        public String getZipCode() {
+            return zipCode;
+        }
+
+        public ProdPlace setZipCode(String zipCode) {
+            this.zipCode = zipCode;
+            return this;
+        }
+
+        public String getRegion() {
+            return region;
+        }
+
+        public ProdPlace setRegion(String region) {
+            this.region = region;
+            return this;
+        }
+
+        public String getCountry() {
+            return country;
+        }
+
+        public ProdPlace setCountry(String country) {
+            this.country = country;
+            return this;
+        }
     }
 
 }

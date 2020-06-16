@@ -71,6 +71,25 @@ public class Miscellaneous {
         ListView inputField = (ListView) SecHarry.fxmlLoader.getNamespace().get(fxId);
         return inputField;
     }
+
+    public static File showOpenDialog(ActionEvent event, TextField field) {
+        FileChooser fDialog = new FileChooser();
+        fDialog.setTitle("Select Path");
+        File currentDir = new File(System.getProperty("user.home", "C:\\")).getAbsoluteFile();
+
+        fDialog.setInitialDirectory(currentDir);
+        Window parent = ((MenuItem)event.getTarget()).getParentPopup().getOwnerWindow();
+        File file = fDialog.showOpenDialog(parent);
+        if (file != null) {
+            TextField inputField = field;
+            if (inputField != null) {
+                inputField.setText(file.getAbsolutePath());
+                return file;
+            }
+        }
+        return null;
+    }
+
     public static File showOpenDialog(ActionEvent event, String fxId) {
         FileChooser fDialog = new FileChooser();
         fDialog.setTitle("Select Path");
@@ -89,6 +108,7 @@ public class Miscellaneous {
         return null;
     }
 
+
     public static File showSaveDialog(ActionEvent event, String fxId) {
         FileChooser fDialog = new FileChooser();
         fDialog.setTitle("Select Path");
@@ -99,6 +119,25 @@ public class Miscellaneous {
         File file = fDialog.showSaveDialog(parent);
         if (file != null) {
             TextField inputField = getTextFieldByFXID(fxId);
+            if (inputField != null) {
+                inputField.setText(file.getAbsolutePath());
+                return file;
+
+            }
+        }
+        return null;
+    }
+
+    public static File showSaveDialog(ActionEvent event, TextField input) {
+        FileChooser fDialog = new FileChooser();
+        fDialog.setTitle("Select Path");
+        File currentDir = new File(System.getProperty("user.home", "C:\\")).getAbsoluteFile();
+
+        fDialog.setInitialDirectory(currentDir);
+        Window parent = ((MenuItem)event.getTarget()).getParentPopup().getOwnerWindow();
+        File file = fDialog.showSaveDialog(parent);
+        if (file != null) {
+            TextField inputField = input;
             if (inputField != null) {
                 inputField.setText(file.getAbsolutePath());
                 return file;

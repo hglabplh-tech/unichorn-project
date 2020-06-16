@@ -98,6 +98,7 @@
                </contextMenu>
             </TextField>
             <CheckBox fx:id="signLoacal" mnemonicParsing="false" text="Signing Loacally ?" GridPane.columnIndex="1" GridPane.rowIndex="6" />
+            <CheckBox fx:id="counterSign" mnemonicParsing="false" text="Counter Sign CMS / CAdES" GridPane.columnIndex="2" GridPane.rowIndex="6" />
          </children>
       </GridPane>
    </children>
