@@ -34,6 +34,8 @@ public class SigningBean {
 
     private CertWriterReader.KeyStoreBean keyStoreBean;
 
+    private CertWriterReader.KeyStoreBean counterKeyStoreBean;
+
     private InputStream dataIN;
 
     private File dataINFile;
@@ -301,6 +303,15 @@ public class SigningBean {
 
     public SigningBean setCheckForQualified(boolean checkForQualified) {
         this.checkForQualified = checkForQualified;
+        return this;
+    }
+
+    public CertWriterReader.KeyStoreBean getCounterKeyStoreBean() {
+        return counterKeyStoreBean;
+    }
+
+    public SigningBean setCounterKeyStoreBean(CertWriterReader.KeyStoreBean counterKeyStoreBean) {
+        this.counterKeyStoreBean = counterKeyStoreBean;
         return this;
     }
 }

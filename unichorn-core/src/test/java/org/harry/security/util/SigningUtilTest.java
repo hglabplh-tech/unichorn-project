@@ -12,6 +12,7 @@ import org.harry.security.util.bean.AttrCertBean;
 import org.harry.security.util.bean.SigningBean;
 import org.harry.security.util.certandkey.CertWriterReader;
 import org.harry.security.util.certandkey.KeyStoreTool;
+import org.harry.security.util.trustlist.TrustListManager;
 import org.junit.Test;
 
 
@@ -20,11 +21,15 @@ import java.io.*;
 import java.net.URL;
 import java.security.KeyStore;
 import java.security.PrivateKey;
+import java.util.Enumeration;
+import java.util.List;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.harry.security.CommonConst.TSP_URL;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.fail;
 
 public class SigningUtilTest extends TestBase {
 
@@ -87,17 +92,34 @@ public class SigningUtilTest extends TestBase {
                 .setOutputPath(counterOutput.getAbsolutePath());
         outCome = util.setCounterSignature(signingBean);
         util.writeToFile(outCome, signingBean);
+        List<TrustListManager> walkers = ConfigReader.loadAllTrusts();
+        VerifyUtil vutil = new VerifyUtil(walkers, signingBean);
+        vutil.verifyCadesSignature(new FileInputStream(counterOutput), new FileInputStream(fileInput));
 
     }
 
     @Test
     public void counterSignASignatureCAdES() throws Exception {
         KeyStore store = KeyStoreTool.loadAppStore();
+        InputStream counterKeyInput = SigningUtilTest.class.getResourceAsStream("/certificates/signing.p12");
+        KeyStore counterStore = KeyStoreTool.loadStore(counterKeyInput, "changeit".toCharArray(), "PKCS12");
+        Enumeration<String> aliases = counterStore.aliases();
+        Tuple<PrivateKey, X509Certificate[]> counterKeys = null;
+        if (aliases.hasMoreElements()) {
+            String alias = aliases.nextElement();
+            counterKeys =
+                    KeyStoreTool.getKeyEntry(counterStore, alias, "changeit".toCharArray());
+        } else {
+            fail("no keys found for counter sign");
+        }
+        assertNotNull(counterKeys);
         Tuple<PrivateKey, X509Certificate[]> keys = KeyStoreTool.getAppKeyEntry(store);
         URL urlInput = SigningUtilTest.class.getResource("/data/ergo.pdf");
         File fileInput = new File(urlInput.toURI());
         File output = File.createTempFile("signedCMS", ".pkcs7");
         CertWriterReader.KeyStoreBean bean = new CertWriterReader.KeyStoreBean(keys.getSecond(), keys.getFirst());
+        CertWriterReader.KeyStoreBean counterBean =
+                new CertWriterReader.KeyStoreBean(counterKeys.getSecond(), counterKeys.getFirst());
         SigningUtil util = new SigningUtil();
         SigningBean signingBean = new SigningBean()
                 .setTspURL("http://zeitstempel.dfn.de")
@@ -114,13 +136,16 @@ public class SigningUtilTest extends TestBase {
                 .setDigestAlgorithm(DigestAlg.SHA3_512)
                 .setSignatureAlgorithm(SignatureAlg.SHA3_512_WITH_RSA)
                 .setKeyStoreBean(bean)
+                .setCounterKeyStoreBean(counterBean)
                 .setDecryptPWD("changeit")
                 .setDataINFile(fileInput)
                 .setDataIN(new FileInputStream(output))
                 .setOutputPath(counterOutput.getAbsolutePath());
         outCome = util.setCounterSignature(signingBean);
         util.writeToFile(outCome, signingBean);
-
+        List<TrustListManager> walkers = ConfigReader.loadAllTrusts();
+        VerifyUtil vutil = new VerifyUtil(walkers, signingBean);
+        vutil.verifyCadesSignature(new FileInputStream(counterOutput), new FileInputStream(fileInput));
     }
 
 

@@ -290,7 +290,11 @@ public class SigningUtil {
         }
     }
 
-
+    /**
+     * This method sets a counter signature to a given signature
+     * @param signingBean the data needed for setting a counter signature
+     * @return the counter signed stuff
+     */
     public DataSource setCounterSignature(SigningBean signingBean) {
         try {
             // set counter signature
@@ -307,12 +311,23 @@ public class SigningUtil {
                 }
                 signedData.setInputStream(signingBean.getDataINFile());
             }
+            AlgorithmID digestAlgorithm = null;
+            AlgorithmID signatureAlgorithm = null;
+            if (signingBean.getDigestAlgorithm() != null) {
+                DigestAlg alg = signingBean.getDigestAlgorithm();
+                digestAlgorithm = alg.getAlgId();
+            }
+            if (signingBean.getSignatureAlgorithm() != null) {
+                SignatureAlg alg = signingBean.getSignatureAlgorithm();
+                signatureAlgorithm = alg.getAlgId();
+            }
             //  signedData.verify(0);
             Attribute[] attributes = new Attribute[1];
-            CounterSignature counterSig = new CounterSignature(new IssuerAndSerialNumber(signingBean.getKeyStoreBean().getSelectedCert()),
-                    signingBean.getDigestAlgorithm().getAlgId(),
-                    signingBean.getSignatureAlgorithm().getAlgId(),
-                    signingBean.getKeyStoreBean().getSelectedKey()
+            CounterSignature counterSig = new CounterSignature(
+                    new IssuerAndSerialNumber(signingBean.getCounterKeyStoreBean().getSelectedCert()),
+                    digestAlgorithm,
+                    signatureAlgorithm,
+                    signingBean.getCounterKeyStoreBean().getSelectedKey()
             );
             SignerInfo signerInfo = signedData.getSignerInfos()[0];
             counterSig.counterSign(signerInfo);

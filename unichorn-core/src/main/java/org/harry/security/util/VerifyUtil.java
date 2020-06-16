@@ -1,14 +1,18 @@
 package org.harry.security.util;
 
+import iaik.asn1.ObjectID;
 import iaik.asn1.structures.AlgorithmID;
 import iaik.asn1.structures.Attribute;
 import iaik.asn1.structures.AttributeValue;
 import iaik.asn1.structures.Name;
 import iaik.cms.*;
+import iaik.cms.attributes.CounterSignature;
 import iaik.pdf.asn1objects.*;
 import iaik.pdf.cmscades.CadesSignatureStream;
 import iaik.pdf.cmscades.CmsCadesException;
 import iaik.smime.attributes.SignatureTimeStampToken;
+import iaik.smime.ess.ESSCertID;
+import iaik.smime.ess.SigningCertificate;
 import iaik.tsp.TimeStampToken;
 import iaik.tsp.TspVerificationException;
 import iaik.utils.Util;
@@ -192,6 +196,7 @@ public class VerifyUtil {
                                 new Tuple<>(signCert.getSubjectDN().getName(), Outcome.SUCCESS));
                         System.out.println("Signer " + (j + 1) + " signature value is valid.");
                         vResult.addSignersInfo(signCert.getSubjectDN().getName(), results);
+                        checkCounterSignatures(info, signCert, results);
                         algPathChecker.checkSignatureAlgorithm(sigAlg, signCert.getPublicKey(), results);
                         algPathChecker.detectChain(signCert, null, results);
                         // tsp verification
@@ -317,6 +322,7 @@ public class VerifyUtil {
                             }
                             vResult.addSignersInfo(signCert.getSubjectDN().getName(), results);
                             try {
+                                checkCounterSignatures(info, signCert, results);
                                 if (info.verifySignature(signCert.getPublicKey())) {
                                     results.addSignatureResult("sigMathOk",
                                             new Tuple<>("signature is math correct", Outcome.SUCCESS));
@@ -556,6 +562,35 @@ public class VerifyUtil {
                 }
             }
         }
+    }
+
+    public void checkCounterSignatures(SignerInfo signerInfo, X509Certificate signingCert, SignerInfoCheckResults results) {
+        Attribute counterAttr = signerInfo.getUnsignedAttribute(ObjectID.countersignature);
+        if (counterAttr != null ) {
+
+            try {
+                AttributeValue[] values = counterAttr.getAttributeValues();
+                for (AttributeValue value : values) {
+                    CounterSignature signature = (CounterSignature) value;
+                    Attribute attrTry = signature.getUnsignedAttribute(ObjectID.signingCertificate);
+                    Attribute attr = signature.getSignedAttribute(ObjectID.signingCertificate);
+                    if (signature.verify(this.bean.getCounterKeyStoreBean()
+                            .getSelectedCert()
+                            .getPublicKey(),
+                            signerInfo)) {
+                        results.addSignatureResult("counter_sig", new Tuple<String, Outcome>("counter signature verified ok",
+                                Outcome.SUCCESS));
+                    } else {
+                        results.addSignatureResult("counter_sig", new Tuple<String, Outcome>("counter signature verified NOT ok",
+                                Outcome.FAILED));
+                    }
+                }
+            } catch (Exception ex) {
+                // set results
+                throw new IllegalStateException("verifying counter signatures failed");
+            }
+        }
+
     }
 
     /**
