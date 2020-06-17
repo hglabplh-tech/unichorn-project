@@ -5,6 +5,7 @@ import iaik.x509.attr.AttributeCertificate;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.Scene;
+import javafx.scene.control.CheckBox;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.TextField;
 import org.harry.security.util.SignXAdESUtil;
@@ -18,7 +19,9 @@ import java.io.*;
 import java.security.KeyStore;
 import java.security.PrivateKey;
 import java.util.Enumeration;
+import java.util.Optional;
 
+import static org.harald.security.fx.SetProdPlaceDialog.passwordStoreDialog;
 import static org.harald.security.fx.util.Miscellaneous.showOpenDialog;
 import static org.harald.security.fx.util.Miscellaneous.showSaveDialog;
 
@@ -32,6 +35,9 @@ public class SingningXAdESCtrl implements ControllerInit {
     @FXML TextField attrCert;
     @FXML ComboBox<XAdESDigestAlg> digestAlg;
     @FXML ComboBox<XAdESSigAlg> sigAlg;
+    @FXML CheckBox signatureTimestamp;
+    @FXML CheckBox contentTimestamp;
+    @FXML CheckBox archiveTimestamp;
 
 
     File keytoreFile = null;
@@ -41,6 +47,8 @@ public class SingningXAdESCtrl implements ControllerInit {
     File outputFile = null;
 
     File attrCertFile = null;
+
+    SignXAdESUtil.ProdPlace productionPlace = null;
 
     private SigningBean signingBean;
 
@@ -86,6 +94,11 @@ public class SingningXAdESCtrl implements ControllerInit {
     }
 
     @FXML
+    public void addProdPlace(ActionEvent event) {
+        productionPlace = passwordStoreDialog();
+    }
+
+    @FXML
     public void sign(ActionEvent event) throws Exception {
         String alias = (String)this.aliases.getSelectionModel().getSelectedItem();
         if (inputFile != null && alias != null && outputFile != null &&
@@ -105,9 +118,15 @@ public class SingningXAdESCtrl implements ControllerInit {
             if (sAlg != null) {
                 params.setDigestAlg(sAlg.getConstantName());
             }
+            params.setSetSigTimeStamp(signatureTimestamp.isSelected());
+            params.setSetContentTimeStamp(contentTimestamp.isSelected());
+            params.setSetArchiveTimeStamp(archiveTimestamp.isSelected());
             if (attrCertFile != null) {
                 AttributeCertificate attrCert = new AttributeCertificate(new FileInputStream(attrCertFile));
-                params.setSignerRole(attrCert);
+                params.setSignerRole(Optional.of(attrCert));
+            }
+            if (productionPlace != null) {
+                params.setProductionPlace(productionPlace);
             }
             util.prepareSigning(new FileInputStream(inputFile), params );
             OutputStream stream = new FileOutputStream(outputFile);

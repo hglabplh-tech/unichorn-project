@@ -265,7 +265,7 @@ public class SignXAdESUtil {
         XMLExtendContext exContext = new DOMExtensionContext(valContext);
         SignatureTimeStamp tsp = this.qfac.newSignatureTimeStamp(sfac.newCanonicalizationMethod(params.getCanonMethod(), (C14NMethodParameterSpec) null),
                 "timeStampID" + UUID.randomUUID().toString(), null);
-        TimeStampProcessor processor = new HTTPTSPTimeStampProcessor(params.getTSA_URL());
+        TimeStampProcessor processor = new SimpleTimeStampProcessor(params.getTSA_URL());
         exContext.put(TimeStampProcessor.PROPERTY, processor);
         signature.appendSignatureTimeStamp(tsp, exContext);
     }
@@ -382,98 +382,104 @@ public class SignXAdESUtil {
         private ProdPlace productionPlace = null;
         private boolean genPolicy = false;
 
-
-        public String getTSA_URL() {
-            return TSA_URL;
-        }
-
-        public void setTSA_URL(String TSA_URL) {
-            this.TSA_URL = TSA_URL;
-        }
-
-
-
-        public Optional<AttributeCertificate> getSignerRole() {
-            return signerRole;
-        }
-
-        public void setSignerRole(AttributeCertificate signerRole) {
-            this.signerRole = Optional.of(signerRole);
-        }
-
-        public String getDigestAlg() {
-            return digestAlg;
-        }
-
-        public void setDigestAlg(String digestAlg) {
-            this.digestAlg = digestAlg;
-        }
-
-        public String getSignatureAlg() {
-            return signatureAlg;
-        }
-
-        public void setSignatureAlg(String signatureAlg) {
-            this.signatureAlg = signatureAlg;
-        }
-
-
         public boolean isSetSigTimeStamp() {
             return setSigTimeStamp;
         }
 
-        public void setSetSigTimeStamp(boolean setSigTimeStamp) {
+        public XAdESParams setSetSigTimeStamp(boolean setSigTimeStamp) {
             this.setSigTimeStamp = setSigTimeStamp;
+            return this;
         }
 
         public boolean isSetContentTimeStamp() {
             return setContentTimeStamp;
         }
 
-        public void setSetContentTimeStamp(boolean setContentTimeStamp) {
+        public XAdESParams setSetContentTimeStamp(boolean setContentTimeStamp) {
             this.setContentTimeStamp = setContentTimeStamp;
-        }
-
-        public CounterSignature getCounterSignature() {
-            return this.counterSignature;
-        }
-
-        public void setCounterSignature(CounterSignature counterSig) {
-            this.counterSignature = counterSig;
+            return this;
         }
 
         public boolean isSetArchiveTimeStamp() {
             return setArchiveTimeStamp;
         }
 
-        public void setSetArchiveTimeStamp(boolean setArchiveTimeStamp) {
+        public XAdESParams setSetArchiveTimeStamp(boolean setArchiveTimeStamp) {
             this.setArchiveTimeStamp = setArchiveTimeStamp;
+            return this;
         }
 
-        public ProdPlace getProductionPlace() {
-            return productionPlace;
+        public Optional<AttributeCertificate> getSignerRole() {
+            return signerRole;
         }
 
-        public void setProductionPlace(ProdPlace addProductionPlace) {
-            this.productionPlace = addProductionPlace;
-        }
-
-        public boolean isGenPolicy() {
-            return genPolicy;
-        }
-
-        public void setGenPolicy(boolean genPolicy) {
-            this.genPolicy = genPolicy;
+        public XAdESParams setSignerRole(Optional<AttributeCertificate> signerRole) {
+            this.signerRole = signerRole;
+            return this;
         }
 
         public String getCanonMethod() {
             return canonMethod;
         }
 
-        public void setCanonMethod(String canonMethod) {
+        public XAdESParams setCanonMethod(String canonMethod) {
             this.canonMethod = canonMethod;
+            return this;
         }
 
+        public String getSignatureAlg() {
+            return signatureAlg;
+        }
+
+        public XAdESParams setSignatureAlg(String signatureAlg) {
+            this.signatureAlg = signatureAlg;
+            return this;
+        }
+
+        public String getDigestAlg() {
+            return digestAlg;
+        }
+
+        public XAdESParams setDigestAlg(String digestAlg) {
+            this.digestAlg = digestAlg;
+            return this;
+        }
+
+        public String getTSA_URL() {
+            return TSA_URL;
+        }
+
+        public XAdESParams setTSA_URL(String TSA_URL) {
+            this.TSA_URL = TSA_URL;
+            return this;
+        }
+
+        public CounterSignature getCounterSignature() {
+            return counterSignature;
+        }
+
+        public XAdESParams setCounterSignature(CounterSignature counterSignature) {
+            this.counterSignature = counterSignature;
+            return this;
+        }
+
+        public ProdPlace getProductionPlace() {
+            return productionPlace;
+        }
+
+        public XAdESParams setProductionPlace(ProdPlace productionPlace) {
+            this.productionPlace = productionPlace;
+            return this;
+        }
+
+        public boolean isGenPolicy() {
+            return genPolicy;
+        }
+
+        public XAdESParams setGenPolicy(boolean genPolicy) {
+            this.genPolicy = genPolicy;
+            return this;
+        }
     }
 
     public static class ProdPlace {

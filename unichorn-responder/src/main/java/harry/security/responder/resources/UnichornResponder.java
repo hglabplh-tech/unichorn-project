@@ -1,6 +1,5 @@
 package harry.security.responder.resources;
 
-import iaik.asn1.structures.AlgorithmID;
 import iaik.cms.SecurityProvider;
 import iaik.cms.ecc.ECCelerateProvider;
 import iaik.security.ec.provider.ECCelerate;
@@ -10,24 +9,16 @@ import iaik.x509.X509CRL;
 import iaik.x509.X509Certificate;
 import iaik.x509.ocsp.OCSPRequest;
 import iaik.x509.ocsp.OCSPResponse;
-import iaik.x509.ocsp.utils.ResponseGenerator;
 import org.apache.commons.io.IOUtils;
 import org.harry.security.util.Tuple;
 import org.harry.security.util.certandkey.KeyStoreTool;
-import org.pmw.tinylog.Configurator;
-import org.pmw.tinylog.Level;
 import org.pmw.tinylog.Logger;
-import org.pmw.tinylog.writers.FileWriter;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletRequestWrapper;
 import javax.servlet.http.HttpServletResponse;
-import javax.ws.rs.Consumes;
-import javax.ws.rs.POST;
-import javax.ws.rs.Path;
-import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Response;
 import java.io.*;
 import java.security.KeyStore;
@@ -36,7 +27,6 @@ import java.security.Provider;
 import java.security.Security;
 import java.util.Base64;
 import java.util.HashMap;
-import java.util.Locale;
 import java.util.Map;
 
 import static harry.security.responder.resources.UnicHornResponderUtil.*;
@@ -55,16 +45,9 @@ public class UnichornResponder extends HttpServlet {
 
 
 
-    @Override
-    public void init () {
-        /* set the logging configuration */
-        if (!isLoggingInitialized()) {
-            Configurator.defaultConfig()
-                    .writer(new FileWriter("unichorn.log"))
-                    .locale(Locale.GERMANY)
-                    .level(Level.TRACE)
-                    .activate();
-        }
+
+    public static void initReq() {
+        LoggerConfigSetter.setLoggerConfig();
         /*  register the providers*/
 
         Provider iaik = Security.getProvider("IAIK");
@@ -90,7 +73,7 @@ public class UnichornResponder extends HttpServlet {
 
    @Override
     public void doPost(HttpServletRequest servletRequest, HttpServletResponse servletResponse) throws ServletException, IOException {
-       init ();
+       initReq();
         String output = "Jersey say : ";
         Logger.trace("Hallo here I am");
         Logger.trace("enter ocsp method");
@@ -132,7 +115,7 @@ public class UnichornResponder extends HttpServlet {
     @Override
     public void doPut(HttpServletRequest request, HttpServletResponse response) throws IOException {
        try {
-           init ();
+           initReq();
            File trustFile = new File(APP_DIR_TRUST, "trustListPrivate" + ".xml");
            Logger.trace("Trust file is: " + trustFile.getAbsolutePath());
            File crlFile = new File(APP_DIR_TRUST, "privRevokation" + ".crl");
@@ -191,7 +174,7 @@ public class UnichornResponder extends HttpServlet {
     }
     @Override
     public void doGet(HttpServletRequest servletRequest, HttpServletResponse servletResponse) {
-        init ();
+        initReq();
         Logger.trace("Enter get");
         String type = servletRequest.getHeader("fileType");
         Map<String,String> messages = new HashMap<>();

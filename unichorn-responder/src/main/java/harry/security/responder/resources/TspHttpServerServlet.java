@@ -62,6 +62,7 @@ import javax.servlet.http.HttpServletResponse;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.harry.security.util.httpclient.NTPServerUtil;
+import org.pmw.tinylog.Logger;
 
 /**
  * This demo class extends the <code>HttpServlet</code>.<br>
@@ -70,10 +71,6 @@ import org.harry.security.util.httpclient.NTPServerUtil;
  */
 public class TspHttpServerServlet extends HttpServlet {
 
-  /**
-   * The logger for this class.
-   */
-  protected static Log log = LogFactory.getLog(TspHttpServerServlet.class);
 
   /**
    * Used to generate an unique serial number
@@ -96,7 +93,7 @@ public class TspHttpServerServlet extends HttpServlet {
    */
   public void init() throws ServletException {
     if (!configLoaded_) {
-      log.debug("Initializing Servlet");
+      Logger.trace("Initializing Servlet");
       IAIK.addAsJDK14Provider();
       config_ = new TspServerConfiguration();
       try {
@@ -117,42 +114,52 @@ public class TspHttpServerServlet extends HttpServlet {
    */
   public void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException,
       IOException {
-
-    String client_id_string_ = request.getRemoteAddr();
-
-    log.info("[" + client_id_string_ + "]" + " Connected");
-
-    String contentType = request.getContentType();
-    if (contentType == null || (!contentType.equalsIgnoreCase(TspHttpConstants.CONTENT_TYPE_REQUEST))) {
-      log.error("[" + client_id_string_ + "]" + " Illegal content type: " + contentType);
-      response.sendError(400);
-      return;
-    }
-
-    //get input & output streams
-    InputStream fromClient = request.getInputStream();
+    UnichornResponder.initReq();
     OutputStream toClient = response.getOutputStream();
-
-    //read request
-    byte[] buff = new byte[1024];
-    ByteArrayOutputStream tmp = new ByteArrayOutputStream();
-    int read;
-    while ((read = fromClient.read(buff)) != -1) {
-      tmp.write(buff, 0, read);
-    }
-    byte[] tspReq = tmp.toByteArray();
-
-    //parse request
     TimeStampReq tspRequest = null;
+    String client_id_string_ = request.getRemoteAddr();
+    byte[] tspReq = null;
+
+    try {
+      Logger.trace("[" + client_id_string_ + "]" + " Connected");
+
+      String contentType = request.getContentType();
+      if (contentType == null || (!contentType.equalsIgnoreCase(TspHttpConstants.CONTENT_TYPE_REQUEST))) {
+        Logger.trace("[" + client_id_string_ + "]" + " Illegal content type: " + contentType);
+        response.sendError(400);
+        return;
+      }
+
+      //get input & output streams
+      InputStream fromClient = request.getInputStream();
+
+
+      //read request
+      byte[] buff = new byte[1024];
+      ByteArrayOutputStream tmp = new ByteArrayOutputStream();
+      int read;
+      while ((read = fromClient.read(buff)) != -1) {
+        tmp.write(buff, 0, read);
+      }
+      tspReq = tmp.toByteArray();
+
+    } catch (Exception ex) {
+      Logger.trace("TSP pre-processing failed with : -> "
+              + ex.getMessage()
+              + " class is " + ex.getClass().getCanonicalName());
+      response.sendError(400);
+
+    }
+
     try {
       tspRequest = new TimeStampReq(tspReq);
     } catch (CodingException e) {
-      log.error("[" + client_id_string_ + "]" + " Internal Server error: " + e.getMessage());
+      Logger.error("[" + client_id_string_ + "]" + " Internal Server error: " + e.getMessage());
       response.sendError(400);
       return;
     }
 
-    log.debug("[" + client_id_string_ + "]" + " Valid TimeStampRequest received");
+    Logger.trace("[" + client_id_string_ + "]" + " Valid TimeStampRequest received");
 
     TimeStampResp resp = null;
 
@@ -186,7 +193,7 @@ public class TspHttpServerServlet extends HttpServlet {
     try {
       token.signTimeStampToken();
     } catch (TspSigningException e2) {
-      log.error("[" + client_id_string_ + "]" + " Internal Server error: " + e2.getMessage());
+      Logger.error("[" + client_id_string_ + "]" + " Internal Server error: " + e2.getMessage());
       response.sendError(500);
       return;
     }
@@ -201,11 +208,11 @@ public class TspHttpServerServlet extends HttpServlet {
 
     byte[] time_stamp = resp.getEncoded();
 
-    log.debug("[" + client_id_string_ + "]" + " Sending TimeStampResponse");
+    Logger.trace("[" + client_id_string_ + "]" + " Sending TimeStampResponse");
     response.setContentLength(time_stamp.length);
     response.setContentType(TspHttpConstants.CONTENT_TYPE_REPLY);
     toClient.write(time_stamp);
-    log.info("[" + client_id_string_ + "]" + " TimeStampResponse sent");
+    Logger.trace("[" + client_id_string_ + "]" + " TimeStampResponse sent");
   }
 
   /**

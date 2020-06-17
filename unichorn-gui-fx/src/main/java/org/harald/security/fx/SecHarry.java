@@ -34,10 +34,8 @@ public class SecHarry extends Application {
 
     @Override
     public void start(Stage stage) throws IOException {
-        //URL.setURLStreamHandlerFactory(new BrowserTabCtrl.MyURLStreamHandlerFactory());
         workingData.set(new PredefinedResponses.LocalCache());
         CMSSigner.setProviders();
-        installHttpHttpsProtocol();
         CertificateWizzard.initThis();
         List<TrustListManager> walkers = ConfigReader.loadAllTrusts();
         SigningBean context = new SigningBean().setWalker(walkers);

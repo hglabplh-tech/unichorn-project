@@ -27,7 +27,7 @@ public class SignXAdESUtilTest extends TestBase {
                 .setOutputPath(out.getAbsolutePath());
 
         SignXAdESUtil util = new SignXAdESUtil(bean.getSelectedKey(), bean.getChain());
-        SignXAdESUtil.XAdESParams params = util.newParams();
+        SignXAdESUtil.XAdESParams params = util.newParams().setSetSigTimeStamp(true);
         util.prepareSigning(signingBean.getDataIN(), params);
         util.sign(new FileOutputStream(out.getAbsolutePath()));
     }

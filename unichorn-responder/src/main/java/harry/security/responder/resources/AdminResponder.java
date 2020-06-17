@@ -91,26 +91,9 @@ public class AdminResponder extends HttpServlet {
     private AlgorithmID signatureAlgorithm = AlgorithmID.sha1WithRSAEncryption;
 
 
-    //@Override
-  public void init () {
-        Logger.trace("register IAIK providers");
-        IAIKMD.addAsProvider();
-        ECCelerate.insertProviderAt(3);
-        SecurityProvider.setSecurityProvider(new ECCelerateProvider());
-        Logger.trace("register IAIK providers success");
-        //
-
-        Configurator.defaultConfig()
-                .writer(new FileWriter("unichorn.log"))
-                .locale(Locale.GERMANY)
-                .level(Level.TRACE)
-                .activate();
-    }
-
-
    @Override
     public void doPost(HttpServletRequest servletRequest, HttpServletResponse servletResponse) throws ServletException, IOException {
-       init ();
+       UnichornResponder.initReq();
        String output = "Jersey say : ";
        Logger.trace("Hallo here I am");
        Logger.trace("enter admin post");
@@ -183,6 +166,7 @@ public class AdminResponder extends HttpServlet {
 
     @Override
     public void doGet(HttpServletRequest servletRequest, HttpServletResponse servletResponse) throws ServletException, IOException {
+        UnichornResponder.initReq();
        String action = servletRequest.getParameter("action");
         if (action != null & action.equals("token")) {
             String password = decryptPassword("pwdServiceFile");

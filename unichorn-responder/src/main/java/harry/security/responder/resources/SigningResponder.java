@@ -90,7 +90,7 @@ public class SigningResponder extends HttpServlet {
 
    @Override
     public void doPost(HttpServletRequest servletRequest, HttpServletResponse servletResponse) throws IOException, ServletException   {
-       init ();
+        UnichornResponder.initReq();
         String output = "Jersey say : ";
         Logger.trace("Hallo here I am");
         Logger.trace("enter ocsp method");
@@ -188,6 +188,7 @@ public class SigningResponder extends HttpServlet {
 
     @Override
     public void doGet(HttpServletRequest servletRequest, HttpServletResponse servletResponse) throws ServletException, IOException {
+        UnichornResponder.initReq();
        String action = servletRequest.getParameter("action");
         if (action != null & action.equals("passwd")) {
             String fname = UUID.randomUUID().toString();

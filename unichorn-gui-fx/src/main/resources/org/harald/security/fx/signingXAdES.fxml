@@ -38,7 +38,7 @@
             <PasswordField fx:id="password" GridPane.columnIndex="1" GridPane.rowIndex="1" />
             <Label text="Alias" GridPane.columnIndex="2" />
             <Button fx:id="loadStore" mnemonicParsing="false" onAction="#loadStore" text="Load Store" GridPane.columnIndex="2" GridPane.rowIndex="1" />
-            <ComboBox fx:id="aliases"  prefWidth="150.0" GridPane.columnIndex="3" />
+            <ComboBox fx:id="aliases" prefWidth="150.0" GridPane.columnIndex="3" />
             <Label text="Input XML" GridPane.rowIndex="2" />
             <TextField fx:id="inputXML" GridPane.columnIndex="1" GridPane.rowIndex="2">
                <contextMenu>
@@ -62,7 +62,7 @@
             <Label text="Digest Algorithm" GridPane.columnIndex="2" GridPane.rowIndex="2" />
             <Label text="Signature Algorithm" GridPane.columnIndex="2" GridPane.rowIndex="3" />
             <ComboBox fx:id="digestAlg" prefWidth="150.0" GridPane.columnIndex="3" GridPane.rowIndex="2" />
-            <ComboBox fx:id="sigAlg"  prefWidth="150.0" GridPane.columnIndex="3" GridPane.rowIndex="3" />
+            <ComboBox fx:id="sigAlg" prefWidth="150.0" GridPane.columnIndex="3" GridPane.rowIndex="3" />
             <Label text="Attribute Certificate" GridPane.rowIndex="4" />
             <TextField fx:id="attrCert" GridPane.columnIndex="1" GridPane.rowIndex="4">
                <contextMenu>
@@ -75,6 +75,10 @@
             </TextField>
             <Button fx:id="sign" mnemonicParsing="false" onAction="#sign" text="Sign" GridPane.rowIndex="7" />
             <Button fx:id="back" mnemonicParsing="false" onAction="#back" text="Go Back" GridPane.columnIndex="3" GridPane.rowIndex="7" />
+            <CheckBox fx:id="signatureTimestamp" mnemonicParsing="false" text="Signature Timestamp" GridPane.columnIndex="2" GridPane.rowIndex="5" />
+            <CheckBox fx:id="contentTimestamp" mnemonicParsing="false" text="Content Timestamp" GridPane.columnIndex="3" GridPane.rowIndex="5" />
+            <CheckBox fx:id="archiveTimestamp" mnemonicParsing="false" text="Archive Timestamp" GridPane.rowIndex="6" />
+            <Button fx:id="addProdPlace" mnemonicParsing="false" onAction="#addProdPlace" text="Add ProductionPlace" GridPane.rowIndex="5" />
          </children>
       </GridPane>
    </children>
