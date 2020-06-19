@@ -10,6 +10,7 @@
     <module>unichorn-gui-fx</module>
       <module>unichorn-responder</module>
       <module>unichorn-pkcs11</module>
+      <module>unichorn-isearch</module>
   </modules>
   <name>unichorn-project</name>
 

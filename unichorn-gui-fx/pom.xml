@@ -28,6 +28,11 @@
             <version>1.1-SNAPSHOT</version>
         </dependency>
         <dependency>
+            <groupId>org.harry.security</groupId>
+            <artifactId>unichorn-isearch</artifactId>
+            <version>1.1-SNAPSHOT</version>
+        </dependency>
+        <dependency>
             <groupId>org.openjfx</groupId>
             <artifactId>javafx-controls</artifactId>
             <version>15-ea+6</version>

@@ -6,6 +6,8 @@
     <file url="file://$PROJECT_DIR$/unichorn-core/src/test/resources" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/unichorn-gui-fx/src/main/java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/unichorn-gui-fx/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/unichorn-isearch/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/unichorn-isearch/src/main/resources" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/unichorn-pkcs11/src/main/java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/unichorn-pkcs11/src/main/resources" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/unichorn-responder/src/main/java" charset="UTF-8" />

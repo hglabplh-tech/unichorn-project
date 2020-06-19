@@ -11,6 +11,7 @@ import javafx.collections.ListChangeListener;
 import javafx.concurrent.Task;
 import javafx.concurrent.Worker;
 import javafx.event.ActionEvent;
+import javafx.event.Event;
 import javafx.event.EventHandler;
 import javafx.fxml.FXML;
 import javafx.scene.Parent;
@@ -34,13 +35,16 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.*;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 
 import static org.harald.security.fx.SecHarry.bookmarkLocal;
+import static org.harald.security.fx.util.Miscellaneous.getTabByFXID;
+import static org.harald.security.fx.util.Miscellaneous.getTabPaneByFXID;
 import static org.harry.security.CommonConst.APP_DIR;
 import static org.harry.security.util.certandkey.KeyStoreTool.KEYSTORE_FNAME;
 
-public class BrowserTabCtrl  {
+public class BrowserTabCtrl  implements ControllerInit {
 
     @FXML private ProgressBar progress;
     @FXML private ComboBox bookmarks;
@@ -315,6 +319,11 @@ public class BrowserTabCtrl  {
     public void startChecker () throws ExecutionException, InterruptedException {
         task = new HttpsCheckerTask(nextUrlString, ocspCheck.isSelected());
         Platform.runLater(task);
+    }
+
+    @Override
+    public Scene init() {
+        return null;
     }
 
     public class  HttpsCheckerTask extends Task<Void> {

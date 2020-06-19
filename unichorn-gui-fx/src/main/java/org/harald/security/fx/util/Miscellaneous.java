@@ -62,6 +62,11 @@ public class Miscellaneous {
         return check;
     }
 
+    public static TabPane getTabPaneByFXID(String fxId)  {
+        TabPane pane = (TabPane) SecHarry.fxmlLoader.getNamespace().get(fxId);
+        return pane;
+    }
+
     public static ProgressBar getProgessBarByFXID(String fxId)  {
         ProgressBar progress = (ProgressBar) SecHarry.fxmlLoader.getNamespace().get(fxId);
         return progress;

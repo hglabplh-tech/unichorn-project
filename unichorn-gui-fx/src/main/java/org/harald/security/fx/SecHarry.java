@@ -2,9 +2,11 @@ package org.harald.security.fx;
 
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
+import javafx.geometry.Rectangle2D;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.layout.Pane;
+import javafx.stage.Screen;
 import javafx.stage.Stage;
 import org.harry.security.CMSSigner;
 import org.harry.security.util.CertificateWizzard;
@@ -39,6 +41,13 @@ public class SecHarry extends Application {
         CertificateWizzard.initThis();
         List<TrustListManager> walkers = ConfigReader.loadAllTrusts();
         SigningBean context = new SigningBean().setWalker(walkers);
+        Screen screen = Screen.getPrimary();
+        Rectangle2D bounds = screen.getVisualBounds();
+
+        stage.setX(bounds.getMinX());
+        stage.setY(bounds.getMinY());
+        stage.setWidth(bounds.getWidth());
+        stage.setHeight(bounds.getHeight());
         contexts.set(context);
         scene = new Scene(loadFXML("main", CSS.UNICHORN));
         stage.setScene(scene);

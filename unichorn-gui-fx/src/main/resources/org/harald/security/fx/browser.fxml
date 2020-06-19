@@ -7,36 +7,44 @@
 
 <VBox maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" minHeight="840.0" minWidth="1200.0" prefHeight="840.0" prefWidth="1200.0" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.harald.security.fx.BrowserCtrl">
    <children>
-      <SplitPane orientation="VERTICAL" prefHeight="800.0" prefWidth="1200.0">
+      <SplitPane dividerPositions="0.7" orientation="VERTICAL" prefHeight="800.0" prefWidth="1200.0">
         <items>
-          <AnchorPane minHeight="840.0" minWidth="1198.0" prefHeight="170.0" prefWidth="1198.0">
+          <AnchorPane minHeight="720.0" minWidth="1198.0" prefHeight="720.0" prefWidth="1198.0">
                <children>
-                        <TabPane fx:id="browserPane" prefHeight="800.0" prefWidth="1190.0" tabClosingPolicy="UNAVAILABLE" GridPane.columnSpan="5" GridPane.rowIndex="1">
+                        <TabPane fx:id="browserPane" minHeight="720.0" maxWidth="1190.0" maxHeight="720.0" minWidth="1190.0"
+                                 prefHeight="720.0" prefWidth="1190.0" tabClosingPolicy="SELECTED_TAB">
                           <tabs>
-                            <Tab fx:id="tab1" text="Untitled Tab 1">
+                            <Tab fx:id="tab1" closable="true" text="Untitled Tab 1">
                                <content>
                                    <fx:include fx:id="browser1" source="browserTab.fxml" />
                                </content>
                             </Tab>
-                            <Tab fx:id="tab2" text="Untitled Tab 2">
+                            <Tab fx:id="tab2" closable="true"  text="Untitled Tab 2">
                                <content>
                                    <fx:include fx:id="browser2" source="browserTab.fxml" />
                                </content>
                             </Tab>
-                              <Tab fx:id="tab1" text="Untitled Tab 3">
+                              <Tab fx:id="tab3" closable="true" text="Untitled Tab 3">
                                   <content>
                                       <fx:include fx:id="browser3" source="browserTab.fxml" />
                                   </content>
                               </Tab>
-                              <Tab fx:id="tab2" text="Untitled Tab 4">
+                              <Tab fx:id="tab4" closable="true" text="Untitled Tab 4">
                                   <content>
                                       <fx:include fx:id="browser4" source="browserTab.fxml" />
                                   </content>
                               </Tab>
                           </tabs>
                         </TabPane>
+
                </children>
             </AnchorPane>
+            <AnchorPane minHeight="40.0" minWidth="1198.0" prefHeight="30.0" prefWidth="1198.0">
+                <children>
+                    <Button fx:id="addtab" onAction="#addtab" text="Add fresh Tab" />
+                </children>
+            </AnchorPane>
+
         </items>
       </SplitPane>
    </children>
