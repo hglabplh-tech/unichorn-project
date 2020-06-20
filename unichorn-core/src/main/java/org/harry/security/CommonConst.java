@@ -4,6 +4,9 @@ import java.io.File;
 
 public class CommonConst {
 
+    public static final String PRIV_KEYSTORE = "privKeystore" + ".p12";
+    public static final String PROP_FNAME = "application.properties";
+    public static final String PROP_SIGNSTORE = "signStore.p12";
     /**
      * The applications configuration and data directory
      */

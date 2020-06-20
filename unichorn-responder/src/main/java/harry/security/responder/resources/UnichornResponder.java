@@ -10,6 +10,7 @@ import iaik.x509.X509Certificate;
 import iaik.x509.ocsp.OCSPRequest;
 import iaik.x509.ocsp.OCSPResponse;
 import org.apache.commons.io.IOUtils;
+import org.harry.security.CommonConst;
 import org.harry.security.util.Tuple;
 import org.harry.security.util.certandkey.KeyStoreTool;
 import org.pmw.tinylog.Logger;
@@ -34,7 +35,6 @@ import static org.harry.security.CommonConst.APP_DIR_TRUST;
 
 
 public class UnichornResponder extends HttpServlet {
-
 
 
     public static boolean loggingInitialized = false;
@@ -120,7 +120,7 @@ public class UnichornResponder extends HttpServlet {
            Logger.trace("Trust file is: " + trustFile.getAbsolutePath());
            File crlFile = new File(APP_DIR_TRUST, "privRevokation" + ".crl");
            Logger.trace("CRL list file is: " + crlFile.getAbsolutePath());
-           File keyFile = new File(APP_DIR_TRUST, "privKeystore" + ".p12");
+           File keyFile = new File(APP_DIR_TRUST, CommonConst.PRIV_KEYSTORE);
            Logger.trace("Key Store file is: " + keyFile.getAbsolutePath());
            String type = request.getHeader("fileType");
            if (type.equals("crl")) {

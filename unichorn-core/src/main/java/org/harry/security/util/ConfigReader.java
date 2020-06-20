@@ -127,6 +127,7 @@ public class ConfigReader {
             props.setProperty(PROP_DECR_PEBALG, "");
             props.setProperty(PROP_DECR_ENVALG, "");
             props.setProperty(PROP_TLS, "");
+            props.setProperty(PROP_PKCS11_PIN, "");
         } else {
             try {
                 props.load(new FileInputStream(propFile));
@@ -162,40 +163,55 @@ public class ConfigReader {
     public static MainProperties loadStore() {
         try {
             Properties props = new Properties();
-            props.load(new FileInputStream(new File(APP_DIR, "application.properties")));
-            String path = props.getProperty(PROP_KEYSTORE_PATH, "./.keystore");
-            String attrCertPath = props.getProperty(PROP_ATTR_CERT_PATH, "./attributeCert.cer");
-            String type = props.getProperty(PROP_KEYSTORE_TYPE, "PKCS12");
-            String password = props.getProperty(PROP_KEYSTORE_PASS);
-            String alias = props.getProperty(PROP_KEYSTORE_ALIAS, "invalid");
-            String country = props.getProperty(PROP_CERT_COUNTRY, "");
-            String organization = props.getProperty(PROP_CERT_ORG, "");
-            String unit = props.getProperty(PROP_CERT_ORG_UNIT, "");
-            String commonName = props.getProperty(PROP_CERT_COMMON_NAME, "");
-            String decrPasswd = props.getProperty(PROP_DECR_PASSWORD);
-            String pbeAlg = props.getProperty(PROP_DECR_PEBALG, "");
-            String envelopAlg = props.getProperty(PROP_DECR_ENVALG, "");
-            String trustLists = props.getProperty(PROP_TLS, "");
-            String pin = props.getProperty(PROP_PKCS11_PIN, null);
+            File propFile = new File(APP_DIR, "application.properties");
+            if (propFile.exists()) {
+                props.load(new FileInputStream(propFile));
+                for (Object key: props.keySet()) {
+                    String realKey = (String)key;
+                    String value = props.getProperty(realKey);
+                    if (value != null) {
+                        value = value.trim();
+                    }
+                    props.setProperty(realKey, value);
+                }
+                String path = props.getProperty(PROP_KEYSTORE_PATH, "./.keystore");
+                String attrCertPath = props.getProperty(PROP_ATTR_CERT_PATH, "./attributeCert.cer");
+                String type = props.getProperty(PROP_KEYSTORE_TYPE, "PKCS12");
+                String password = props.getProperty(PROP_KEYSTORE_PASS);
+                String alias = props.getProperty(PROP_KEYSTORE_ALIAS, "invalid");
+                String country = props.getProperty(PROP_CERT_COUNTRY, "");
+                String organization = props.getProperty(PROP_CERT_ORG, "");
+                String unit = props.getProperty(PROP_CERT_ORG_UNIT, "");
+                String commonName = props.getProperty(PROP_CERT_COMMON_NAME, "");
+                String decrPasswd = props.getProperty(PROP_DECR_PASSWORD);
+                String pbeAlg = props.getProperty(PROP_DECR_PEBALG, "");
+                String envelopAlg = props.getProperty(PROP_DECR_ENVALG, "");
+                String trustLists = props.getProperty(PROP_TLS, "");
+                String pin = props.getProperty(PROP_PKCS11_PIN, "");
 
-            String [] array = trustLists.split(";");
-            List<String> trusts = new ArrayList<>();
-            for (String value:array) {
-                trusts.add(value.trim());
+                String[] array = trustLists.split(";");
+                List<String> trusts = new ArrayList<>();
+                for (String value : array) {
+                    trusts.add(value.trim());
+                }
+                return new MainProperties(path,
+                        type,
+                        password,
+                        alias,
+                        country,
+                        organization,
+                        unit,
+                        commonName,
+                        decrPasswd,
+                        pbeAlg,
+                        envelopAlg).setTrustLists(trusts)
+                        .setAttrCertPath(attrCertPath)
+                        .setPkcs11Pin(pin);
+            } else {
+                props = init();
+                saveProperties(props);
+                return new MainProperties();
             }
-            return new MainProperties(path,
-                    type,
-                    password,
-                    alias,
-                    country,
-                    organization,
-                    unit,
-                    commonName,
-                    decrPasswd,
-                    pbeAlg,
-                    envelopAlg).setTrustLists(trusts)
-                    .setAttrCertPath(attrCertPath)
-                    .setPkcs11Pin(pin);
 
         } catch (IOException e) {
             throw new IllegalStateException("properties not loaded", e);

@@ -2,40 +2,18 @@ package harry.security.responder.resources;
 
 import com.google.gson.Gson;
 import iaik.asn1.structures.AlgorithmID;
-import iaik.asn1.structures.Name;
-import iaik.cms.SecurityProvider;
-import iaik.cms.SignedData;
-import iaik.cms.ecc.ECCelerateProvider;
-import iaik.pdf.parameters.PadesBESParameters;
-import iaik.pkcs.pkcs10.CertificateRequest;
-import iaik.pkcs.pkcs8.EncryptedPrivateKeyInfo;
-import iaik.pkcs.pkcs9.ChallengePassword;
-import iaik.pkcs.pkcs9.ExtensionRequest;
-import iaik.security.ec.provider.ECCelerate;
-import iaik.security.provider.IAIKMD;
 import iaik.utils.Util;
 import iaik.x509.X509CRL;
 import iaik.x509.X509Certificate;
-import iaik.x509.attr.AttributeCertificate;
-import iaik.x509.extensions.KeyUsage;
-import iaik.x509.extensions.SubjectKeyIdentifier;
 import iaik.x509.ocsp.utils.ResponseGenerator;
 import org.apache.commons.io.FileDeleteStrategy;
 import org.apache.commons.io.IOUtils;
 import org.harry.security.util.*;
-import org.harry.security.util.algoritms.DigestAlg;
-import org.harry.security.util.algoritms.SignatureAlg;
-import org.harry.security.util.bean.SigningBean;
-import org.harry.security.util.certandkey.CertWriterReader;
 import org.harry.security.util.certandkey.GSON;
 import org.harry.security.util.certandkey.KeyStoreTool;
 import org.json.JSONException;
-import org.pmw.tinylog.Configurator;
-import org.pmw.tinylog.Level;
 import org.pmw.tinylog.Logger;
-import org.pmw.tinylog.writers.FileWriter;
 
-import javax.activation.DataSource;
 import javax.servlet.ServletException;
 import javax.servlet.annotation.MultipartConfig;
 import javax.servlet.annotation.WebServlet;
@@ -46,12 +24,8 @@ import javax.servlet.http.Part;
 import javax.ws.rs.core.Response;
 import java.io.*;
 import java.security.KeyStore;
-import java.security.KeyStoreException;
 import java.security.PrivateKey;
-import java.security.PublicKey;
 import java.util.Base64;
-import java.util.Enumeration;
-import java.util.Locale;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -70,15 +44,6 @@ import static org.harry.security.util.CertificateWizzard.PROP_TRUST_NAME;
         maxRequestSize      = -1L // 150 MB
 )
 public class AdminResponder extends HttpServlet {
-
-
-
-    public static final String ALIAS = "b998b1f7-04fe-42c6-8284-9fb21e604b60UserRSA";
-
-    public static final String PROP_FNAME = "application.properties";
-
-    public static final String PROP_SIGNSTORE = "signStore.p12";
-
 
 
     /**
@@ -111,21 +76,26 @@ public class AdminResponder extends HttpServlet {
        GSON.Params jInput = readJSon(servletRequest);
        if (jInput.parmType.equals("saveProps")) {
            saveAppProperties(servletRequest, servletResponse, jInput);
-       } else if (jInput.parmType.equals("copyKeyTrust")) {
-           File keystore = new File(APP_DIR, PROP_STORE_NAME);
-           Logger.trace("Write file: -> " + keystore.getAbsolutePath());
-           keystore.delete();
-           FileOutputStream out = new FileOutputStream(keystore);
-           Part keyStorePart = servletRequest.getPart("keystore");
-           IOUtils.copy(keyStorePart.getInputStream(), out);
-           Logger.trace("Written file: -> " + keystore.getAbsolutePath());
-           File trustFile = new File(APP_DIR_TRUST, PROP_TRUST_NAME);
-           Logger.trace("Write file: -> " + trustFile.getAbsolutePath());
-           trustFile.delete();
-           out = new FileOutputStream(trustFile);
-           Part trustListPart = servletRequest.getPart("trustlist");
-           IOUtils.copy(trustListPart.getInputStream(), out);
-           Logger.trace("Written file: -> " + trustFile.getAbsolutePath());
+       } else if (jInput.parmType.equals("initApplication")) {
+           String error = null;
+           String passwdUser = servletRequest.getParameter("passwdUser");
+           if (passwdUser == null) {
+               error = "param passwdUser not set;;";
+           }
+           String passwdHeader = servletRequest.getParameter("passwd");
+           if (passwdHeader == null) {
+               error = error + "param passwd not set;;";
+           }
+           String storeTypeHeader = servletRequest.getParameter("storeType");
+           if (storeTypeHeader == null) {
+               error = error + "param storeType not set;;";
+           }
+           if (error != null) {
+               Logger.trace("Parameters error(s) -> " + error);
+               servletResponse.setStatus(Response.Status.INTERNAL_SERVER_ERROR.getStatusCode());
+               return;
+           }
+           initApplication(servletRequest, passwdUser, passwdHeader, storeTypeHeader);
        } else if (jInput.parmType.equals("setSigningStore")) {
            saveSignKeyStore(servletRequest, servletResponse, jInput);
 
@@ -151,6 +121,56 @@ public class AdminResponder extends HttpServlet {
 
 
 
+    }
+
+    private void initApplication(HttpServletRequest servletRequest,
+                                 String passwdUser, String passwdHeader, String storeTypeHeader) throws IOException, ServletException {
+        File keystore = new File(APP_DIR, PROP_STORE_NAME);
+        Logger.trace("Write file: -> " + keystore.getAbsolutePath());
+        keystore.delete();
+        FileOutputStream out = new FileOutputStream(keystore);
+        Part keyStorePart = servletRequest.getPart("keystore");
+        IOUtils.copy(keyStorePart.getInputStream(), out);
+        out.flush();
+        out.close();
+        Logger.trace("Written file: -> " + keystore.getAbsolutePath());
+        File trustFile = new File(APP_DIR_TRUST, PROP_TRUST_NAME);
+        Logger.trace("Write file: -> " + trustFile.getAbsolutePath());
+        trustFile.delete();
+        out = new FileOutputStream(trustFile);
+        Part trustListPart = servletRequest.getPart("trustlist");
+        IOUtils.copy(trustListPart.getInputStream(), out);
+        out.flush();
+        out.close();
+        Logger.trace("Written file: -> " + trustFile.getAbsolutePath());
+
+        File propFile = new File(APP_DIR, PROP_FNAME);
+        Logger.trace("Write file: -> " + propFile.getAbsolutePath());
+        propFile.delete();
+        out = new FileOutputStream(propFile);
+        Part propertiesPart = servletRequest.getPart("properties");
+        IOUtils.copy(propertiesPart.getInputStream(), out);
+        out.flush();
+        out.close();
+        Logger.trace("Written file: -> " + propFile.getAbsolutePath());
+        applyAppKeyStore(keystore, passwdUser, passwdHeader, storeTypeHeader);
+    }
+
+    private void applyAppKeyStore(File keystore,
+                                  String passwdUser, String passwdHeader,
+                                  String storeTypeHeader) throws IOException {
+        File keyFile = new File(APP_DIR_TRUST, PRIV_KEYSTORE);
+        String decodedUser = new String(Util.fromBase64String(passwdUser));
+        byte[] decodedPwd = Base64.getDecoder().decode(passwdHeader.getBytes());
+        String decodedString = new String(decodedPwd);
+        Logger.trace("Before loading keystore");
+        InputStream p12Stream = new FileInputStream(keystore);
+        KeyStore storeToApply = KeyStoreTool.loadStore(p12Stream,
+                decodedUser.toCharArray(), storeTypeHeader);
+        p12Stream.close();
+        Logger.trace("Before calling merge");
+        applyKeyStore(keyFile, storeToApply, decodedString, decodedUser, storeTypeHeader);
+        Logger.trace("After calling merge --> created");
     }
 
     private boolean isAuthenticated(HttpServletRequest servletRequest) throws IOException {

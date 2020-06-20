@@ -9,6 +9,7 @@ import iaik.pkcs.pkcs10.CertificateRequest;
 import iaik.pkcs.pkcs8.EncryptedPrivateKeyInfo;
 import iaik.pkcs.pkcs9.ChallengePassword;
 import iaik.pkcs.pkcs9.ExtensionRequest;
+import iaik.utils.Util;
 import iaik.x509.X509Certificate;
 import iaik.x509.extensions.ExtendedKeyUsage;
 import iaik.x509.extensions.KeyUsage;
@@ -159,28 +160,35 @@ public class CSRHandler {
      * Initialize the application key-store and trust-list on server side
      * @throws Exception error case
      */
-    public static void initAppKeystore(File keyStore, File trustList) throws Exception {
+    public static void initAppKeystore(File keyStore, File trustList, File propFile) throws Exception {
         String token = getTokenAdmin();
         URL ocspUrl= new URL(ADMIN_URL);
+        String passwdUser = Util.toBase64String("geheim".getBytes());
+        String passwdHeader = Util.toBase64String("geheim".getBytes());
         // create closable http client and assign the certificate interceptor
         CloseableHttpClient httpClient = createSSLClient();
         URIBuilder uriBuilder = new URIBuilder(ocspUrl.toURI());
-        uriBuilder.addParameter("token", token);
+        uriBuilder.addParameter("token", token)
+                .addParameter("passwdUser", passwdUser)
+                .addParameter("passwd", passwdHeader)
+                .addParameter("storeType", "PKCS12");
         System.out.println("Responder URL: " + uriBuilder.build());
         HttpPost post = new HttpPost(uriBuilder.build());
         GSON.Params param = new GSON.Params();
-        param.parmType = "copyKeyTrust";
+        param.parmType = "initApplication";
         Gson gson = new Gson();
         String jsonString = gson.toJson(param);
         StringBody json = new StringBody(jsonString, ContentType.APPLICATION_JSON);
         FileBody keystoreBody = new FileBody(keyStore);
         FileBody trustListBody = new FileBody(trustList);
+        FileBody propFileBody = new FileBody(propFile);
 
         MultipartEntityBuilder builder = MultipartEntityBuilder.create()
                 .addPart("params",
                         json)
                 .addPart("keystore",  keystoreBody)
-                .addPart("trustlist",  trustListBody);
+                .addPart("trustlist",  trustListBody)
+                .addPart("properties", propFileBody);
         System.err.println(param.toString());
         post.setEntity(builder.build());
         CloseableHttpResponse response = httpClient.execute(post);
