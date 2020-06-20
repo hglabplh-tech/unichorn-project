@@ -8,6 +8,7 @@ import iaik.asn1.structures.GeneralName;
 import iaik.asn1.structures.Name;
 import iaik.security.provider.IAIK;
 import iaik.security.provider.IAIKMD;
+import iaik.smime.ess.ESSIssuerSerial;
 import iaik.utils.RFC2253NameParser;
 import iaik.utils.Util;
 import iaik.x509.X509Certificate;
@@ -382,8 +383,12 @@ public class SignXAdESUtil {
                 X509Certificate [] checkChain= new X509Certificate[2];
                 checkChain[0] = cert;
                 checkChain[1] = realChain[index + 1];
-                certRefs.add(qfac.newCertID("https://localhost/" + cert.getSerialNumber(), cert,
-                        sfac.newDigestMethod(DigestMethod.SHA1, null)));
+                BigInteger serial = cert.getSerialNumber();
+
+                CertID certId = qfac.newCertID("https://localhost/" + serial, cert,
+                        sfac.newDigestMethod(params.getDigestAlg(), null));
+
+                certRefs.add(certId);
 
                 OCSPResponse response = HttpOCSPClient.sendOCSPRequest(OCSP_URL,
                         null, null, checkChain,
