@@ -107,7 +107,7 @@ public class CertToolCtrl implements ControllerInit {
     }
 
     @FXML
-    private void initKeys(ActionEvent event) throws Exception {
+    private void initApp(ActionEvent event) throws Exception {
         SigningBean signingBean = SecHarry.contexts.get();
         File keystore = new File(APP_DIR, PROP_STORE_NAME);
         File trustFile = new File(APP_DIR_TRUST, PROP_TRUST_NAME);
