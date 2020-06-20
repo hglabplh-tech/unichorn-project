@@ -38,6 +38,8 @@ public class SingningXAdESCtrl implements ControllerInit {
     @FXML CheckBox signatureTimestamp;
     @FXML CheckBox contentTimestamp;
     @FXML CheckBox archiveTimestamp;
+    @FXML CheckBox policy;
+    @FXML CheckBox ocspInclude;
 
 
     File keytoreFile = null;
@@ -110,7 +112,7 @@ public class SingningXAdESCtrl implements ControllerInit {
             Tuple<PrivateKey, X509Certificate[]> keys = KeyStoreTool.getKeyEntry(store, alias,
                     password.getText().toCharArray());
             SignXAdESUtil util = new SignXAdESUtil(keys.getFirst(),
-                    keys.getSecond());
+                    keys.getSecond(), false);
             SignXAdESUtil.XAdESParams params = util.newParams();
             if (dAlg != null) {
                 params.setDigestAlg(dAlg.getConstantName());
@@ -121,12 +123,16 @@ public class SingningXAdESCtrl implements ControllerInit {
             params.setSetSigTimeStamp(signatureTimestamp.isSelected());
             params.setSetContentTimeStamp(contentTimestamp.isSelected());
             params.setSetArchiveTimeStamp(archiveTimestamp.isSelected());
+            params.setGenPolicy(policy.isSelected());
             if (attrCertFile != null) {
                 AttributeCertificate attrCert = new AttributeCertificate(new FileInputStream(attrCertFile));
                 params.setSignerRole(Optional.of(attrCert));
             }
             if (productionPlace != null) {
                 params.setProductionPlace(productionPlace);
+            }
+            if (ocspInclude.isSelected())  {
+                params.setAppendOCSPValues(true);
             }
             util.prepareSigning(new FileInputStream(inputFile), params );
             OutputStream stream = new FileOutputStream(outputFile);

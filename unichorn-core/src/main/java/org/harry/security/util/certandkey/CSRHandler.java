@@ -159,7 +159,7 @@ public class CSRHandler {
      * Initialize the application key-store and trust-list on server side
      * @throws Exception error case
      */
-    public static void initAppKeystore() throws Exception {
+    public static void initAppKeystore(File keyStore, File trustList) throws Exception {
         String token = getTokenAdmin();
         URL ocspUrl= new URL(ADMIN_URL);
         // create closable http client and assign the certificate interceptor
@@ -169,15 +169,18 @@ public class CSRHandler {
         System.out.println("Responder URL: " + uriBuilder.build());
         HttpPost post = new HttpPost(uriBuilder.build());
         GSON.Params param = new GSON.Params();
-        param.parmType = "initKeys";
+        param.parmType = "copyKeyTrust";
         Gson gson = new Gson();
         String jsonString = gson.toJson(param);
         StringBody json = new StringBody(jsonString, ContentType.APPLICATION_JSON);
-
+        FileBody keystoreBody = new FileBody(keyStore);
+        FileBody trustListBody = new FileBody(trustList);
 
         MultipartEntityBuilder builder = MultipartEntityBuilder.create()
                 .addPart("params",
-                        json);
+                        json)
+                .addPart("keystore",  keystoreBody)
+                .addPart("trustlist",  trustListBody);
         System.err.println(param.toString());
         post.setEntity(builder.build());
         CloseableHttpResponse response = httpClient.execute(post);

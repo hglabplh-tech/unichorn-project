@@ -1,16 +1,23 @@
 package org.harry.security.util;
 
 
+import iaik.asn1.ObjectID;
 import iaik.asn1.structures.AlgorithmID;
 import iaik.asn1.structures.Attribute;
 import iaik.asn1.structures.GeneralName;
+import iaik.asn1.structures.Name;
 import iaik.security.provider.IAIK;
+import iaik.security.provider.IAIKMD;
+import iaik.utils.RFC2253NameParser;
+import iaik.utils.Util;
 import iaik.x509.X509Certificate;
 import iaik.x509.attr.AttributeCertificate;
 import iaik.x509.attr.Holder;
 import iaik.x509.attr.V2Form;
 import iaik.x509.attr.attributes.Role;
 import iaik.x509.attr.extensions.NoRevAvail;
+import iaik.x509.ocsp.OCSPResponse;
+import iaik.x509.ocsp.ReqCert;
 import iaik.xml.crypto.XSecProvider;
 import iaik.xml.crypto.XmldsigMore;
 import iaik.xml.crypto.utils.KeySelectorImpl;
@@ -20,7 +27,11 @@ import iaik.xml.crypto.xades.dom.DOMExtensionContext;
 import iaik.xml.crypto.xades.impl.HTTPTSPTimeStampProcessor;
 import iaik.xml.crypto.xades.impl.dom.XAdESSignatureFactory;
 import iaik.xml.crypto.xades.timestamp.TimeStampProcessor;
+import org.harry.security.util.bean.SigningBean;
 import org.harry.security.util.certandkey.KeyStoreTool;
+import org.harry.security.util.ocsp.HttpOCSPClient;
+import org.harry.security.util.trustlist.TrustListLoader;
+import org.harry.security.util.trustlist.TrustListManager;
 import org.w3c.dom.Document;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
@@ -32,10 +43,7 @@ import javax.xml.crypto.OctetStreamData;
 import javax.xml.crypto.dsig.*;
 import javax.xml.crypto.dsig.dom.DOMSignContext;
 import javax.xml.crypto.dsig.dom.DOMValidateContext;
-import javax.xml.crypto.dsig.keyinfo.KeyInfo;
-import javax.xml.crypto.dsig.keyinfo.KeyInfoFactory;
-import javax.xml.crypto.dsig.keyinfo.KeyValue;
-import javax.xml.crypto.dsig.keyinfo.X509Data;
+import javax.xml.crypto.dsig.keyinfo.*;
 import javax.xml.crypto.dsig.spec.C14NMethodParameterSpec;
 import javax.xml.crypto.dsig.spec.TransformParameterSpec;
 import javax.xml.parsers.DocumentBuilder;
@@ -49,18 +57,14 @@ import javax.xml.transform.stream.StreamResult;
 import java.io.*;
 import java.math.BigInteger;
 import java.net.MalformedURLException;
-import java.security.GeneralSecurityException;
-import java.security.InvalidAlgorithmParameterException;
-import java.security.KeyStore;
-import java.security.NoSuchAlgorithmException;
-import java.security.PrivateKey;
-import java.security.Security;
+import java.security.*;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateEncodingException;
 import java.util.*;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.nCopies;
+import static org.harry.security.CommonConst.OCSP_URL;
 import static org.harry.security.CommonConst.TSP_URL;
 
 
@@ -81,12 +85,27 @@ public class SignXAdESUtil {
     private DOMSignContext context;
     private XAdESParams params = new XAdESParams();
     private String signedPropsId;
+    private XMLExtendContext exContext;
+    private List<TrustListManager> walker;
 
-    public SignXAdESUtil(PrivateKey key, Certificate[] certChain) throws Exception {
+    public SignXAdESUtil(PrivateKey key, Certificate[] certChain, boolean pkcs11) throws Exception {
         this.privateKey = key;
         this.certChain = certChain;
-        XSecProvider xSecProvider = new XSecProvider();
-        Security.addProvider(xSecProvider);
+        walker = ConfigReader.loadAllTrusts();
+        Provider xSecProvider = null;
+        if ( !pkcs11) {
+            IAIKMD.addAsProvider();
+            xSecProvider = new XSecProvider();
+            Security.insertProviderAt(xSecProvider, 3);
+            //move other XMLDsig provider to the end
+            Provider otherXMLDsigProvider = Security.getProvider("XMLDSig");
+            if (otherXMLDsigProvider != null) {
+                Security.removeProvider(otherXMLDsigProvider.getName());
+                Security.addProvider(otherXMLDsigProvider);
+            }
+        } else {
+
+        }
 
         sfac = (XAdESSignatureFactory) XAdESSignatureFactory.getInstance("DOM", xSecProvider);
         qfac = QualifyingPropertiesFactory.getInstance("DOM", xSecProvider);
@@ -202,26 +221,26 @@ public class SignXAdESUtil {
         context.putNamespacePrefix(XMLSignature.XMLNS, "ds");
         context.putNamespacePrefix(XAdESSignature.XMLNS_1_4_1, "xades");
         if (params.isSetContentTimeStamp()) {
-            TimeStampProcessor processor = new HTTPTSPTimeStampProcessor(params.getTSA_URL());
+            TimeStampProcessor processor = new SimpleTimeStampProcessor(params.getTSA_URL());
             context.put(TimeStampProcessor.PROPERTY, processor);
         }
     }
 
     private SignaturePolicyIdentifier generatePolicy() throws FileNotFoundException, NoSuchAlgorithmException, InvalidAlgorithmParameterException {
         // Create the SignaturePolicyIdentifier qualifying property
-       InputStream policyStream  = SignXAdESUtil.class.getResourceAsStream("/crypto/xmlsigs/SigPolicy.xml");
+       InputStream policyStream  = SignXAdESUtil.class.getResourceAsStream("/signatures/UnichornPolicy.xml");
         Data spis = new OctetStreamData(
-                new BufferedInputStream(policyStream), "/crypto/xmlsigs/SigPolicy.xml", "text/xml");
+                new BufferedInputStream(policyStream), "/signatures/UnichornPolicy.xml", "text/xml");
 
-        ObjectIdentifier oi = qfac.newObjectIdentifier("http://www.iaik.at/foo/SigPolicy",
-                null, "IAIK foo signature policy", null);
+        ObjectIdentifier oi = qfac.newObjectIdentifier("http://www.unichorn.de/policy/all",
+                null, "Harrys Policy", null);
 
         List spqualifiers = new ArrayList();
         List spuris = new ArrayList();
-        spuris.add(qfac.newSPURI("resources/SigPolicy.xml"));
+        spuris.add(qfac.newSPURI("/resources/signatures/UnichornPolicy.xml"));
         spqualifiers.add(qfac.newSigPolicyQualifier(spuris));
         List spusernotices = new ArrayList();
-        spusernotices.add(qfac.newSPUserNotice("This is a demo signature only.", null));
+        spusernotices.add(qfac.newSPUserNotice("This is a default signature only.", null));
         spqualifiers.add(qfac.newSigPolicyQualifier(spusernotices));
 
         SignaturePolicyId spid = qfac.newSignaturePolicyId(oi, null,
@@ -262,7 +281,7 @@ public class SignXAdESUtil {
 
     private void setSignatureTimeStamp(DOMValidateContext valContext) throws NoSuchAlgorithmException, InvalidAlgorithmParameterException, MalformedURLException, MarshalException, XMLSignatureException {
         NodeList nl = doc.getElementsByTagNameNS(XMLSignature.XMLNS, "Signature");
-        XMLExtendContext exContext = new DOMExtensionContext(valContext);
+        exContext = new DOMExtensionContext(valContext);
         SignatureTimeStamp tsp = this.qfac.newSignatureTimeStamp(sfac.newCanonicalizationMethod(params.getCanonMethod(), (C14NMethodParameterSpec) null),
                 "timeStampID" + UUID.randomUUID().toString(), null);
         TimeStampProcessor processor = new SimpleTimeStampProcessor(params.getTSA_URL());
@@ -308,6 +327,9 @@ public class SignXAdESUtil {
         if (params.isSetSigTimeStamp()) {
             setSignatureTimeStamp(valContext);
         }
+        if (params.isAppendOCSPValues()) {
+            appendOCSPResults();
+        }
         processTransformWrite(targetXML);
         return;
     }
@@ -324,6 +346,74 @@ public class SignXAdESUtil {
         signature = (XAdESSignature)sfac.unmarshalXMLSignature(valContext);
         boolean coreValidity = signature.validate(valContext);
         return valContext;
+    }
+
+    private void appendOCSPResults() throws Exception {
+        // Get SigningCertificate and RevocationInformation
+        // And create the CompleteCertificateRefs and CompleteRevocationRefs properties
+        CertID sigCert = null;
+        QualifyingProperties qp = ((XAdESSignature) signature).getQualifyingProperties();
+        SignedProperties sp = qp.getSignedProperties();
+        if (sp != null) {
+            SignedSignatureProperties ssp = sp.getSignedSignatureProperties();
+            if (ssp != null) {
+                SigningCertificate sigCerts = ssp.getSigningCertificate();
+                if (sigCerts != null) {
+                    List certs = sigCerts.getCertIDs();
+                    if (!certs.isEmpty()) {
+                        sigCert = (CertID) certs.get(0);
+                    }
+                }
+            }
+        }
+
+        List certRefs = new ArrayList();
+        List ocspRefs = new ArrayList();
+
+        SigningBean bean = new SigningBean().setCheckPathOcsp(true);
+        AlgorithmPathChecker checker = new AlgorithmPathChecker(walker, bean);
+        VerifyUtil.SignerInfoCheckResults results = new VerifyUtil.SignerInfoCheckResults();
+        X509Certificate[] realChain =
+                checker.detectChain(Util.convertCertificate(this.certChain[0]),
+                        null, results);
+         for(int index = 0;index < realChain.length; index++) {
+            if (( index + 1) < realChain.length) {
+                X509Certificate cert = realChain[index];
+                X509Certificate [] checkChain= new X509Certificate[2];
+                checkChain[0] = cert;
+                checkChain[1] = realChain[index + 1];
+                certRefs.add(qfac.newCertID("https://localhost/" + cert.getSerialNumber(), cert,
+                        sfac.newDigestMethod(DigestMethod.SHA1, null)));
+
+                OCSPResponse response = HttpOCSPClient.sendOCSPRequest(OCSP_URL,
+                        null, null, checkChain,
+                        ReqCert.certID, false, true);
+
+                ocspRefs.add(qfac.newOCSPRef(response.getEncoded(),
+                        sfac.newDigestMethod(DigestMethod.SHA1, null), OCSP_URL));
+
+            }
+        }
+
+        CompleteCertificateRefs compCertRefs = qfac.newCompleteCertificateRefs(certRefs,
+                "CompleteCertificateRefs");
+
+        CompleteRevocationRefs compRevRefs;
+        compRevRefs = qfac.newCompleteRevocationRefs(null, ocspRefs, null,
+                    "CompleteRevocationRefs");
+
+
+
+        //register unmarshalled ID attributes with the new Context
+        //    for (Iterator iter = valContext.iterator(); iter.hasNext();) {
+        //      Map.Entry idElementEntry = (Map.Entry) iter.next();
+        //      Element e = (Element) idElementEntry.getValue();
+        //      extensionContext.setIdAttributeNS(e,null,"Id");
+        //    }
+
+        // Append validation references
+        ((XAdESSignature) signature).appendValidationRefs(compCertRefs, compRevRefs, null,
+                null, exContext);
     }
 
     private void processTransformWrite(OutputStream outputStream) throws TransformerException {
@@ -381,6 +471,7 @@ public class SignXAdESUtil {
         private CounterSignature counterSignature = null;
         private ProdPlace productionPlace = null;
         private boolean genPolicy = false;
+        private boolean appendOCSPValues = false;
 
         public boolean isSetSigTimeStamp() {
             return setSigTimeStamp;
@@ -478,6 +569,15 @@ public class SignXAdESUtil {
 
         public XAdESParams setGenPolicy(boolean genPolicy) {
             this.genPolicy = genPolicy;
+            return this;
+        }
+
+        public boolean isAppendOCSPValues() {
+            return appendOCSPValues;
+        }
+
+        public XAdESParams setAppendOCSPValues(boolean appendOCSPValues) {
+            this.appendOCSPValues = appendOCSPValues;
             return this;
         }
     }

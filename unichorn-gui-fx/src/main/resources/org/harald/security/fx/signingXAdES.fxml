@@ -79,6 +79,8 @@
             <CheckBox fx:id="contentTimestamp" mnemonicParsing="false" text="Content Timestamp" GridPane.columnIndex="3" GridPane.rowIndex="5" />
             <CheckBox fx:id="archiveTimestamp" mnemonicParsing="false" text="Archive Timestamp" GridPane.rowIndex="6" />
             <Button fx:id="addProdPlace" mnemonicParsing="false" onAction="#addProdPlace" text="Add ProductionPlace" GridPane.rowIndex="5" />
+            <CheckBox fx:id="policy" mnemonicParsing="false" text="Set signature default policy" GridPane.columnIndex="1" GridPane.rowIndex="6" />
+            <CheckBox fx:id="ocspInclude" mnemonicParsing="false" text="Include OCSP Responses" GridPane.columnIndex="2" GridPane.rowIndex="6" />
          </children>
       </GridPane>
    </children>

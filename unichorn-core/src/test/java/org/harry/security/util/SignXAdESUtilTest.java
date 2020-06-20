@@ -26,8 +26,9 @@ public class SignXAdESUtilTest extends TestBase {
                 .setKeyStoreBean(bean)
                 .setOutputPath(out.getAbsolutePath());
 
-        SignXAdESUtil util = new SignXAdESUtil(bean.getSelectedKey(), bean.getChain());
-        SignXAdESUtil.XAdESParams params = util.newParams().setSetSigTimeStamp(true);
+        SignXAdESUtil util = new SignXAdESUtil(bean.getSelectedKey(), bean.getChain(), false);
+        SignXAdESUtil.XAdESParams params = util.newParams().setSetSigTimeStamp(true).setAppendOCSPValues(true)
+                .setSetContentTimeStamp(true);
         util.prepareSigning(signingBean.getDataIN(), params);
         util.sign(new FileOutputStream(out.getAbsolutePath()));
     }

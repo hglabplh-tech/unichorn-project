@@ -111,14 +111,21 @@ public class AdminResponder extends HttpServlet {
        GSON.Params jInput = readJSon(servletRequest);
        if (jInput.parmType.equals("saveProps")) {
            saveAppProperties(servletRequest, servletResponse, jInput);
-       } else if (jInput.parmType.equals("initKeys")) {
+       } else if (jInput.parmType.equals("copyKeyTrust")) {
            File keystore = new File(APP_DIR, PROP_STORE_NAME);
-           File keystoreEC = new File(APP_DIR, PROP_STORE_NAME + "_EC");
-           File trustFile = new File(APP_DIR_TRUST, PROP_TRUST_NAME);
+           Logger.trace("Write file: -> " + keystore.getAbsolutePath());
            keystore.delete();
-           keystoreEC.delete();
+           FileOutputStream out = new FileOutputStream(keystore);
+           Part keyStorePart = servletRequest.getPart("keystore");
+           IOUtils.copy(keyStorePart.getInputStream(), out);
+           Logger.trace("Written file: -> " + keystore.getAbsolutePath());
+           File trustFile = new File(APP_DIR_TRUST, PROP_TRUST_NAME);
+           Logger.trace("Write file: -> " + trustFile.getAbsolutePath());
            trustFile.delete();
-           CertificateWizzard.initThis();
+           out = new FileOutputStream(trustFile);
+           Part trustListPart = servletRequest.getPart("trustlist");
+           IOUtils.copy(trustListPart.getInputStream(), out);
+           Logger.trace("Written file: -> " + trustFile.getAbsolutePath());
        } else if (jInput.parmType.equals("setSigningStore")) {
            saveSignKeyStore(servletRequest, servletResponse, jInput);
 

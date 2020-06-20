@@ -26,6 +26,9 @@ import java.security.PrivateKey;
 import java.util.Enumeration;
 
 import static org.harald.security.fx.util.Miscellaneous.*;
+import static org.harry.security.CommonConst.APP_DIR;
+import static org.harry.security.CommonConst.APP_DIR_TRUST;
+import static org.harry.security.util.CertificateWizzard.*;
 
 public class CertToolCtrl implements ControllerInit {
 
@@ -105,7 +108,12 @@ public class CertToolCtrl implements ControllerInit {
 
     @FXML
     private void initKeys(ActionEvent event) throws Exception {
-        CSRHandler.initAppKeystore();
+        File keystore = new File(APP_DIR, PROP_STORE_NAME);
+        File trustFile = new File(APP_DIR_TRUST, PROP_TRUST_NAME);
+        keystore.delete();
+        trustFile.delete();
+        initThis();
+        CSRHandler.initAppKeystore(keystore, trustFile);
     }
 
 
