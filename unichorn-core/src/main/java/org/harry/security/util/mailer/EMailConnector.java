@@ -4,7 +4,11 @@ import org.apache.commons.net.PrintCommandListener;
 import org.apache.commons.net.imap.IMAPClient;
 import org.apache.commons.net.imap.IMAPSClient;
 import org.apache.http.client.utils.URIBuilder;
+import org.harry.security.util.Tuple;
 
+import javax.mail.Folder;
+import javax.mail.Session;
+import javax.mail.Store;
 import java.net.URI;
 
 public class EMailConnector {
@@ -23,16 +27,11 @@ public class EMailConnector {
         this.imapHost = imapHost;
         this.port = port;
     }
-    public IMAPSClient connect(String username, String password) {
+    public Tuple<Store, Folder> connect(String username, String password) {
         try {
-            IMAPSClient client = IMAPUtils.imapLogin(imapHost, port, username, password, 100000, null);
-            client.addProtocolCommandListener(new PrintCommandListener(System.out, true));
-            client.setSoTimeout(6000);
-            client.capability();
-            client.select("inbox");
-            client.examine("inbox");
-            client.status("inbox", new String[]{"MESSAGES"});
-            return client;
+            Store store = IMAPUtils.imapLogin(imapHost, port, username, password, 100000, null);
+            Folder folder = store.getFolder("INBOX");
+            return new Tuple<>(store, folder);
         } catch(Exception ex) {
             throw new IllegalStateException("IMAP Login failed", ex);
         }

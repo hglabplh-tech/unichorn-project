@@ -18,15 +18,23 @@
 package org.harry.security.util.mailer;
 
 import java.io.IOException;
+import java.net.Authenticator;
 import java.net.Socket;
 import java.net.URI;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
+import java.util.Properties;
 
 import org.apache.commons.net.ProtocolCommandListener;
 import org.apache.commons.net.imap.IMAPClient;
 import org.apache.commons.net.imap.IMAPSClient;
+import org.apache.http.conn.ssl.TrustAllStrategy;
+import org.apache.http.ssl.SSLContextBuilder;
+import org.apache.http.ssl.TrustStrategy;
 
+import javax.mail.Session;
+import javax.mail.Store;
+import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509ExtendedTrustManager;
@@ -38,49 +46,33 @@ import javax.net.ssl.X509ExtendedTrustManager;
 class IMAPUtils {
 
 
-    static IMAPSClient imapLogin(final String host, final int port,
+    static Store imapLogin(final String host, final int port,
                                 final String username,
                                 String password,
                                 final int defaultTimeout,
-                                ProtocolCommandListener listener) throws IOException {
+                                ProtocolCommandListener listener) throws Exception {
 
         // prompt for the password if necessary
         password = Utils.getPassword(username, password);
 
-        final IMAPSClient imap;
+        final Session imap;
 
 
+        TrustStrategy strategie = new TrustAllStrategy();
+        SSLContext context =
+                SSLContextBuilder.create().loadTrustMaterial(strategie).build();
+        SSLContext.setDefault(context);
+        Properties props = System.getProperties();
+        props.setProperty("mail.store.protocol", "imaps");
+        Session session = Session.getInstance(props, null);
+
+        Store store = session.getStore("imaps");
         System.out.println("Using secure protocol");
-        imap = new IMAPSClient(true); // implicit
-        TrustManager manager = getEmailTrustAll();
-        imap.setTrustManager(manager);
-
-        if (port != -1) {
-            imap.setDefaultPort(port);
+        if (store != null) {
+            store.connect(host, port, username, password);
         }
 
-        imap.setDefaultTimeout(defaultTimeout);
-
-        if (listener != null) {
-            imap.addProtocolCommandListener(listener);
-        }
-
-        final String server = host;
-        System.out.println("Connecting to server " + server + " on " + imap.getDefaultPort());
-
-        try {
-            imap.connect(server);
-            System.out.println("Successfully connected");
-        } catch (IOException e) {
-            throw new RuntimeException("Could not connect to server.", e);
-        }
-
-        if (!imap.login(username, password)) {
-            imap.disconnect();
-            throw new RuntimeException("Could not login to server. Check login details.");
-        }
-
-        return imap;
+        return store;
     }
 
     public static TrustManager getEmailTrustAll() {

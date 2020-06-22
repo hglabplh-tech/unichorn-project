@@ -1,113 +1,85 @@
 package org.harry.security.util.mailer;
 
+import org.apache.bcel.generic.FADD;
 import org.apache.commons.mail.Email;
 import org.apache.commons.mail.HtmlEmail;
-import org.apache.commons.net.PrintCommandListener;
-import org.apache.commons.net.imap.IMAPSClient;
-import org.apache.commons.net.io.Util;
-import org.apache.commons.net.smtp.SMTPClient;
-import org.apache.commons.net.smtp.SMTPReply;
-import org.apache.commons.net.smtp.SMTPSClient;
-import org.apache.commons.net.smtp.SimpleSMTPHeader;
+import org.apache.http.conn.ssl.TrustAllStrategy;
+import org.apache.http.ssl.SSLContextBuilder;
+import org.apache.http.ssl.TrustStrategy;
+import org.pmw.tinylog.Logger;
 
-import javax.mail.Session;
+import javax.mail.*;
+import javax.mail.internet.InternetAddress;
+import javax.mail.internet.MimeMessage;
 import javax.net.ssl.SSLContext;
-import javax.net.ssl.TrustManager;
-import java.io.*;
-import java.util.ArrayList;
-import java.util.List;
 
-import static org.harry.security.util.httpclient.SSLUtils.createStandardContext;
+import java.util.Properties;
+
 import static org.harry.security.util.httpclient.SSLUtils.trustReallyAllShit;
-import static org.harry.security.util.mailer.IMAPUtils.getEmailTrustAll;
 
 public class ESender {
 
-    private final String smtpHost;
-    private final int smtpPort;
+    private final Store store;
+    private final String  smtpPort;
+    private final String host;
+    private final Folder defaultFolder;
 
-    public ESender(String smtpHost, int smtpPort) {
 
-        this.smtpHost = smtpHost;
+    public ESender(Store store, Folder folder, String host, String smtpPort) {
+        this.host = host;
         this.smtpPort = smtpPort;
+        this.store = store;
+        this.defaultFolder = folder;
     }
 
-    public boolean sendEmail (String username, String password) throws Exception {
-        SSLContext.setDefault(trustReallyAllShit());
-        Email mail = new HtmlEmail().addTo("heike.glab@t-online.de")
-                .setSSLOnConnect(true)
-                .setSubject("Ich liebe dich über alles")
-                .setMsg("Hallo liebe Sophie, Ich liebe dich über alles")
-                .setFrom("harald.glab-plhak@t-online.de");
-        mail.setAuthentication(username, password);
-        mail.setSslSmtpPort(Integer.toString(smtpPort));
-        mail.setSmtpPort(smtpPort);
-        mail.setHostName(smtpHost);
-        String result = mail.send();
-        return true;
-    }
-
-    public  void sendViaSmtp(String sender, String recipient, String subject)
-    {
-        String filename, server, cc;
-        List<String> ccList = new ArrayList<String>();
-        BufferedReader stdin;
-        FileReader fileReader = null;
-        Writer writer;
-        SimpleSMTPHeader header;
-        SMTPSClient client;
-
-        stdin = new BufferedReader(new InputStreamReader(System.in));
-
+    public boolean sendEmail (String username, String password)  {
         try {
-            header = new SimpleSMTPHeader(sender, recipient, subject);
-            client = new SMTPSClient();
-            TrustManager manager = getEmailTrustAll();
-            client.setTrustManager(manager);
-            client.addProtocolCommandListener(new PrintCommandListener(
-                    new PrintWriter(System.out), true));
+            TrustStrategy strategie = new TrustAllStrategy();
+            SSLContext context =
+                    SSLContextBuilder.create().loadTrustMaterial(strategie).build();
+            SSLContext.setDefault(context);
+            Properties props = System.getProperties();
 
-            client.connect(smtpHost, smtpPort);
+            props.put("mail.smtp.host", host);
+            props.put("mail.smtp.port", smtpPort);
+            // SSL Factory
+            props.put("mail.smtp.socketFactory.class",
+                    "javax.net.ssl.SSLSocketFactory");
 
-            if (!SMTPReply.isPositiveCompletion(client.getReplyCode()))
-            {
-                client.disconnect();
-                System.err.println("SMTP server refused connection.");
-                return;
-            }
-            client.login();
+            Session session = Session.getInstance(props, new javax.mail.Authenticator() {
 
-            client.setSender(sender);
-            client.addRecipient(recipient);
-
-
-
-            for (String recpt : ccList) {
-                client.addRecipient(recpt);
-            }
-
-            writer = client.sendMessageData();
-
-            if (writer != null)
-            {
-                writer.write(header.toString());
-                writer.write("Hallo liebe Sophie, Ich liebe dich über alles");
-                writer.close();
-                client.completePendingCommand();
-            }
-
-            if (fileReader != null ) {
-                fileReader.close();
-            }
-
-            client.logout();
-
-            client.disconnect();
-        }
-        catch (IOException e)
-        {
-            e.printStackTrace();
-            return;
+                // override the getPasswordAuthentication
+                // method
+                protected PasswordAuthentication
+                getPasswordAuthentication() {
+                    return new PasswordAuthentication(username,
+                            password);
+                }
+            });
+            Transport transport = session.getTransport();
+            transport.connect(username, password);
+            MimeMessage message = new MimeMessage(session);
+            message.setFrom(new InternetAddress("harald.glab-plhak@t-online.de"));
+            message.addRecipient(Message.RecipientType.TO,
+                    new InternetAddress("heike.glab@t-online.de"));
+            message.setSubject("I love you so");
+            message.setText("Hi Sophie, I love you from earth too moon and back. You are my sunshine. You are like " +
+                    "a beautiful rose which blooms in the snow and ice of the winter and gives hope." +
+                    "I will get old and grey with you :-)");
+            Address[] adresses = new Address[1];
+            transport.sendMessage(message, message.getAllRecipients());
+            Folder sentFolder = store.getFolder("INBOX.Sent");
+            Folder[] folderList = this.defaultFolder.list();
+            sentFolder.open(Folder.READ_WRITE);
+            Message[] temp = new Message[1];
+            temp[0] = message;
+            sentFolder.appendMessages(temp);
+            sentFolder.close(false);
+            return true;
+        } catch(Exception ex) {
+            Logger.trace("error occurred during send mail " + ex.getMessage());
+            Logger.trace(ex);
+            return false;
         }
     }
 }

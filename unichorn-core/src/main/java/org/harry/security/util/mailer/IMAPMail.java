@@ -26,47 +26,7 @@ import org.apache.commons.net.imap.IMAPClient;
 public class IMAPMail
 {
 
-    public static void main(String[] args) throws IOException {
-        if (args.length != 4)
-        {
-            System.err.println(
-                "Usage: IMAPMail imap[s]://username:password@server/");
-            System.err.println("Connects to server; lists capabilities and shows Inbox status");
-            System.exit(1);
-        }
 
-        String host = args[0];
-        int port = Integer.parseInt(args[1]);
-        String username = args[2];
-        String password = args[3];
-
-        // Connect and login
-        final IMAPClient imap = IMAPUtils.imapLogin(host, port,username, password, 10000, null);
-
-        // suppress login details
-        imap.addProtocolCommandListener(new PrintCommandListener(System.out, true));
-
-        try {
-            imap.setSoTimeout(6000);
-
-            imap.capability();
-
-            imap.select("inbox");
-
-            imap.examine("inbox");
-
-            imap.status("inbox", new String[]{"MESSAGES"});
-
-        } catch (IOException e) {
-            System.out.println(imap.getReplyString());
-            e.printStackTrace();
-            System.exit(10);
-            return;
-        } finally {
-            imap.logout();
-            imap.disconnect();
-        }
-    }
 }
 
 /* kate: indent-width 4; replace-tabs on; */
