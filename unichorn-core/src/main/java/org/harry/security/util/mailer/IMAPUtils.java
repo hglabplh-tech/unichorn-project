@@ -37,18 +37,7 @@ import javax.net.ssl.X509ExtendedTrustManager;
 
 class IMAPUtils {
 
-    /**
-     * Parse the URI and use the details to connect to the IMAP(S) server and login.
-     *
-     * @param host the host of the imap service
-     * @param port the port to connect to
-     * @param username the username for login to imap
-     * @param password the user pass for login
-     * @param defaultTimeout initial timeout (in milliseconds)
-     * @param listener for tracing protocol IO (may be null)
-     * @return the IMAP client - connected and logged in
-     * @throws IOException if any problems occur
-     */
+
     static IMAPSClient imapLogin(final String host, final int port,
                                 final String username,
                                 String password,

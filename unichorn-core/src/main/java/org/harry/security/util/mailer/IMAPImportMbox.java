@@ -30,21 +30,7 @@ import java.util.regex.Pattern;
 
 import org.apache.commons.net.imap.IMAPClient;
 
-/**
- * This is an example program demonstrating how to use the IMAP[S]Client class.
- * This program connects to a IMAP[S] server and imports messages into the folder from an mbox file.
- * <p>
- * Usage: IMAPImportMbox imap[s]://user:password@host[:port]/folder/path <mboxfile> [selectors]
- * <p>
- * An example selector might be:
- * <ul>
- * <li>1,2,3,7-10</li>
- * <li>-142986- : this is useful for retrieving messages by apmail number, which appears as From xyz-return-142986-apmail-...</li>
- * </ul>
- * <p>
- * For example:<br>
- * IMAPImportMbox imaps://user:pass@imap.googlemail.com/imported_messages 201401.mbox 1-10,20 -142986-
- */
+
 public final class IMAPImportMbox
 {
 

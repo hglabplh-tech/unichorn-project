@@ -23,19 +23,7 @@ import java.net.URI;
 import org.apache.commons.net.PrintCommandListener;
 import org.apache.commons.net.imap.IMAPClient;
 
-/**
- * This is an example program demonstrating how to use the IMAP[S]Client class.
- * This program connects to a IMAP[S] server, lists its capabilities and shows
- * the status of the Inbox.
- * <p>
- * Usage: IMAPMail imap[s]://username:password@server/
- * <p>
- * For example<br>
- * IMAPMail imaps://username:password@imap.mail.yahoo.com/<br>
- * or<br>
- * IMAPMail imaps://username:password@imap.googlemail.com/
- */
-public final class IMAPMail
+public class IMAPMail
 {
 
     public static void main(String[] args) throws IOException {

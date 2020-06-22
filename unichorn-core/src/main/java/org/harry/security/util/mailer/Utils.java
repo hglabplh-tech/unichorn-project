@@ -32,20 +32,7 @@ class Utils {
         // not instantiable
     }
 
-    /**
-     * If the initial password is:
-     * '*' - replace it with a line read from the system console
-     * '-' - replace it with next line from STDIN
-     * 'ABCD' - if the input is all upper case, use the field as an environment variable name
-     *
-     * Note: there are no guarantees that the password cannot be snooped.
-     *
-     * Even using the console may be subject to memory snooping,
-     * however it should be safer than the other methods.
-     *
-     * STDIN may require creating a temporary file which could be read by others
-     * Environment variables may be visible by using PS
-     */
+
     static String getPassword(String username, String password) throws IOException {
         if ("-".equals(password)) { // stdin
             BufferedReader in = new BufferedReader(new InputStreamReader(System.in));

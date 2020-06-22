@@ -40,43 +40,7 @@ import org.apache.commons.net.imap.IMAP;
 import org.apache.commons.net.imap.IMAPClient;
 import org.apache.commons.net.imap.IMAPReply;
 
-/**
- * This is an example program demonstrating how to use the IMAP[S]Client class.
- * This program connects to a IMAP[S] server and exports selected messages from a folder into an mbox file.
- * <p>
- * Usage: IMAPExportMbox imap[s]://user:password@host[:port]/folder/path <mboxfile> [sequence-set] [item-names]
- * <p>
- * An example sequence-set might be:
- * <ul>
- * <li>11,2,3:10,20:*</li>
- * <li>1:* - this is the default</li>
- * </ul>
- * <p>
- * Some example item-names might be:
- * <ul>
- * <li>BODY.PEEK[HEADER]</li>
- * <li>'BODY.PEEK[HEADER.FIELDS (SUBJECT)]'</li>
- * <li>ALL - macro equivalent to '(FLAGS INTERNALDATE RFC822.SIZE ENVELOPE)'</li>
- * <li>FAST - macro equivalent to '(FLAGS INTERNALDATE RFC822.SIZE)'</li>
- * <li>FULL - macro equivalent to '(FLAGS INTERNALDATE RFC822.SIZE ENVELOPE BODY)'</li>
- * <li>ENVELOPE X-GM-LABELS</li>
- * <li>'(INTERNALDATE BODY.PEEK[])' - this is the default</li>
- * </ul>
- * <p>
- * Macro names cannot be combined with anything else; they must be used alone.<br>
- * Note that using BODY will set the \Seen flag. This is why the default uses BODY.PEEK[].<br>
- * The item name X-GM-LABELS is a Google Mail extension; it shows the labels for a message.<br>
- * For example:<br>
- * IMAPExportMbox imaps://username:password@imap.googlemail.com/messages_for_export exported.mbox 1:10,20<br>
- * IMAPExportMbox imaps://username:password@imap.googlemail.com/messages_for_export exported.mbox 3 ENVELOPE X-GM-LABELS<br>
- * <p>
- * The sequence-set is passed unmodified to the FETCH command.<br>
- * The item names are wrapped in parentheses if more than one is provided.
- * Otherwise, the parameter is assumed to be wrapped if necessary.<br>
- * Parameters with spaces must be quoted otherwise the OS shell will normally treat them as separate parameters.<br>
- * Also the listener that writes the mailbox only captures the multi-line responses (e.g. ones that include BODY references).
- * It does not capture the output from FETCH commands using item names such as ENVELOPE or FLAGS that return a single line response.
- */
+
 public final class IMAPExportMbox
 {
 
