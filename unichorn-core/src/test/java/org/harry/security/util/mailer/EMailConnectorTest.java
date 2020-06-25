@@ -2,6 +2,7 @@ package org.harry.security.util.mailer;
 
 import org.apache.commons.net.imap.IMAPClient;
 import org.apache.commons.net.imap.IMAPSClient;
+import org.harry.security.testutils.TestBase;
 import org.harry.security.util.Tuple;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -15,12 +16,14 @@ import javax.mail.Folder;
 import javax.mail.Message;
 import javax.mail.Session;
 import javax.mail.Store;
+import java.io.File;
 import java.net.URI;
+import java.net.URL;
 import java.util.Locale;
 
 import static org.harry.security.util.mailer.EMailConnector.*;
 
-public class EMailConnectorTest {
+public class EMailConnectorTest extends TestBase {
 
     @BeforeClass
     public static void initClass() {
@@ -34,13 +37,23 @@ public class EMailConnectorTest {
     public void connectDisconnect() throws Exception {
         Tuple<Store, Folder> connectResult = null;
         try {
+            URL htmlURL = EMailConnectorTest.class.getResource("/data/mail.html");
+            File htmlFile = new File(htmlURL.toURI());
             EMailConnector connector = new EMailConnector(T_ONLINE_IMAP_URI_HOST, T_ONLINE_IMAP_PORT);
             String password = System.getenv("emailpass");
             connectResult = connector.connect("harald.glab-plhak@t-online.de", password);
-            ESender sender = new ESender(connectResult.getFirst(), connectResult.getSecond(),
+            ESender sender = ESender.newBuilder(connectResult.getFirst(), connectResult.getSecond(),
                     T_ONLINE_SMTP_URI_HOST,
-                    Integer.toString(T_ONLINE_SMTP_PORT));
-            sender.sendEmail("harald.glab-plhak@t-online.de", password);
+                    Integer.toString(T_ONLINE_SMTP_PORT))
+                    .addTo("heike.glab@t-online.de")
+                    .addTo("juliane.glab@gmx.de")
+                    .setFrom("harald.glab-plhak@t-online.de")
+                    .setSubject("Hey people...")
+                    .setText("I will inform you abaut sending this mail :rofl:. This is a test mail from a new mail client." +
+                            "\nBest regards\n\nHarald Glab-Plhak")
+                    .addAttachement(htmlFile)
+                    .build();
+            sender.sendSigned("harald.glab-plhak@t-online.de", password);
             EReceiver receiver = new EReceiver(connectResult);
             Message[] messages = receiver.receiveMails();
             for (Message msg: messages) {

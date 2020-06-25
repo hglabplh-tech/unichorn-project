@@ -5,6 +5,7 @@ import org.apache.commons.net.imap.IMAPClient;
 import org.apache.commons.net.imap.IMAPSClient;
 import org.apache.http.client.utils.URIBuilder;
 import org.harry.security.util.Tuple;
+import org.pmw.tinylog.Logger;
 
 import javax.mail.Folder;
 import javax.mail.Session;
@@ -33,6 +34,8 @@ public class EMailConnector {
             Folder folder = store.getFolder("INBOX");
             return new Tuple<>(store, folder);
         } catch(Exception ex) {
+            Logger.trace("Login failed with: " + ex.getMessage());
+            Logger.trace(ex);
             throw new IllegalStateException("IMAP Login failed", ex);
         }
     }

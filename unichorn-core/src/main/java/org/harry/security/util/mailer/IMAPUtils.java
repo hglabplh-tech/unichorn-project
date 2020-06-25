@@ -31,6 +31,7 @@ import org.apache.commons.net.imap.IMAPSClient;
 import org.apache.http.conn.ssl.TrustAllStrategy;
 import org.apache.http.ssl.SSLContextBuilder;
 import org.apache.http.ssl.TrustStrategy;
+import org.harry.security.util.httpclient.SSLUtils;
 
 import javax.mail.Session;
 import javax.mail.Store;
@@ -60,7 +61,7 @@ class IMAPUtils {
 
         TrustStrategy strategie = new TrustAllStrategy();
         SSLContext context =
-                SSLContextBuilder.create().loadTrustMaterial(strategie).build();
+                SSLUtils.createStandardContext();
         SSLContext.setDefault(context);
         Properties props = System.getProperties();
         props.setProperty("mail.store.protocol", "imaps");
