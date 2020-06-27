@@ -1,10 +1,20 @@
 package org.harry.security.util.mailer;
 
 import com.sun.mail.imap.IMAPFolder;
+import org.harry.security.util.SigningUtil;
 import org.harry.security.util.Tuple;
+import org.jvnet.staxex.StreamingDataHandler;
 import org.pmw.tinylog.Logger;
 
+import javax.activation.DataHandler;
 import javax.mail.*;
+import javax.mail.internet.MimeMultipart;
+import javax.validation.constraints.Max;
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
+import java.lang.reflect.Array;
+import java.util.ArrayList;
+import java.util.List;
 
 public class EReceiver {
 
@@ -77,7 +87,7 @@ public class EReceiver {
         }
     }
 
-    public Message openMail(String folderName, Message[] messages,int index) {
+    public ReadableMail openMail(String folderName, Message[] messages,int index) {
         try {
             this.instance.getFirst().getFolder(folderName);
             IMAPFolder folder = (IMAPFolder) this.instance.getFirst().getFolder(folderName);
@@ -87,11 +97,74 @@ public class EReceiver {
            // metadataProfile.add(IMAPFolder.FetchProfileItem.MESSAGE);
            // folder.fetch(messages, metadataProfile);
             folder.close(false);
-            return messages[index];
+            Message actualMessage = messages[index];
+            ReadableMail mail = new ReadableMail(actualMessage);
+            mail.analyzeContent();
+            return mail;
         } catch (Exception ex) {
             Logger.trace("fetch failed" + ex.getMessage());
             Logger.trace(ex);
             throw new IllegalStateException("fetch failed", ex);
+        }
+    }
+
+    public static class ReadableMail{
+        private final Message message;
+
+        List<String> fromList = new ArrayList<>();
+        List<Tuple<String, DataHandler>> partList = new ArrayList<>();
+
+        public ReadableMail(Message message) {
+            this.message = message;
+        }
+
+        public void analyzeContent() {
+            try {
+                Address[] addresses = message.getFrom();
+                for (Address address:addresses) {
+                    fromList.add(address.toString());
+                }
+                Object contentObj = message.getContent();
+                String type = message.getContentType();
+                Logger.trace(type);
+                if (contentObj instanceof Multipart) {
+                    Logger.trace("found multipart");
+                    MimeMultipart multipart = (MimeMultipart)message.getContent();
+                    int countMembers = multipart.getCount();
+                    for (int index = 0; index < countMembers;index++) {
+                        BodyPart part = multipart.getBodyPart(index);
+                        String partType = part.getContentType();
+                        Logger.trace("Part type of part: " + index + " is: " + partType);
+                        DataHandler dataHandler = part.getDataHandler();
+                        partList.add(new Tuple<>(partType, dataHandler));
+                    }
+                }  else  if (contentObj instanceof String){
+                    String content = (String)message.getContent();
+                    ByteArrayInputStream stream = new ByteArrayInputStream(content.getBytes());
+                    DataHandler dataHandler = new DataHandler(new SigningUtil.InputStreamDataSource(stream));
+                    partList.add(new Tuple<>(type, dataHandler));
+                } else if (contentObj instanceof InputStream) {
+                    DataHandler dataHandler =
+                            new DataHandler(new SigningUtil.InputStreamDataSource((InputStream)contentObj));
+                    partList.add(new Tuple<>(type, dataHandler));
+                }
+            } catch (Exception ex) {
+                Logger.trace("analyzeContent failed" +  ex.getMessage());
+                Logger.trace(ex);
+                throw new IllegalStateException("analyzeContent failed", ex);
+            }
+        }
+
+        public Message getMessage() {
+            return message;
+        }
+
+        public List<String> getFromList() {
+            return fromList;
+        }
+
+        public List<Tuple<String, DataHandler>> getPartList() {
+            return partList;
         }
     }
 }

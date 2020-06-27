@@ -70,8 +70,6 @@ public class EMailConnectorTest extends TestBase {
             for (Message msg: messages) {
                 System.out.println("From: " + msg.getFrom()[0].toString() + " Subject: " + msg.getSubject());
             }
-            Message message = receiver.openMail("INBOX", messages, (messages.length -1));
-            Logger.trace("message found content type is: " + message.getContentType());
         } catch(Exception ex) {
 
         } finally {
