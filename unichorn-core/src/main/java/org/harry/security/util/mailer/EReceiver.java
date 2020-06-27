@@ -11,6 +11,7 @@ import javax.mail.*;
 import javax.mail.internet.MimeMultipart;
 import javax.validation.constraints.Max;
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Array;
 import java.util.ArrayList;
@@ -126,18 +127,10 @@ public class EReceiver {
                 }
                 Object contentObj = message.getContent();
                 String type = message.getContentType();
-                Logger.trace(type);
                 if (contentObj instanceof Multipart) {
                     Logger.trace("found multipart");
                     MimeMultipart multipart = (MimeMultipart)message.getContent();
-                    int countMembers = multipart.getCount();
-                    for (int index = 0; index < countMembers;index++) {
-                        BodyPart part = multipart.getBodyPart(index);
-                        String partType = part.getContentType();
-                        Logger.trace("Part type of part: " + index + " is: " + partType);
-                        DataHandler dataHandler = part.getDataHandler();
-                        partList.add(new Tuple<>(partType, dataHandler));
-                    }
+                    analyzeMultipartContent(multipart);
                 }  else  if (contentObj instanceof String){
                     String content = (String)message.getContent();
                     ByteArrayInputStream stream = new ByteArrayInputStream(content.getBytes());
@@ -153,6 +146,23 @@ public class EReceiver {
                 Logger.trace(ex);
                 throw new IllegalStateException("analyzeContent failed", ex);
             }
+        }
+
+        private void analyzeMultipartContent(Multipart multipart) throws MessagingException, IOException {
+            int countMembers = multipart.getCount();
+            for (int index = 0; index < countMembers;index++) {
+                BodyPart part = multipart.getBodyPart(index);
+                String partType = part.getContentType();
+                Object obj = part.getContent();
+                if (obj instanceof Multipart) {
+                    analyzeMultipartContent((Multipart)obj);
+                    return;
+                }
+                Logger.trace("Part type of part: " + index + " is: " + partType);
+                DataHandler dataHandler = part.getDataHandler();
+                partList.add(new Tuple<>(partType, dataHandler));
+            }
+
         }
 
         public Message getMessage() {
