@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schema xmlns="http://www.w3.org/2001/XMLSchema"
+        xmlns:email="http://org.harry.security/emailer/1.0" xmlns:xs="http://www.w3.org/2001/XMLSchema"
+        targetNamespace="http://org.harry.security/emailer/1.0"
+        elementFormDefault="qualified">
+
+    <element name="mailboxes">
+        <complexType>
+            <sequence>
+                <element name="mailbox" type="email:mailboxType" maxOccurs="unbounded" />
+            </sequence>
+        </complexType>
+    </element>
+
+    <complexType name="mailboxType">
+        <sequence>
+            <xs:element name="imapHost" type="xs:string" minOccurs="1" maxOccurs="1"/>
+            <xs:element name="imapPort" type="xs:string" minOccurs="1" maxOccurs="1"/>
+            <xs:element name="smtpHost" type="xs:string" minOccurs="1" maxOccurs="1"/>
+            <xs:element name="smtpPort" type="xs:string" minOccurs="1" maxOccurs="1"/>
+            <xs:element name="emailAddress" type="xs:string" minOccurs="0" maxOccurs="1"/>
+            <xs:element name="password" type="xs:string" minOccurs="0" maxOccurs="1"/>
+        </sequence>
+        <attribute name="configName" type="xs:string" use="required"/>
+    </complexType>
+
+</schema>

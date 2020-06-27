@@ -182,6 +182,12 @@ public class CertToolCtrl implements ControllerInit {
     }
 
     @FXML
+    private void emailer(ActionEvent event) throws IOException {
+        //SecHarry.setRoot("crledit", SecHarry.CSS.ABBY);
+        SecHarry.setRoot("emailer", SecHarry.CSS.UNICHORN);
+    }
+
+    @FXML
     private void browser(ActionEvent event) throws IOException {
         //SecHarry.setRoot("crledit", SecHarry.CSS.ABBY);
         SecHarry.setRoot("browser", SecHarry.CSS.UNICHORN);

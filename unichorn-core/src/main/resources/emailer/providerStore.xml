@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<mailboxes  xmlns="http://org.harry.security/emailer/1.0">
+    <mailbox configName="t-online">
+        <imapHost>secureimap.t-online.de</imapHost>
+        <imapPort>993</imapPort>
+        <smtpHost>securesmtp.t-online.de</smtpHost>
+        <smtpPort>465</smtpPort>
+    </mailbox>
+    <mailbox configName="gmx">
+        <imapHost>imap.gmx.net</imapHost>
+        <imapPort>993</imapPort>
+        <smtpHost>mail.gmx.net </smtpHost>
+        <smtpPort>587</smtpPort>
+    </mailbox>
+    <mailbox configName="gmail">
+        <imapHost>imap.gmail.com</imapHost>
+        <imapPort>993</imapPort>
+        <smtpHost>smtp.gmail.com</smtpHost>
+        <smtpPort>465</smtpPort>
+    </mailbox>
+    <mailbox configName="posteo">
+        <imapHost>posteo.de</imapHost>
+        <imapPort>993</imapPort>
+        <smtpHost>posteo.de</smtpHost>
+        <smtpPort>465</smtpPort>
+    </mailbox>
+    <mailbox configName="web-de">
+        <imapHost>imap.web.de</imapHost>
+        <imapPort>993</imapPort>
+        <smtpHost>smtp.web.de</smtpHost>
+        <smtpPort>587</smtpPort>
+    </mailbox>
+    <mailbox configName="yahoo">
+        <imapHost>imap.mail.yahoo.com</imapHost>
+        <imapPort>993</imapPort>
+        <smtpHost>smtp.mail.yahoo.com</smtpHost>
+        <smtpPort>587</smtpPort>
+    </mailbox>
+</mailboxes>

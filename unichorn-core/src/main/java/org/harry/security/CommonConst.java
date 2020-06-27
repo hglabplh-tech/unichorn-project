@@ -7,6 +7,7 @@ public class CommonConst {
     public static final String PRIV_KEYSTORE = "privKeystore" + ".p12";
     public static final String PROP_FNAME = "application.properties";
     public static final String PROP_SIGNSTORE = "signStore.p12";
+    public static final String PROP_MAILBOXES = "mailboxes.xml";
     /**
      * The applications configuration and data directory
      */
@@ -26,6 +27,11 @@ public class CommonConst {
      * The working directory used by responder
      */
     public static String APP_DIR_WORKING;
+
+    /**
+     * The mail data and configuration directory
+     */
+    public static String APP_DIR_EMAILER;
 
     /**
      * The file-name of the application properties
@@ -90,13 +96,20 @@ public class CommonConst {
         if (!dirDll.exists()) {
             dirDll.mkdirs();
         }
+
         File dirWorking = new File(userDir, "working");
         if (!dirWorking.exists()) {
             dirWorking.mkdirs();
         }
+
+        File dirEmailer = new File(userDir, "emailClient");
+        if (!dirEmailer.exists()) {
+            dirEmailer.mkdirs();
+        }
         APP_DIR_TRUST = dirTrust.getAbsolutePath();
         APP_DIR_DLL = dirDll.getAbsolutePath();
         APP_DIR_WORKING = dirWorking.getAbsolutePath();
+        APP_DIR_EMAILER = dirEmailer.getAbsolutePath();
         APP_DIR= userDir;
     }
 

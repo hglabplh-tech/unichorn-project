@@ -34,8 +34,9 @@
             <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
             <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
             <RowConstraints maxHeight="26.0" minHeight="0.0" prefHeight="0.0" vgrow="SOMETIMES" />
-            <RowConstraints maxHeight="60.0" minHeight="10.0" prefHeight="60.0" vgrow="SOMETIMES" />
-            <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+            <RowConstraints maxHeight="73.0" minHeight="10.0" prefHeight="73.0" vgrow="SOMETIMES" />
+            <RowConstraints maxHeight="60.0" minHeight="10.0" prefHeight="46.0" vgrow="SOMETIMES" />
+            <RowConstraints maxHeight="43.0" minHeight="0.0" prefHeight="0.0" vgrow="SOMETIMES" />
         </rowConstraints>
          <children>
             <Button fx:id="process" mnemonicParsing="false" onAction="#processAction" text="Process" GridPane.columnIndex="2" GridPane.rowIndex="7" />
@@ -91,6 +92,7 @@
             <Button fx:id="browser" mnemonicParsing="false" onAction="#browser" text="Browser" GridPane.columnIndex="3" GridPane.rowIndex="10" />
             <Button fx:id="manageCard" mnemonicParsing="false" onAction="#manageCard" text="Manage Card" GridPane.rowIndex="9" />
             <Button fx:id="signxades" mnemonicParsing="false" onAction="#signxades" text="Sign XAdES" GridPane.rowIndex="8" />
+            <Button fx:id="emailer" mnemonicParsing="false" onAction="#emailer" text="EMailer" GridPane.rowIndex="10" />
          </children>
       </GridPane>
       <Sphere radius="0.77">

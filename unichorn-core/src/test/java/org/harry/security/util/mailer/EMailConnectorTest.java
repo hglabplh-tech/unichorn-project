@@ -34,7 +34,7 @@ public class EMailConnectorTest extends TestBase {
                 .activate();
     }
     @Test
-    public void connectDisconnect() throws Exception {
+    public void connectSendReceiveMailDisconnect() throws Exception {
         Tuple<Store, Folder> connectResult = null;
         try {
             URL htmlURL = EMailConnectorTest.class.getResource("/data/mail.html");
@@ -54,6 +54,17 @@ public class EMailConnectorTest extends TestBase {
                     .addAttachement(htmlFile)
                     .build();
             sender.sendSigned("harald.glab-plhak@t-online.de", password);
+            sender = ESender.newBuilder(connectResult.getFirst(), connectResult.getSecond(),
+                    T_ONLINE_SMTP_URI_HOST,
+                    Integer.toString(T_ONLINE_SMTP_PORT))
+                    .addTo("harald.glab-plhak@t-online.de")
+                    .setFrom("harald.glab-plhak@t-online.de")
+                    .setSubject("Hey people...")
+                    .setText("I will inform you abaut sending this mail :rofl:. This is a test mail from a new mail client." +
+                            "\nBest regards\n\nHarald Glab-Plhak")
+                    .addAttachement(htmlFile)
+                    .build();
+            sender.sendSignedAndEncrypted("harald.glab-plhak@t-online.de", password);
             EReceiver receiver = new EReceiver(connectResult);
             Message[] messages = receiver.receiveMails();
             for (Message msg: messages) {

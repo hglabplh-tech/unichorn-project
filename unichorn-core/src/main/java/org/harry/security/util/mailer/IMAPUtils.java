@@ -33,6 +33,7 @@ import org.apache.http.ssl.SSLContextBuilder;
 import org.apache.http.ssl.TrustStrategy;
 import org.harry.security.util.httpclient.SSLUtils;
 
+import javax.mail.Folder;
 import javax.mail.Session;
 import javax.mail.Store;
 import javax.net.ssl.SSLContext;
@@ -44,7 +45,7 @@ import javax.net.ssl.X509ExtendedTrustManager;
  * Utility class for shared IMAP utilities
  */
 
-class IMAPUtils {
+public class IMAPUtils {
 
 
     static Store imapLogin(final String host, final int port,
@@ -76,43 +77,18 @@ class IMAPUtils {
         return store;
     }
 
-    public static TrustManager getEmailTrustAll() {
-        TrustManager manager = new X509ExtendedTrustManager() {
-            @Override
-            public void checkClientTrusted(X509Certificate[] x509Certificates, String s, Socket socket) throws CertificateException {
-
+    public static Folder[] listFolders(Folder defaultFolder) {
+        try {
+            Folder [] temp = defaultFolder.list();
+            Folder [] result = new Folder[temp.length + 1];
+            int index = 0;
+            for (;index < temp.length; index++) {
+                result[index] = temp[index];
             }
-
-            @Override
-            public void checkServerTrusted(X509Certificate[] x509Certificates, String s, Socket socket) throws CertificateException {
-
-            }
-
-            @Override
-            public void checkClientTrusted(X509Certificate[] x509Certificates, String s, SSLEngine sslEngine) throws CertificateException {
-
-            }
-
-            @Override
-            public void checkServerTrusted(X509Certificate[] x509Certificates, String s, SSLEngine sslEngine) throws CertificateException {
-
-            }
-
-            @Override
-            public void checkClientTrusted(X509Certificate[] x509Certificates, String s) throws CertificateException {
-
-            }
-
-            @Override
-            public void checkServerTrusted(X509Certificate[] x509Certificates, String s) throws CertificateException {
-
-            }
-
-            @Override
-            public X509Certificate[] getAcceptedIssuers() {
-                return new X509Certificate[0];
-            }
-        };
-        return manager;
+            result[index] = defaultFolder;
+            return result;
+        } catch  (Exception ex) {
+            throw new IllegalStateException("cannot list the folders", ex);
+        }
     }
 }

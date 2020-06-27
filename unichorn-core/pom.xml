@@ -227,6 +227,7 @@
             </executions>
             <configuration>
                 <sources>
+                    <source>src/main/resources/xsd/email-config.xsd</source>
                     <source>src/main/resources/xsd/XAdES.xsd</source>
                     <source>src/main/resources/xsd/xmldsig-core-schema.xsd</source>
                     <source>src/main/resources/xsd/asic-model-1.0.xsd</source>
@@ -243,7 +244,9 @@
             </configuration>
         </plugin>
 
-        <plugin>
+
+
+            <plugin>
             <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-compiler-plugin</artifactId>
             <version>3.8.0</version>

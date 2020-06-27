@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import java.lang.*?>
+<?import javafx.scene.layout.*?>
+
+<VBox maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="800.0" prefWidth="1200.0" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.harald.security.fx.EMailCenterCtrl">
+   <children>
+      <GridPane prefHeight="801.0" prefWidth="1200.0">
+        <columnConstraints>
+            <ColumnConstraints hgrow="SOMETIMES" maxWidth="395.0" minWidth="10.0" prefWidth="200.0" />
+          <ColumnConstraints hgrow="SOMETIMES" maxWidth="646.0" minWidth="10.0" prefWidth="646.0" />
+          <ColumnConstraints hgrow="SOMETIMES" maxWidth="627.0" minWidth="10.0" prefWidth="354.0" />
+        </columnConstraints>
+        <rowConstraints>
+          <RowConstraints maxHeight="144.0" minHeight="10.0" prefHeight="49.0" vgrow="SOMETIMES" />
+          <RowConstraints maxHeight="262.0" minHeight="0.0" prefHeight="43.0" vgrow="SOMETIMES" />
+          <RowConstraints maxHeight="709.0" minHeight="10.0" prefHeight="709.0" vgrow="SOMETIMES" />
+        </rowConstraints>
+         <children>
+            <TreeView fx:id="controlTree" prefHeight="200.0" prefWidth="200.0" GridPane.rowIndex="2" />
+            <ListView fx:id="mailList" prefHeight="200.0" prefWidth="200.0" GridPane.columnIndex="1" GridPane.columnSpan="2" GridPane.rowIndex="2" />
+            <Button fx:id="writeMail" mnemonicParsing="false" onAction="#writeMail" prefHeight="31.0" prefWidth="177.0" text="Write Mail" GridPane.rowIndex="1" />
+            <Button fx:id="newAccount" mnemonicParsing="false" onAction="#newAccount" prefHeight="31.0" prefWidth="194.0" text="New Account" />
+         </children>
+      </GridPane>
+   </children>
+</VBox>
