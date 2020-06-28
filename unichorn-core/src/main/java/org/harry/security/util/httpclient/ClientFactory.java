@@ -132,7 +132,7 @@ public class ClientFactory {
 
     public static CloseableHttpClient
     createSSLClient() throws Exception {
-        SSLContext sslContext = SSLUtils.createStandardContext();
+        SSLContext sslContext = SSLUtils.createStandardContext("TLS");
         SSLConnectionSocketFactory sslsf = new SSLConnectionSocketFactory(
                 sslContext, new X509HostnameVerifier() {
 

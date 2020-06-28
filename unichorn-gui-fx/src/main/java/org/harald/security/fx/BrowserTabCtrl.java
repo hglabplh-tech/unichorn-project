@@ -155,7 +155,7 @@ public class BrowserTabCtrl  implements ControllerInit {
                     if (SSLUtils.isHostLocal(nextUrl.getHost())) {
                         sslContext = SSLUtils.trustReallyAllShit();
                     } else {
-                        sslContext = SSLUtils.createStandardContext();
+                        sslContext = SSLUtils.createStandardContext("TLS");
                     }
                     if (SSLUtils.isHostLocal(nextUrl.getHost())) {
                         System.setProperty("jdk.internal.httpclient.disableHostnameVerification", "true");

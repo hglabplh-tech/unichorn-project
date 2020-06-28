@@ -1,5 +1,6 @@
 package org.harald.security.fx;
 
+import iaik.utils.Util;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.ObservableList;
@@ -15,9 +16,11 @@ import org.harry.security.util.mailer.EMailConnector;
 import org.harry.security.util.mailer.EReceiver;
 import org.harry.security.util.mailer.EmailClientConfiguration;
 import org.harry.security.util.mailer.IMAPUtils;
+import org.harry.security.util.pwdmanager.PasswordManager;
 import org.pmw.tinylog.Logger;
-import security.harry.org.emailer._1.MailboxType;
-import security.harry.org.emailer._1.Mailboxes;
+import security.harry.org.emailer._1.AccountConfig;
+import security.harry.org.emailer._1.ImapConfigType;
+
 
 import javax.activation.DataHandler;
 import javax.mail.Address;
@@ -50,11 +53,13 @@ public class EMailCenterCtrl implements ControllerInit {
     @FXML
     ListView<String> mailList;
 
-    Map<String, Tuple<Store, Folder>> connectResult = new HashMap<>();
+    static Map<String, Tuple<Store, Folder>> connectResult = new HashMap<>();
 
     Map<String, Folder[]> foldersMap = new HashMap<>();
 
     List<Message> actualMessages = new ArrayList<>();
+
+    static AccountConfig mailboxes;
 
     public Scene init() {
         mailList.getSelectionModel().selectedItemProperty().addListener(new ChangeListener<String>() {
@@ -144,8 +149,8 @@ public class EMailCenterCtrl implements ControllerInit {
     }
 
     @FXML
-    public void writeMail(ActionEvent event) {
-
+    public void writeMail(ActionEvent event) throws IOException {
+        SecHarry.setRoot("sendmail", SecHarry.CSS.UNICHORN);
     }
 
     @FXML
@@ -174,16 +179,16 @@ public class EMailCenterCtrl implements ControllerInit {
     @FXML
     public void newAccount(ActionEvent event) {
         Tuple<String, Tuple<String, String>> result = NewEmailAccountDialog.createAccountDialog();
-        EmailClientConfiguration.newMailbox(result.getSecond().getFirst(),
+        EmailClientConfiguration.newConfigItem(result.getSecond().getFirst(),
                 result.getSecond().getSecond(),
-                result.getFirst());
+                result.getFirst(), false);
         refreshTree();
     }
 
     private void refreshTree() {
         TreeItem<String> root = controlTree.getRoot();
-        Mailboxes mailboxes = EmailClientConfiguration.getMailboxes();
-        for (MailboxType box: mailboxes.getMailbox()) {
+        mailboxes = EmailClientConfiguration.getMailboxes();
+        for (ImapConfigType box: mailboxes.getImapConfig()) {
             TreeItem<String> child = new TreeItem<>(box.getConfigName());
             ObservableList<TreeItem<String>> boxesList = root.getChildren();
             Optional<TreeItem<String>> item = boxesList.stream()
@@ -193,14 +198,20 @@ public class EMailCenterCtrl implements ControllerInit {
                 root.getChildren().add(child);
             }
             Tuple<Store, Folder> connRes = connectResult.get(box.getEmailAddress());
+            String password;
             if (connRes == null) {
                 EMailConnector connector = new EMailConnector(box.getImapHost(),
                         Integer.parseInt(box.getImapPort()));
-                String password = ConfirmPasswordDialog.passwordStoreDialog(box.getEmailAddress());
+                Tuple<String, String> credentials = getEMailPasswd(box.getEmailAddress());
+                if (credentials == null) {
+                    password = ConfirmPasswordDialog.passwordStoreDialog(box.getEmailAddress());
+                } else {
+                    password = credentials.getSecond();
+                }
                 connRes = connector.connect(box.getEmailAddress(), password);
                 connectResult.put(box.getEmailAddress(), connRes);
             }
-            Folder[] folders = IMAPUtils.listFolders(connRes.getSecond());
+            Folder[] folders = IMAPUtils.listFolders(connRes, box.getEmailAddress());
             foldersMap.put(box.getEmailAddress(), folders);
             for(Folder folder: folders) {
                 TreeItem<String> folderItem = new TreeItem<>(folder.getName());
@@ -208,5 +219,24 @@ public class EMailCenterCtrl implements ControllerInit {
             }
         }
         EmailClientConfiguration.storeMailboxes();
+    }
+
+    public static Tuple<String, String> getEMailPasswd(String email) {
+        String password = System.getenv("credomail");
+        if (password != null && password.length() >4) {
+            PasswordManager manager = new PasswordManager(password);
+            Tuple<String, String> result = manager.readPassword(email);
+            return result;
+        } else {
+            return null;
+        }
+    }
+
+    public static AccountConfig getMailBoxes() {
+        return mailboxes;
+    }
+
+    public static Tuple<Store, Folder> getConnectParams(String email) {
+        return connectResult.get(email);
     }
 }

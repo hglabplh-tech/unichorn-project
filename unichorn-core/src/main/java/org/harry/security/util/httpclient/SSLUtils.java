@@ -19,6 +19,14 @@ import static org.harry.security.CommonConst.APP_DIR;
 import static org.harry.security.CommonConst.isWindows;
 
 public class SSLUtils {
+
+    public static final String SSL = "SSL";
+    public static final String TLS = "TLS";
+    public static final String TLSV10 = "TLSv1.0";
+    public static final String TLSV11 = "TLSv1.1";
+    public static final String TLSV12 = "TLSv1.2";
+    public static final String TLSV13 = "TLSv1.3";
+
     public static KeyStore readTrustStore() throws Exception {
         KeyStore keyStore = null;
 
@@ -34,9 +42,14 @@ public class SSLUtils {
         return KeyStoreTool.loadAppStore();
     }
 
-    public static SSLContext createStandardContext() throws Exception {
-        SSLContextBuilder builder = SSLContexts.custom();
-
+    public static SSLContext createStandardContext(String protocol) throws Exception {
+        SSLContextBuilder builder = SSLContexts.custom().setProtocol(protocol);
+        HttpsURLConnection.setDefaultHostnameVerifier(new HostnameVerifier() {
+            @Override
+            public boolean verify(String s, SSLSession sslSession) {
+                return true;
+            }
+        });
         return builder
                 .loadKeyMaterial(readStore(), "geheim".toCharArray())
                 .loadTrustMaterial(readTrustStore(), null)
@@ -120,7 +133,7 @@ public class SSLUtils {
                                     if (SSLUtils.isHostLocal(u.getHost())) {
                                         sslContext = SSLUtils.trustReallyAllShit();
                                     } else {
-                                        sslContext = SSLUtils.createStandardContext();
+                                        sslContext = SSLUtils.createStandardContext("TLS");
                                     }
                                     if (SSLUtils.isHostLocal(u.getHost())) {
                                         HttpsURLConnection.setDefaultSSLSocketFactory(sslContext.getSocketFactory());

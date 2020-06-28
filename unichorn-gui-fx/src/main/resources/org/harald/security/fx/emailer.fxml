@@ -26,26 +26,34 @@
             <Button fx:id="newAccount" mnemonicParsing="false" onAction="#newAccount" prefHeight="31.0" prefWidth="194.0" text="New Account" />
             <GridPane prefHeight="323.0" prefWidth="1000.0" GridPane.columnIndex="1" GridPane.columnSpan="2" GridPane.rowIndex="3">
               <columnConstraints>
-                  <ColumnConstraints hgrow="SOMETIMES" maxWidth="329.0" minWidth="10.0" prefWidth="106.0" />
-                <ColumnConstraints hgrow="SOMETIMES" maxWidth="284.0" minWidth="10.0" prefWidth="141.0" />
-                  <ColumnConstraints hgrow="SOMETIMES" maxWidth="759.0" minWidth="10.0" prefWidth="94.0" />
-                <ColumnConstraints hgrow="SOMETIMES" maxWidth="759.0" minWidth="10.0" prefWidth="682.0" />
+                  <ColumnConstraints hgrow="SOMETIMES" maxWidth="329.0" minWidth="10.0" prefWidth="114.0" />
+                <ColumnConstraints hgrow="SOMETIMES" maxWidth="284.0" minWidth="10.0" prefWidth="130.0" />
+                  <ColumnConstraints hgrow="SOMETIMES" maxWidth="759.0" minWidth="10.0" prefWidth="87.0" />
+                <ColumnConstraints hgrow="SOMETIMES" maxWidth="759.0" minWidth="10.0" prefWidth="537.0" />
+                  <ColumnConstraints hgrow="SOMETIMES" maxWidth="759.0" minWidth="10.0" prefWidth="111.0" />
+                  <ColumnConstraints hgrow="SOMETIMES" maxWidth="759.0" minWidth="10.0" prefWidth="111.0" />
               </columnConstraints>
               <rowConstraints>
                 <RowConstraints maxHeight="115.0" minHeight="10.0" prefHeight="47.0" vgrow="SOMETIMES" />
-                <RowConstraints maxHeight="157.0" minHeight="10.0" prefHeight="50.0" vgrow="SOMETIMES" />
-                <RowConstraints maxHeight="219.0" minHeight="10.0" prefHeight="217.0" vgrow="SOMETIMES" />
-                  <RowConstraints maxHeight="161.0" minHeight="10.0" prefHeight="65.0" vgrow="SOMETIMES" />
+                <RowConstraints maxHeight="157.0" minHeight="10.0" prefHeight="36.0" vgrow="SOMETIMES" />
+                <RowConstraints maxHeight="157.0" minHeight="10.0" prefHeight="36.0" vgrow="SOMETIMES" />
+                  <RowConstraints maxHeight="157.0" minHeight="10.0" prefHeight="36.0" vgrow="SOMETIMES" />
+                  <RowConstraints maxHeight="157.0" minHeight="10.0" prefHeight="36.0" vgrow="SOMETIMES" />
+                  <RowConstraints maxHeight="221.0" minHeight="10.0" prefHeight="211.0" vgrow="SOMETIMES" />
+                  <RowConstraints maxHeight="222.0" minHeight="0.0" prefHeight="0.0" vgrow="SOMETIMES" />
+                  <RowConstraints maxHeight="161.0" minHeight="10.0" prefHeight="39.0" vgrow="SOMETIMES" />
               </rowConstraints>
                <children>
                   <Label text="From:" GridPane.columnIndex="2" />
-                  <Label text="Subject:" GridPane.columnIndex="2" GridPane.rowIndex="1" />
-                  <TextField fx:id="subject" GridPane.columnIndex="3" GridPane.rowIndex="1" />
+                  <Label text="Subject:" GridPane.columnIndex="2" GridPane.rowIndex="3" />
+                  <TextField fx:id="subject" GridPane.columnIndex="3" GridPane.rowIndex="3" />
                   <Button fx:id="reply" mnemonicParsing="false" onAction="#reply" text="Reply" />
                   <Button fx:id="forward" mnemonicParsing="false" onAction="#forward" text="Forward" GridPane.rowIndex="1" />
                   <ComboBox fx:id="fromBox" prefHeight="31.0" prefWidth="606.0" GridPane.columnIndex="3" />
                   <Button fx:id="replyAll" mnemonicParsing="false" onAction="#replyAll" prefHeight="31.0" prefWidth="125.0" text="Reply to all" GridPane.columnIndex="1" />
-                  <WebView fx:id="webContentView" prefHeight="200.0" prefWidth="200.0" GridPane.columnSpan="4" GridPane.rowIndex="2" />
+                  <WebView fx:id="webContentView" prefHeight="75.0" prefWidth="990.0" GridPane.columnSpan="6" GridPane.rowIndex="5" />
+                  <Label text="To:" GridPane.columnIndex="2" GridPane.rowIndex="2" />
+                  <ComboBox fx:id="to" prefHeight="31.0" prefWidth="520.0" GridPane.columnIndex="3" GridPane.rowIndex="2" />
                </children>
             </GridPane>
             <Button fx:id="back" mnemonicParsing="false" onAction="#back" text="Go Back" GridPane.columnIndex="2" />

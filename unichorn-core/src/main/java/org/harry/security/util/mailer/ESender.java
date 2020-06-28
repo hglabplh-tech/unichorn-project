@@ -1,13 +1,8 @@
 package org.harry.security.util.mailer;
 
 import iaik.asn1.structures.AlgorithmID;
-import iaik.cms.SignerInfo;
 import iaik.smime.*;
 import iaik.x509.X509Certificate;
-import org.apache.commons.io.IOUtils;
-import org.apache.http.conn.ssl.TrustAllStrategy;
-import org.apache.http.ssl.SSLContextBuilder;
-import org.apache.http.ssl.TrustStrategy;
 import org.harry.security.util.Tuple;
 import org.harry.security.util.certandkey.KeyStoreTool;
 import org.harry.security.util.httpclient.SSLUtils;
@@ -24,15 +19,14 @@ import javax.mail.internet.MimeMessage;
 import javax.mail.internet.MimeMultipart;
 import javax.net.ssl.SSLContext;
 
-import java.io.ByteArrayInputStream;
 import java.io.File;
-import java.io.FileOutputStream;
-import java.io.OutputStream;
 import java.security.KeyStore;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.interfaces.RSAPrivateKey;
 import java.util.*;
+
+import static org.harry.security.util.mailer.IMAPUtils.PROTOCOL;
 
 /**
  * This class is responsible for sending e-mails either unsigned or signed
@@ -75,30 +69,7 @@ public class ESender {
      */
     public boolean sendEmail (String username, String password)  {
         try {
-            TrustStrategy strategie = new TrustAllStrategy();
-            SSLContext context =
-                    SSLContextBuilder.create().loadTrustMaterial(strategie).build();
-            SSLContext.setDefault(context);
-            Properties props = System.getProperties();
-
-            props.put("mail.smtp.host", host);
-            props.put("mail.smtp.port", smtpPort);
-            // SSL Factory
-            props.put("mail.smtp.socketFactory.class",
-                    "javax.net.ssl.SSLSocketFactory");
-
-            Session session = Session.getInstance(props, new javax.mail.Authenticator() {
-
-                // override the getPasswordAuthentication
-                // method
-                protected PasswordAuthentication
-                getPasswordAuthentication() {
-                    return new PasswordAuthentication(username,
-                            password);
-                }
-            });
-            Transport transport = session.getTransport();
-            transport.connect(username, password);
+            Session session = createSession(username, password, from);
             MimeMessage message = new MimeMessage(session);
             message.setFrom(new InternetAddress(from));
 
@@ -121,14 +92,15 @@ public class ESender {
                 message.setContent(multi);
             }
             message.setText(text);
-            transport.sendMessage(message, message.getAllRecipients());
-            Folder sentFolder = store.getFolder("INBOX.Sent");
-            Folder[] folderList = this.defaultFolder.list();
-            sentFolder.open(Folder.READ_WRITE);
-            Message[] temp = new Message[1];
-            temp[0] = message;
-            sentFolder.appendMessages(temp);
-            sentFolder.close(false);
+            Transport.send(message, message.getAllRecipients(), username, password);
+            Folder sentFolder = IMAPUtils.getSentFolder(this.store, from);
+            if (sentFolder != null) {
+                sentFolder.open(Folder.READ_WRITE);
+                Message[] temp = new Message[1];
+                temp[0] = message;
+                sentFolder.appendMessages(temp);
+                sentFolder.close(false);
+            }
             return true;
         } catch(Exception ex) {
             Logger.trace("error occurred during send mail " + ex.getMessage());
@@ -147,7 +119,7 @@ public class ESender {
     {
 
         try {
-            Session session = createSession(username, password);
+            Session session = createSession(username, password, from);
 
             KeyStore keystore = KeyStoreTool.loadAppStore();
             Tuple<PrivateKey, X509Certificate[]> keys = KeyStoreTool.getAppKeyEntry(keystore);
@@ -178,7 +150,7 @@ public class ESender {
 
     public boolean sendSignedAndEncrypted(String username, String password) {
         try {
-            Session session = createSession(username, password);
+            Session session = createSession(username, password, from);
 
             KeyStore keystore = KeyStoreTool.loadAppStore();
             Tuple<PrivateKey, X509Certificate[]> keys = KeyStoreTool.getAppKeyEntry(keystore);
@@ -253,9 +225,10 @@ public class ESender {
      * @return the initialized session object
      * @throws Exception error case
      */
-    private Session createSession(String username, String password) throws Exception {
+    private Session createSession(String username, String password, String email) throws Exception {
+       // String protocol = IMAPUtils.getProtocol(email);
         SSLContext context =
-                SSLUtils.createStandardContext();
+                SSLUtils.createStandardContext(PROTOCOL);
         SSLContext.setDefault(context);
         Properties props = System.getProperties();
 

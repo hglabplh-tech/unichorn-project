@@ -4,24 +4,34 @@
         targetNamespace="http://org.harry.security/emailer/1.0"
         elementFormDefault="qualified">
 
-    <element name="mailboxes">
+    <element name="accountConfig">
         <complexType>
             <sequence>
-                <element name="mailbox" type="email:mailboxType" maxOccurs="unbounded" />
+                <element name="imapConfig" type="email:imapConfigType" maxOccurs="unbounded" />
+                <element name="smtpConfig" type="email:smtpConfigType" maxOccurs="unbounded" />
             </sequence>
         </complexType>
     </element>
 
-    <complexType name="mailboxType">
+    <complexType name="imapConfigType">
         <sequence>
             <xs:element name="imapHost" type="xs:string" minOccurs="1" maxOccurs="1"/>
             <xs:element name="imapPort" type="xs:string" minOccurs="1" maxOccurs="1"/>
+            <xs:element name="emailAddress" type="xs:string" minOccurs="0" maxOccurs="1"/>
+            <xs:element name="password" type="xs:string" minOccurs="0" maxOccurs="1"/>
+        </sequence>
+        <attribute name="configName" type="xs:string" use="required"/>
+    </complexType>
+
+    <complexType name="smtpConfigType">
+        <sequence>
             <xs:element name="smtpHost" type="xs:string" minOccurs="1" maxOccurs="1"/>
             <xs:element name="smtpPort" type="xs:string" minOccurs="1" maxOccurs="1"/>
             <xs:element name="emailAddress" type="xs:string" minOccurs="0" maxOccurs="1"/>
             <xs:element name="password" type="xs:string" minOccurs="0" maxOccurs="1"/>
         </sequence>
         <attribute name="configName" type="xs:string" use="required"/>
+        <attribute name="default" type="xs:boolean" use="required"/>
     </complexType>
 
 </schema>

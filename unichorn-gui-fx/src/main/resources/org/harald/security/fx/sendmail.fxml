@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.effect.*?>
+<?import javafx.scene.control.*?>
+<?import java.lang.*?>
+<?import javafx.scene.layout.*?>
+
+<VBox maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="800.0" prefWidth="1200.0" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.harald.security.fx.EMailSendCtrl">
+   <children>
+      <GridPane prefHeight="334.0" prefWidth="1200.0">
+        <columnConstraints>
+            <ColumnConstraints hgrow="SOMETIMES" maxWidth="395.0" minWidth="10.0" prefWidth="100.0" />
+            <ColumnConstraints hgrow="SOMETIMES" maxWidth="541.0" minWidth="10.0" prefWidth="541.0" />
+          <ColumnConstraints hgrow="SOMETIMES" maxWidth="967.0" minWidth="10.0" prefWidth="447.0" />
+          <ColumnConstraints hgrow="SOMETIMES" maxWidth="141.0" minWidth="10.0" prefWidth="141.0" />
+        </columnConstraints>
+        <rowConstraints>
+          <RowConstraints />
+          <RowConstraints maxHeight="219.0" minHeight="10.0" prefHeight="42.0" vgrow="SOMETIMES" />
+          <RowConstraints maxHeight="242.0" minHeight="10.0" prefHeight="77.0" vgrow="SOMETIMES" />
+            <RowConstraints maxHeight="177.0" minHeight="0.0" prefHeight="177.0" vgrow="SOMETIMES" />
+            <RowConstraints maxHeight="25.0" minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+        </rowConstraints>
+         <children>
+            <Label text="From" GridPane.rowIndex="1" />
+            <ListView fx:id="toBox" prefHeight="200.0" prefWidth="200.0" GridPane.columnIndex="1" GridPane.rowIndex="2">
+               <effect>
+                  <Glow level="0.68">
+                     <input>
+                        <Glow />
+                     </input>
+                  </Glow>
+               </effect>
+               <contextMenu>
+                  <ContextMenu>
+                    <items>
+                      <MenuItem fx:id="addTo" mnemonicParsing="false" onAction="#addTo" text="Add receipient" />
+                    </items>
+                  </ContextMenu>
+               </contextMenu>
+            </ListView>
+            <Label text="To" GridPane.rowIndex="2" />
+            <Label text="Content" GridPane.rowIndex="3" />
+            <TextArea fx:id="content" prefHeight="200.0" prefWidth="200.0" GridPane.columnIndex="1" GridPane.columnSpan="2" GridPane.rowIndex="3" />
+            <Button fx:id="sendMail" mnemonicParsing="false" onAction="#sendMail" text="Send" GridPane.columnIndex="3" GridPane.rowIndex="1" />
+            <Label fx:id="status" text="Status......" GridPane.columnIndex="1" GridPane.rowIndex="4" />
+            <Button fx:id="cancel" mnemonicParsing="false" onAction="#cancel" text="Cancel" GridPane.columnIndex="3" GridPane.rowIndex="2" />
+            <ComboBox fx:id="from" prefHeight="31.0" prefWidth="676.0" GridPane.columnIndex="1" GridPane.rowIndex="1" />
+            <TextField fx:id="subject" promptText="Subject....." GridPane.columnIndex="2" GridPane.rowIndex="1" />
+         </children>
+      </GridPane>
+   </children>
+</VBox>

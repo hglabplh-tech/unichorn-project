@@ -31,7 +31,7 @@ public class ClientFactoryTest extends TestBase {
 
     @Test
     public void localHostConnectionSSL() throws Exception {
-        SSLContext sslContext = SSLUtils.createStandardContext();
+        SSLContext sslContext = SSLUtils.createStandardContext("TLS");
         SSLContext.setDefault(sslContext);
         javax.net.ssl.HttpsURLConnection.setDefaultSSLSocketFactory(sslContext.getSocketFactory());
         javax.net.ssl.HttpsURLConnection.setDefaultHostnameVerifier(new HostnameVerifier() {

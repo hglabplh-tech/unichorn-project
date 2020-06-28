@@ -1,8 +1,9 @@
 package org.harry.security.util.mailer;
 
 import org.pmw.tinylog.Logger;
-import security.harry.org.emailer._1.MailboxType;
-import security.harry.org.emailer._1.Mailboxes;
+import security.harry.org.emailer._1.ImapConfigType;
+import security.harry.org.emailer._1.SmtpConfigType;
+import security.harry.org.emailer._1.AccountConfig;
 
 import javax.xml.bind.*;
 import java.io.*;
@@ -13,16 +14,16 @@ import static org.harry.security.CommonConst.PROP_MAILBOXES;
 
 public class EmailClientConfiguration {
 
-    private static Mailboxes providers = null;
+    private static AccountConfig providers = null;
 
-    private static Mailboxes mailboxes = null;
+    private static AccountConfig mailboxes = null;
 
     static {
         loadProviders();
         loadConfig();
     }
 
-    public static Mailboxes loadProviders() {
+    public static AccountConfig loadProviders() {
         try {
             InputStream stream = EmailClientConfiguration.class.getResourceAsStream("/emailer/providerStore.xml");
             providers = loadXML(stream);
@@ -32,12 +33,12 @@ public class EmailClientConfiguration {
         }
     }
 
-    public static Mailboxes loadXML(InputStream stream) {
+    public static AccountConfig loadXML(InputStream stream) {
         try {
-            JAXBContext jaxbContext =JAXBContext.newInstance(Mailboxes.class);
+            JAXBContext jaxbContext =JAXBContext.newInstance(AccountConfig.class);
             Unmarshaller umarshall = jaxbContext.createUnmarshaller();
             Logger.trace("About to unmarshall unmarshaller created.....");
-            Mailboxes root = (Mailboxes) umarshall.unmarshal(stream);
+            AccountConfig root = (AccountConfig) umarshall.unmarshal(stream);
             return root;
         } catch (Exception ex) {
             throw new IllegalStateException("email providers cannot be loaded ", ex);
@@ -54,11 +55,16 @@ public class EmailClientConfiguration {
         }
     }
 
+    public static void newConfigItem(String email, String password, String provider, boolean isDefault) {
+        newMailbox(email, password, provider);
+        newSmtp(email, password, provider, isDefault);
+    }
+
     public static void storeXML(OutputStream out) {
         JAXBContext jaxbContext;
         try
         {
-            jaxbContext = JAXBContext.newInstance(Mailboxes.class);
+            jaxbContext = JAXBContext.newInstance(AccountConfig.class);
             Marshaller marshal  = jaxbContext.createMarshaller();
             marshal.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true);
             marshal.marshal(mailboxes, out);
@@ -77,23 +83,50 @@ public class EmailClientConfiguration {
                 if (mailboxFile.exists()) {
                     mailboxes = loadXML(new FileInputStream(mailboxFile));
                 } else {
-                    mailboxes = new Mailboxes();
+                    mailboxes = new AccountConfig();
                 }
             }
-            Optional<MailboxType> providerData = providers.getMailbox()
+            Optional<ImapConfigType> providerData = providers.getImapConfig()
                     .stream()
                     .filter(e -> e.getConfigName().equals(provider))
                     .findFirst();
             if (providerData.isPresent()) {
-                MailboxType type = new MailboxType();
+                ImapConfigType type = new ImapConfigType();
                 type.setConfigName(email);
                 type.setEmailAddress(email);
                 type.setPassword("");
                 type.setImapHost(providerData.get().getImapHost());
-                type.setSmtpHost(providerData.get().getSmtpHost());
                 type.setImapPort(providerData.get().getImapPort());
+                mailboxes.getImapConfig().add(type);
+            }
+        } catch (Exception ex) {
+            throw new IllegalStateException("email mailbox entry cannot be stored ", ex);
+        }
+    }
+
+    public static void newSmtp(String email, String password, String provider, boolean isDefault) {
+        try {
+            File mailboxFile = new File(APP_DIR_EMAILER, PROP_MAILBOXES);
+            if (mailboxes == null) {
+                if (mailboxFile.exists()) {
+                    mailboxes = loadXML(new FileInputStream(mailboxFile));
+                } else {
+                    mailboxes = new AccountConfig();
+                }
+            }
+            Optional<SmtpConfigType> providerData = providers.getSmtpConfig()
+                    .stream()
+                    .filter(e -> e.getConfigName().equals(provider))
+                    .findFirst();
+            if (providerData.isPresent()) {
+                SmtpConfigType type = new SmtpConfigType();
+                type.setConfigName(email);
+                type.setEmailAddress(email);
+                type.setPassword("");
+                type.setDefault(isDefault);
+                type.setSmtpHost(providerData.get().getSmtpHost());
                 type.setSmtpPort(providerData.get().getSmtpPort());
-                mailboxes.getMailbox().add(type);
+                mailboxes.getSmtpConfig().add(type);
             }
         } catch (Exception ex) {
             throw new IllegalStateException("email mailbox entry cannot be stored ", ex);
@@ -107,7 +140,7 @@ public class EmailClientConfiguration {
                 if (mailboxFile.exists()) {
                     mailboxes = loadXML(new FileInputStream(mailboxFile));
                 } else {
-                    mailboxes = new Mailboxes();
+                    mailboxes = new AccountConfig();
                 }
             }
         } catch (Exception ex) {
@@ -115,11 +148,11 @@ public class EmailClientConfiguration {
         }
     }
 
-    public static Mailboxes getProviders() {
+    public static AccountConfig getProviders() {
         return providers;
     }
 
-    public static Mailboxes getMailboxes() {
+    public static AccountConfig getMailboxes() {
         return mailboxes;
     }
 }
