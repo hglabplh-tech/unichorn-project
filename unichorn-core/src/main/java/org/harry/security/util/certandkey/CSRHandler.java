@@ -400,7 +400,7 @@ public class CSRHandler {
            Tuple<PrivateKey, X509Certificate[]> keys = null;
            while(aliases.hasMoreElements()) {
                String alias = aliases.nextElement();
-               if (alias.contains("Intermediate")) {
+               if (alias.contains("Intermediate") && !alias.contains("EC")) {
                    keys =
                            KeyStoreTool.getKeyEntry(store,alias, "geheim".toCharArray());
                    Logger.trace("Keys found for alias: " + alias);

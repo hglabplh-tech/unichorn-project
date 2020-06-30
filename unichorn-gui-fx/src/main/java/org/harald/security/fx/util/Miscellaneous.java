@@ -172,5 +172,23 @@ public class Miscellaneous {
         return null;
     }
 
+    public static File showOpenDialogButton(ActionEvent event, ListView<String> list) {
+        FileChooser fDialog = new FileChooser();
+        fDialog.setTitle("Select Path");
+        File currentDir = new File(System.getProperty("user.home", "C:\\")).getAbsoluteFile();
+
+        fDialog.setInitialDirectory(currentDir);
+        Window parent = ((Node)event.getTarget()).getScene().getWindow();
+        File file = fDialog.showOpenDialog(parent);
+        if (file != null) {
+            if (list != null) {
+                list.getItems().add(file.getAbsolutePath());
+            }
+            return file;
+        }
+        return null;
+    }
+
+
 
 }

@@ -80,6 +80,12 @@
             <artifactId>iaik-w3c-http</artifactId>
         </dependency>
 
+        <!-- https://mvnrepository.com/artifact/com.googlecode.ez-vcard/ez-vcard -->
+        <dependency>
+            <groupId>com.googlecode.ez-vcard</groupId>
+            <artifactId>ez-vcard</artifactId>
+        </dependency>
+
         <!-- https://mvnrepository.com/artifact/com.jcraft/jsch -->
         <dependency>
             <groupId>com.jcraft</groupId>
@@ -227,6 +233,7 @@
             </executions>
             <configuration>
                 <sources>
+                    <source>src/main/resources/xsd/email-client-config.xsd</source>
                     <source>src/main/resources/xsd/email-config.xsd</source>
                     <source>src/main/resources/xsd/XAdES.xsd</source>
                     <source>src/main/resources/xsd/xmldsig-core-schema.xsd</source>

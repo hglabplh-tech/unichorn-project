@@ -44,9 +44,11 @@
             <TextArea fx:id="content" prefHeight="200.0" prefWidth="200.0" GridPane.columnIndex="1" GridPane.columnSpan="2" GridPane.rowIndex="3" />
             <Button fx:id="sendMail" mnemonicParsing="false" onAction="#sendMail" text="Send" GridPane.columnIndex="3" GridPane.rowIndex="1" />
             <Label fx:id="status" text="Status......" GridPane.columnIndex="1" GridPane.rowIndex="4" />
-            <Button fx:id="cancel" mnemonicParsing="false" onAction="#cancel" text="Cancel" GridPane.columnIndex="3" GridPane.rowIndex="2" />
+            <Button fx:id="cancel" mnemonicParsing="false" onAction="#cancel" text="Cancel" GridPane.columnIndex="3" GridPane.rowIndex="3" />
             <ComboBox fx:id="from" prefHeight="31.0" prefWidth="676.0" GridPane.columnIndex="1" GridPane.rowIndex="1" />
             <TextField fx:id="subject" promptText="Subject....." GridPane.columnIndex="2" GridPane.rowIndex="1" />
+            <ListView fx:id="attachments" prefHeight="200.0" prefWidth="200.0" GridPane.columnIndex="2" GridPane.rowIndex="2" />
+            <Button fx:id="addAttachment" mnemonicParsing="false" onAction="#addAttachment" text="Add attachment" GridPane.columnIndex="3" GridPane.rowIndex="2" />
          </children>
       </GridPane>
    </children>

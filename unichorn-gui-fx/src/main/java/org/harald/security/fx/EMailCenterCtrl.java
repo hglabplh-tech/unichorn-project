@@ -27,6 +27,7 @@ import javax.mail.Address;
 import javax.mail.Folder;
 import javax.mail.Message;
 import javax.mail.Store;
+import javax.security.auth.callback.Callback;
 
 import java.io.File;
 import java.io.IOException;
@@ -53,6 +54,9 @@ public class EMailCenterCtrl implements ControllerInit {
     @FXML
     ListView<String> mailList;
 
+    @FXML ComboBox<String> attachments;
+
+    List<Tuple<String, DataHandler>> contentList = new ArrayList<>();
     static Map<String, Tuple<Store, Folder>> connectResult = new HashMap<>();
 
     Map<String, Folder[]> foldersMap = new HashMap<>();
@@ -65,6 +69,7 @@ public class EMailCenterCtrl implements ControllerInit {
         mailList.getSelectionModel().selectedItemProperty().addListener(new ChangeListener<String>() {
             @Override
             public void changed(ObservableValue<? extends String> observableValue, String s, String t1) {
+                attachments.getItems().clear();
                 ObservableList<Integer> indices = mailList.getSelectionModel().getSelectedIndices();
                 if (indices.size() > 0) {
                     try {
@@ -76,11 +81,15 @@ public class EMailCenterCtrl implements ControllerInit {
                         fromBox.getItems().addAll(mail.getFromList());
                         subject.setText(message.getSubject());
                         WebEngine engine = webContentView.getEngine();
-                        List<Tuple<String, DataHandler>> contentList = mail.getPartList();
+                        contentList = mail.getPartList();
                         if (contentList.size() > 0) {
                             InputStream stream = contentList.get(0).getSecond().getInputStream();
                             String content = IOUtils.toString(stream, Charset.defaultCharset());
                             engine.loadContent(content);
+                        }
+                        for (int attachmentIndex = 0; attachmentIndex < contentList.size(); attachmentIndex++) {
+                            attachments.getItems().add(contentList.get(attachmentIndex).getFirst());
+
                         }
                     } catch (Exception ex) {
                         Logger.trace("cannot fill out mail form: " + ex.getMessage());
@@ -239,4 +248,6 @@ public class EMailCenterCtrl implements ControllerInit {
     public static Tuple<Store, Folder> getConnectParams(String email) {
         return connectResult.get(email);
     }
+
+
 }

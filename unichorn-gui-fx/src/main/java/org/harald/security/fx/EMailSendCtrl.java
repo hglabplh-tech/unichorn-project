@@ -16,8 +16,13 @@ import security.harry.org.emailer._1.SmtpConfigType;
 
 import javax.mail.Folder;
 import javax.mail.Store;
+import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
+
+import static org.harald.security.fx.util.Miscellaneous.showOpenDialogButton;
 
 public class EMailSendCtrl implements ControllerInit {
 
@@ -32,6 +37,10 @@ public class EMailSendCtrl implements ControllerInit {
 
     @FXML
     TextField subject;
+
+    @FXML ListView<String> attachments;
+
+    List<File> attachmentFiles = new ArrayList<>();
 
 
     AccountConfig mailboxes;
@@ -70,6 +79,14 @@ public class EMailSendCtrl implements ControllerInit {
     }
 
     @FXML
+    public void addAttachment(ActionEvent event) {
+        File attachment = showOpenDialogButton(event, attachments);
+        if (attachment != null) {
+            attachmentFiles.add(attachment);
+        }
+    }
+
+    @FXML
     public void sendMail(ActionEvent event) {
         String email = from.getSelectionModel().getSelectedItem();
         Optional<ImapConfigType> box =
@@ -88,6 +105,9 @@ public class EMailSendCtrl implements ControllerInit {
             for (String toEmail :toBox.getItems()) {
                 builder.addTo(toEmail);
             }
+            if (attachmentFiles.size() > 0) {
+                builder.setAttachements(attachmentFiles);
+            }
             ESender sender = builder.setText(content.getText()).build();
             Tuple<String, String> credentials = EMailCenterCtrl.getEMailPasswd(smtpParams.getEmailAddress());
             String password;
@@ -96,7 +116,8 @@ public class EMailSendCtrl implements ControllerInit {
             } else {
                 password = credentials.getSecond();
             }
-            sender.sendEmail(smtpParams.getEmailAddress(), password);
+            sender.sendEmail(smtpParams
+                    .getEmailAddress(), password);
         }
     }
 

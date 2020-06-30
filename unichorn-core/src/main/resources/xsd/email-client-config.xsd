@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schema xmlns="http://www.w3.org/2001/XMLSchema"
+        xmlns:client="http://org.harry.security/emailer-client/1.0" xmlns:xs="http://www.w3.org/2001/XMLSchema"
+        targetNamespace="http://org.harry.security/emailer-client/1.0"
+        elementFormDefault="qualified">
+
+    <element name="clientConfig">
+        <complexType>
+            <sequence>
+                <element name="cryptoConfig" type="client:cryptoConfigType" maxOccurs="unbounded" />
+            </sequence>
+        </complexType>
+    </element>
+
+    <complexType name="cryptoConfigType">
+        <sequence>
+            <element name="keyStoreFile" type="xs:string" minOccurs="1"/>
+            <element name="alias" type="xs:string" minOccurs="1"/>
+            <element name="password" type="xs:string"/>
+        </sequence>
+    </complexType>
+</schema>

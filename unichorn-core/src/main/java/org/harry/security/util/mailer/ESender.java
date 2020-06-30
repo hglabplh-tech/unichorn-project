@@ -7,11 +7,9 @@ import org.harry.security.util.Tuple;
 import org.harry.security.util.certandkey.KeyStoreTool;
 import org.harry.security.util.httpclient.SSLUtils;
 import org.pmw.tinylog.Logger;
+import security.harry.org.emailer_client._1.CryptoConfigType;
 
-import javax.activation.CommandMap;
-import javax.activation.DataHandler;
-import javax.activation.FileDataSource;
-import javax.activation.MailcapCommandMap;
+import javax.activation.*;
 import javax.mail.*;
 import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeBodyPart;
@@ -20,6 +18,7 @@ import javax.mail.internet.MimeMultipart;
 import javax.net.ssl.SSLContext;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.security.KeyStore;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
@@ -82,16 +81,28 @@ public class ESender {
                         new InternetAddress(to));
             }
             message.setSubject(subject);
+            // Create the message part
+            BodyPart messageBodyPart = new MimeBodyPart();
+
+            // Now set the actual message
+            messageBodyPart.setText(text);
+
+            // Create a multipar message
+            MimeMultipart multi = new MimeMultipart();
+
+            // Set text message part
+            multi.addBodyPart(messageBodyPart);
             if (attachments.size() > 0) {
-                MimeMultipart multi = new MimeMultipart();
                 for (File attachement:attachments) {
                     MimeBodyPart part = new MimeBodyPart();
-                    part.setContentID(UUID.randomUUID().toString());
-                    part.attachFile(attachement);
+                    String filename = attachement.getAbsolutePath();
+                    DataSource source = new FileDataSource(filename);
+                    part.setDataHandler(new DataHandler(source));
+                    part.setFileName(filename);
+                    multi.addBodyPart(part);
                 }
-                message.setContent(multi);
             }
-            message.setText(text);
+            message.setContent(multi, multi.getContentType());
             Transport.send(message, message.getAllRecipients(), username, password);
             Folder sentFolder = IMAPUtils.getSentFolder(this.store, from);
             if (sentFolder != null) {
@@ -115,14 +126,18 @@ public class ESender {
      * @param password the users password
      * @return true if success     *
      */
-    public boolean sendSigned(String username, String password)
+    public boolean sendSigned(String username, String password, CryptoConfigType cryptoConf)
     {
 
         try {
             Session session = createSession(username, password, from);
 
-            KeyStore keystore = KeyStoreTool.loadAppStore();
-            Tuple<PrivateKey, X509Certificate[]> keys = KeyStoreTool.getAppKeyEntry(keystore);
+            File keyStoreFile = new File(cryptoConf.getKeyStoreFile());
+            KeyStore keystore = KeyStoreTool.loadStore(
+                    new FileInputStream(keyStoreFile),
+                    cryptoConf.getPassword().toCharArray(), "PKCS12");
+            Tuple<PrivateKey, X509Certificate[]> keys = KeyStoreTool.getKeyEntry(keystore,
+                    cryptoConf.getAlias(), cryptoConf.getPassword().toCharArray());
             // Create a demo Multipart
             SignedContent sc = createMultiPartContent(keys);
             MimeMessage message = createMessageAndSetReceipients(session);
@@ -148,7 +163,7 @@ public class ESender {
         }
     }
 
-    public boolean sendSignedAndEncrypted(String username, String password) {
+    public boolean sendSignedAndEncrypted(String username, String password, CryptoConfigType cryptoConf) {
         try {
             Session session = createSession(username, password, from);
 

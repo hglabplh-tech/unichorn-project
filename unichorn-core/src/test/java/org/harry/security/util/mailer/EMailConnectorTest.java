@@ -11,6 +11,8 @@ import org.pmw.tinylog.Level;
 import org.pmw.tinylog.Logger;
 import org.pmw.tinylog.writers.ConsoleWriter;
 import org.pmw.tinylog.writers.FileWriter;
+import security.harry.org.emailer_client._1.ClientConfig;
+import security.harry.org.emailer_client._1.CryptoConfigType;
 
 import javax.mail.Folder;
 import javax.mail.Message;
@@ -37,6 +39,8 @@ public class EMailConnectorTest extends TestBase {
     public void connectSendReceiveMailDisconnect() throws Exception {
         Tuple<Store, Folder> connectResult = null;
         try {
+            EmailClientConfiguration.loadConfig();
+            ClientConfig clientConfig = EmailClientConfiguration.getClientConfig();
             URL htmlURL = EMailConnectorTest.class.getResource("/data/mail.html");
             File htmlFile = new File(htmlURL.toURI());
             EMailConnector connector = new EMailConnector(T_ONLINE_IMAP_URI_HOST, T_ONLINE_IMAP_PORT);
@@ -53,7 +57,7 @@ public class EMailConnectorTest extends TestBase {
                             "\nBest regards\n\nHarald Glab-Plhak")
                     .addAttachement(htmlFile)
                     .build();
-            sender.sendSigned("harald.glab-plhak@t-online.de", password);
+            sender.sendSigned("harald.glab-plhak@t-online.de", password,  clientConfig.getCryptoConfig().get(0));
             sender = ESender.newBuilder(connectResult.getFirst(), connectResult.getSecond(),
                     T_ONLINE_SMTP_URI_HOST,
                     Integer.toString(T_ONLINE_SMTP_PORT))
@@ -64,7 +68,7 @@ public class EMailConnectorTest extends TestBase {
                             "\nBest regards\n\nHarald Glab-Plhak")
                     .addAttachement(htmlFile)
                     .build();
-            sender.sendSignedAndEncrypted("harald.glab-plhak@t-online.de", password);
+            sender.sendSignedAndEncrypted("harald.glab-plhak@t-online.de", password, clientConfig.getCryptoConfig().get(0));
             EReceiver receiver = new EReceiver(connectResult);
             Message[] messages = receiver.receiveMails();
             for (Message msg: messages) {
