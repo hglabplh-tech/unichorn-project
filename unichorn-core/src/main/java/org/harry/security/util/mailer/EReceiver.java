@@ -124,6 +124,8 @@ public class EReceiver {
 
         List<String> toList = new ArrayList<>();
 
+        X509Certificate signer = null;
+
         List<Tuple<String, DataHandler>> partList = new ArrayList<>();
 
         public ReadableMail(Message message) {
@@ -196,7 +198,7 @@ public class EReceiver {
         }
 
         private void verifySigned(SignedContent signedContent) throws Exception {
-            signedContent.verify();
+            this.signer = signedContent.verify();
             Certificate[] certs = signedContent.getCertificates();
             X509Certificate [] iaikCerts = Util.convertCertificateChain(certs);
             signedContent.getDataHandler();
@@ -265,6 +267,14 @@ public class EReceiver {
 
         public List<String> getToList() {
             return toList;
+        }
+
+        public boolean isSigned() {
+            return (this.signer != null);
+        }
+
+        public X509Certificate getSigner() {
+            return signer;
         }
     }
 }

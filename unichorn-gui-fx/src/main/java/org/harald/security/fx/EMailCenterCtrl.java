@@ -1,6 +1,5 @@
 package org.harald.security.fx;
 
-import iaik.utils.Util;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.ObservableList;
@@ -24,9 +23,7 @@ import javax.mail.Address;
 import javax.mail.Folder;
 import javax.mail.Message;
 import javax.mail.Store;
-import javax.security.auth.callback.Callback;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
@@ -48,14 +45,16 @@ public class EMailCenterCtrl implements ControllerInit {
     @FXML
     WebView webContentView;
 
-
-
-
-
     @FXML
     ListView<String> mailList;
 
     @FXML ComboBox<String> attachments;
+
+    @FXML
+    Button showSig;
+
+    @FXML
+    Label signedBy;
 
     List<Tuple<String, DataHandler>> contentList = new ArrayList<>();
     static Map<String, Tuple<Store, Folder>> connectResult = new HashMap<>();
@@ -64,6 +63,8 @@ public class EMailCenterCtrl implements ControllerInit {
 
     List<Message> actualMessages = new ArrayList<>();
 
+    Message displayedMessage = null;
+
     static AccountConfig mailboxes;
 
     public Scene init() {
@@ -71,21 +72,27 @@ public class EMailCenterCtrl implements ControllerInit {
         mailList.getSelectionModel().selectedItemProperty().addListener(new ChangeListener<String>() {
             @Override
             public void changed(ObservableValue<? extends String> observableValue, String s, String t1) {
+                signedBy.setText("");
                 attachments.getItems().clear();
                 ObservableList<Integer> indices = mailList.getSelectionModel().getSelectedIndices();
                 if (indices.size() > 0) {
                     try {
                         int index = indices.get(0);
-                        Message message = actualMessages.get(index);
-                        EReceiver.ReadableMail mail = new EReceiver.ReadableMail(message);
+                        displayedMessage = actualMessages.get(index);
+                        EReceiver.ReadableMail mail = new EReceiver.ReadableMail(displayedMessage);
                         mail.analyzeContent();
+                        if (mail.isSigned()) {
+                            showSig.setDisable(false);
+                        } else {
+                            showSig.setDisable(true);
+                        }
                         fromBox.getItems().clear();
                         fromBox.getItems().addAll(mail.getFromList());
                         fromBox.getSelectionModel().select(0);
                         to.getItems().clear();
                         to.getItems().addAll(mail.getToList());
                         to.getSelectionModel().select(0);
-                        subject.setText(message.getSubject());
+                        subject.setText(displayedMessage.getSubject());
                         WebEngine engine = webContentView.getEngine();
                         contentList = mail.getPartList();
                         if (contentList.size() > 0) {
@@ -93,6 +100,7 @@ public class EMailCenterCtrl implements ControllerInit {
                             String content = IOUtils.toString(stream, Charset.defaultCharset());
                             engine.loadContent(content);
                         }
+                        attachments.getItems().clear();
                         for (int attachmentIndex = 0; attachmentIndex < contentList.size(); attachmentIndex++) {
                             attachments.getItems().add(contentList.get(attachmentIndex).getFirst());
                             attachments.getSelectionModel().select(0);
@@ -175,6 +183,20 @@ public class EMailCenterCtrl implements ControllerInit {
 
     @FXML
     public void forward(ActionEvent event) {
+
+    }
+
+    @FXML
+    public void showSig(ActionEvent event) {
+        EReceiver.ReadableMail mail = new EReceiver.ReadableMail(displayedMessage);
+        mail.analyzeContent();
+        if (mail != null) {
+            signedBy.setText(mail.getSigner().getSubjectDN().getName());
+        }
+    }
+
+    @FXML
+    public void addresses(ActionEvent event) {
 
     }
 
