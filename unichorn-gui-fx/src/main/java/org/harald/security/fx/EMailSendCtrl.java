@@ -9,9 +9,11 @@ import javafx.util.Callback;
 import javafx.util.StringConverter;
 import org.harry.security.util.Tuple;
 import org.harry.security.util.mailer.ESender;
+import org.harry.security.util.mailer.EmailClientConfiguration;
 import security.harry.org.emailer._1.AccountConfig;
 import security.harry.org.emailer._1.ImapConfigType;
 import security.harry.org.emailer._1.SmtpConfigType;
+import security.harry.org.emailer_client._1.CryptoConfigType;
 
 
 import javax.mail.Folder;
@@ -39,6 +41,8 @@ public class EMailSendCtrl implements ControllerInit {
     TextField subject;
 
     @FXML ListView<String> attachments;
+
+    @FXML CheckBox sign;
 
     List<File> attachmentFiles = new ArrayList<>();
 
@@ -116,8 +120,15 @@ public class EMailSendCtrl implements ControllerInit {
             } else {
                 password = credentials.getSecond();
             }
-            sender.sendEmail(smtpParams
-                    .getEmailAddress(), password);
+            if (sign.isSelected()) {
+                CryptoConfigType crypto = EmailClientConfiguration
+                        .getClientConfig().getCryptoConfig().get(0);
+                sender.sendSigned(smtpParams
+                        .getEmailAddress(), password, crypto);
+            } else {
+                sender.sendEmail(smtpParams
+                        .getEmailAddress(), password);
+            }
         }
     }
 

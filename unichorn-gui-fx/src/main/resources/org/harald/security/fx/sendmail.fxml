@@ -13,6 +13,7 @@
             <ColumnConstraints hgrow="SOMETIMES" maxWidth="541.0" minWidth="10.0" prefWidth="541.0" />
           <ColumnConstraints hgrow="SOMETIMES" maxWidth="967.0" minWidth="10.0" prefWidth="447.0" />
           <ColumnConstraints hgrow="SOMETIMES" maxWidth="141.0" minWidth="10.0" prefWidth="141.0" />
+            <ColumnConstraints hgrow="SOMETIMES" maxWidth="141.0" minWidth="10.0" prefWidth="141.0" />
         </columnConstraints>
         <rowConstraints>
           <RowConstraints />
@@ -24,13 +25,6 @@
          <children>
             <Label text="From" GridPane.rowIndex="1" />
             <ListView fx:id="toBox" prefHeight="200.0" prefWidth="200.0" GridPane.columnIndex="1" GridPane.rowIndex="2">
-               <effect>
-                  <Glow level="0.68">
-                     <input>
-                        <Glow />
-                     </input>
-                  </Glow>
-               </effect>
                <contextMenu>
                   <ContextMenu>
                     <items>
@@ -49,6 +43,8 @@
             <TextField fx:id="subject" promptText="Subject....." GridPane.columnIndex="2" GridPane.rowIndex="1" />
             <ListView fx:id="attachments" prefHeight="200.0" prefWidth="200.0" GridPane.columnIndex="2" GridPane.rowIndex="2" />
             <Button fx:id="addAttachment" mnemonicParsing="false" onAction="#addAttachment" text="Add attachment" GridPane.columnIndex="3" GridPane.rowIndex="2" />
+            <CheckBox fx:id="sign" mnemonicParsing="false" text="Sign" GridPane.columnIndex="4" GridPane.rowIndex="1" />
+            <CheckBox fx:id="encrypt" mnemonicParsing="false" text="encrypt" GridPane.columnIndex="4" GridPane.rowIndex="2" />
          </children>
       </GridPane>
    </children>

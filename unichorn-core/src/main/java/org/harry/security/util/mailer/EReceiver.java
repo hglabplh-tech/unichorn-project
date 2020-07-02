@@ -1,6 +1,12 @@
 package org.harry.security.util.mailer;
 
 import com.sun.mail.imap.IMAPFolder;
+import iaik.cms.CMSSignatureException;
+import iaik.smime.SMimeBodyPart;
+import iaik.smime.SMimeMultipart;
+import iaik.smime.SignedContent;
+import iaik.utils.Util;
+import iaik.x509.X509Certificate;
 import org.harry.security.util.SigningUtil;
 import org.harry.security.util.Tuple;
 import org.jvnet.staxex.StreamingDataHandler;
@@ -8,12 +14,14 @@ import org.pmw.tinylog.Logger;
 
 import javax.activation.DataHandler;
 import javax.mail.*;
+import javax.mail.internet.MimeBodyPart;
 import javax.mail.internet.MimeMultipart;
 import javax.validation.constraints.Max;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Array;
+import java.security.cert.Certificate;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -113,6 +121,9 @@ public class EReceiver {
         private final Message message;
 
         List<String> fromList = new ArrayList<>();
+
+        List<String> toList = new ArrayList<>();
+
         List<Tuple<String, DataHandler>> partList = new ArrayList<>();
 
         public ReadableMail(Message message) {
@@ -125,11 +136,47 @@ public class EReceiver {
                 for (Address address:addresses) {
                     fromList.add(address.toString());
                 }
+               addresses = message.getAllRecipients();
+                for (Address address:addresses) {
+                    toList.add(address.toString());
+                }
                 Object contentObj = message.getContent();
                 String type = message.getContentType();
+                if (contentObj instanceof SignedContent) {
+                    SignedContent signedContent = (SignedContent)contentObj;
+                    verifySigned(signedContent);
+                    DataHandler handler = signedContent.getDataHandler();
+                    signedContent.getContentType();
+                    Object sCont= signedContent.getContent();
+                    if (sCont instanceof Multipart) {
+                        Logger.trace("found multipart");
+                        MimeMultipart multipart = (MimeMultipart)sCont;
+                        analyzeMultipartContent(multipart);
+                    } else if (sCont instanceof InputStream) {
+
+                    }
+                }
+                if (contentObj instanceof SMimeMultipart) {
+                    String partType = null;
+                    SMimeMultipart multi = (SMimeMultipart)contentObj;
+                    int count = multi.getCount();
+                    for (int ind = 0; ind < count; ind++) {
+                        BodyPart sMimePart = multi.getBodyPart(ind);
+                        if (sMimePart.getContent() instanceof Multipart) {
+                            analyzeMultipartContent((Multipart) sMimePart.getContent());
+                        } else {
+                            Logger.trace("Part type of part: " + ind+ " is: " + partType);
+                            DataHandler dataHandler = sMimePart.getDataHandler();
+                            partType = sMimePart.getContentType();
+                            partList.add(new Tuple<>(partType, dataHandler));
+                        }
+
+                    }
+
+                }
                 if (contentObj instanceof Multipart) {
                     Logger.trace("found multipart");
-                    MimeMultipart multipart = (MimeMultipart)message.getContent();
+                    MimeMultipart multipart = (MimeMultipart)contentObj;
                     analyzeMultipartContent(multipart);
                 }  else  if (contentObj instanceof String){
                     String content = (String)message.getContent();
@@ -145,6 +192,45 @@ public class EReceiver {
                 Logger.trace("analyzeContent failed" +  ex.getMessage());
                 Logger.trace(ex);
                 throw new IllegalStateException("analyzeContent failed", ex);
+            }
+        }
+
+        private void verifySigned(SignedContent signedContent) throws Exception {
+            signedContent.verify();
+            Certificate[] certs = signedContent.getCertificates();
+            X509Certificate [] iaikCerts = Util.convertCertificateChain(certs);
+            signedContent.getDataHandler();
+            for (int index = 0;index < signedContent.getCount(); index++) {
+                BodyPart part = signedContent.getBodyPart(index);
+                Object partObj = part.getContent();
+                String partType = part.getContentType();
+                if (partObj instanceof SMimeBodyPart) {
+                    Logger.trace("Part type of part: " + index + " is: " + partType);
+                    DataHandler dataHandler = part.getDataHandler();
+                    partList.add(new Tuple<>(partType, dataHandler));
+                }
+                else if (partObj instanceof SMimeMultipart) {
+                    SMimeMultipart multi = (SMimeMultipart)partObj;
+                    int count = multi.getCount();
+                    for (int ind = 0; ind < count; ind++) {
+                        BodyPart sMimePart = multi.getBodyPart(ind);
+                        if (sMimePart.getContent() instanceof Multipart) {
+                            analyzeMultipartContent((Multipart) sMimePart.getContent());
+                        } else {
+                            Logger.trace("Part type of part: " + index + " is: " + partType);
+                            DataHandler dataHandler = sMimePart.getDataHandler();
+                            partType = sMimePart.getContentType();
+                            partList.add(new Tuple<>(partType, dataHandler));
+                        }
+
+                    }
+
+                } else {
+                    Logger.trace("Part type of part: " + index + " is: " + partType);
+                    DataHandler dataHandler = part.getDataHandler();
+                    partList.add(new Tuple<>(partType, dataHandler));
+                }
+
             }
         }
 
@@ -175,6 +261,10 @@ public class EReceiver {
 
         public List<Tuple<String, DataHandler>> getPartList() {
             return partList;
+        }
+
+        public List<String> getToList() {
+            return toList;
         }
     }
 }

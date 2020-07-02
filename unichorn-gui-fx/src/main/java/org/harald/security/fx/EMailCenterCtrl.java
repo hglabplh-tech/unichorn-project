@@ -12,10 +12,7 @@ import javafx.scene.web.WebEngine;
 import javafx.scene.web.WebView;
 import org.apache.commons.io.IOUtils;
 import org.harry.security.util.Tuple;
-import org.harry.security.util.mailer.EMailConnector;
-import org.harry.security.util.mailer.EReceiver;
-import org.harry.security.util.mailer.EmailClientConfiguration;
-import org.harry.security.util.mailer.IMAPUtils;
+import org.harry.security.util.mailer.*;
 import org.harry.security.util.pwdmanager.PasswordManager;
 import org.pmw.tinylog.Logger;
 import security.harry.org.emailer._1.AccountConfig;
@@ -46,8 +43,12 @@ public class EMailCenterCtrl implements ControllerInit {
     @FXML
     ComboBox<String> fromBox;
 
+    @FXML ComboBox<String> to;
+
     @FXML
     WebView webContentView;
+
+
 
 
 
@@ -66,6 +67,7 @@ public class EMailCenterCtrl implements ControllerInit {
     static AccountConfig mailboxes;
 
     public Scene init() {
+        ESender.setMailCapabilities();
         mailList.getSelectionModel().selectedItemProperty().addListener(new ChangeListener<String>() {
             @Override
             public void changed(ObservableValue<? extends String> observableValue, String s, String t1) {
@@ -79,6 +81,10 @@ public class EMailCenterCtrl implements ControllerInit {
                         mail.analyzeContent();
                         fromBox.getItems().clear();
                         fromBox.getItems().addAll(mail.getFromList());
+                        fromBox.getSelectionModel().select(0);
+                        to.getItems().clear();
+                        to.getItems().addAll(mail.getToList());
+                        to.getSelectionModel().select(0);
                         subject.setText(message.getSubject());
                         WebEngine engine = webContentView.getEngine();
                         contentList = mail.getPartList();
@@ -89,7 +95,7 @@ public class EMailCenterCtrl implements ControllerInit {
                         }
                         for (int attachmentIndex = 0; attachmentIndex < contentList.size(); attachmentIndex++) {
                             attachments.getItems().add(contentList.get(attachmentIndex).getFirst());
-
+                            attachments.getSelectionModel().select(0);
                         }
                     } catch (Exception ex) {
                         Logger.trace("cannot fill out mail form: " + ex.getMessage());

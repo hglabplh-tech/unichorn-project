@@ -57,7 +57,7 @@ public class ESender {
         this.smtpPort = smtpPort;
         this.store = store;
         this.defaultFolder = folder;
-        setMailCapabilities();
+        //setMailCapabilities();
     }
 
     /**
@@ -103,15 +103,7 @@ public class ESender {
                 }
             }
             message.setContent(multi, multi.getContentType());
-            Transport.send(message, message.getAllRecipients(), username, password);
-            Folder sentFolder = IMAPUtils.getSentFolder(this.store, from);
-            if (sentFolder != null) {
-                sentFolder.open(Folder.READ_WRITE);
-                Message[] temp = new Message[1];
-                temp[0] = message;
-                sentFolder.appendMessages(temp);
-                sentFolder.close(false);
-            }
+            sendAndPlaceINFolder(username, password, message);
             return true;
         } catch(Exception ex) {
             Logger.trace("error occurred during send mail " + ex.getMessage());
@@ -119,6 +111,8 @@ public class ESender {
             return false;
         }
     }
+
+
 
     /**
      * Send a e-mail with signed content
@@ -147,14 +141,7 @@ public class ESender {
 
             message.setSubject(subject);
             //transport.sendMessage(message, message.getAllRecipients());
-            Transport.send(message, message.getAllRecipients(), username, password);
-            Folder sentFolder = store.getFolder("INBOX.Sent");
-            Folder[] folderList = this.defaultFolder.list();
-            sentFolder.open(Folder.READ_WRITE);
-            Message[] tempmsg = new Message[1];
-            tempmsg[0] = message;
-            sentFolder.appendMessages(tempmsg);
-            sentFolder.close(false);
+            sendAndPlaceINFolder(username, password, message);
             return true;
         } catch(Exception ex) {
             Logger.trace("send signed failed with: " + ex.getMessage());
@@ -172,20 +159,13 @@ public class ESender {
             // Create a demo Multipart
             SignedContent sc = createMultiPartContent(keys);
 
-            Message message = createSignedAndEncryptedContent(session, keys);
+            MimeMessage message = createSignedAndEncryptedContent(session, keys);
             message.setContent(sc, sc.getContentType());
             sc.setHeaders(message);
 
             message.setSubject(subject);
             //transport.sendMessage(message, message.getAllRecipients());
-            Transport.send(message, message.getAllRecipients(), username, password);
-            Folder sentFolder = store.getFolder("INBOX.Sent");
-            Folder[] folderList = this.defaultFolder.list();
-            sentFolder.open(Folder.READ_WRITE);
-            Message[] tempmsg = new Message[1];
-            tempmsg[0] = message;
-            sentFolder.appendMessages(tempmsg);
-            sentFolder.close(false);
+            sendAndPlaceINFolder(username, password, message);
             return true;
         } catch (Exception ex) {
             throw new IllegalStateException("error signing and encrypting", ex);
@@ -204,16 +184,17 @@ public class ESender {
         MimeBodyPart mbp1 = new SMimeBodyPart();
         mbp1.setText(text);
         DataHandler multipart = null;
+        Multipart mp = new SMimeMultipart();
+        mp.addBodyPart(mbp1);
         // try to test an attachment
-        if (attachments.size() == 1) {
+        for (File attachmentFile: attachments) {
             MimeBodyPart attachment = new SMimeBodyPart();
-            attachment.setDataHandler(new DataHandler(new FileDataSource(attachments.get(0))));
+            attachment.setDataHandler(new DataHandler(new FileDataSource(attachmentFile)));
             attachment.setFileName("anonymous");
-            Multipart mp = new SMimeMultipart();
-            mp.addBodyPart(mbp1);
             mp.addBodyPart(attachment);
-            multipart = new DataHandler(mp, mp.getContentType());
         }
+
+        multipart = new DataHandler(mp, mp.getContentType());
 
 
         return createSignedContent(keys, multipart);
@@ -271,7 +252,7 @@ public class ESender {
     /**
      * Set the e-mail capabilities to send signed mailes
      */
-    private void setMailCapabilities() {
+    public static void setMailCapabilities() {
         MailcapCommandMap mc = (MailcapCommandMap) CommandMap.getDefaultCommandMap();
         mc.addMailcap("text/html;; x-java-content-handler=com.sun.mail.handlers.text_html");
         mc.addMailcap("text/xml;; x-java-content-handler=com.sun.mail.handlers.text_xml");
@@ -288,9 +269,9 @@ public class ESender {
         CommandMap.setDefaultCommandMap(mc);
     }
 
-    private Message createSignedAndEncryptedContent(Session session, Tuple<PrivateKey,
+    private MimeMessage createSignedAndEncryptedContent(Session session, Tuple<PrivateKey,
             X509Certificate[]> keys) throws MessagingException {
-        Message msg = this.createMessageAndSetReceipients(session);
+        MimeMessage msg = this.createMessageAndSetReceipients(session);
 
         DataHandler dataHandler = null;
         // try to test an attachment
@@ -378,6 +359,19 @@ public class ESender {
             }
             return sc;
         }
+
+
+    private void sendAndPlaceINFolder(String username, String password, MimeMessage message) throws MessagingException {
+        Transport.send(message, message.getAllRecipients(), username, password);
+        Folder sentFolder = IMAPUtils.getSentFolder(this.store, from);
+        if (sentFolder != null) {
+            sentFolder.open(Folder.READ_WRITE);
+            Message[] temp = new Message[1];
+            temp[0] = message;
+            sentFolder.appendMessages(temp);
+            sentFolder.close(false);
+        }
+    }
 
         /**
          * get a fresh builoder for this class

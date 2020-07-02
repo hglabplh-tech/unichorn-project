@@ -3,8 +3,11 @@ package org.harry.security.util.mailer;
 import org.apache.commons.io.IOUtils;
 import org.harry.security.testutils.TestBase;
 import org.harry.security.util.Tuple;
+import org.harry.security.util.pwdmanager.PasswordManager;
 import org.junit.Test;
 import org.pmw.tinylog.Logger;
+import security.harry.org.emailer._1.AccountConfig;
+import security.harry.org.emailer._1.ImapConfigType;
 
 import javax.mail.Folder;
 import javax.mail.Message;
@@ -24,17 +27,25 @@ public class EReceiverTest extends TestBase {
     public void getEMeilReadable() throws Exception {
         Tuple<Store, Folder> connectResult = null;
         try {
+            ESender.setMailCapabilities();
+            AccountConfig config = EmailClientConfiguration.getProviders();
+            ImapConfigType type = config.getImapConfig()
+                    .stream().filter(e -> e.getConfigName().equals("gmx"))
+                    .findFirst()
+                    .get();
             URL htmlURL = EMailConnectorTest.class.getResource("/data/mail.html");
             File htmlFile = new File(htmlURL.toURI());
-            EMailConnector connector = new EMailConnector(T_ONLINE_IMAP_URI_HOST, T_ONLINE_IMAP_PORT);
-            String password = System.getenv("emailpass");
-            connectResult = connector.connect("harald.glab-plhak@t-online.de", password);
+            EMailConnector connector = new EMailConnector(type.getImapHost(), Integer.parseInt(type.getImapPort()));
+            PasswordManager manager = new PasswordManager(System.getenv("credomail"));
+            Tuple<String, String> passwordTuple = manager.readPassword("unichorn-teacher@gmx.de");
+            String password = passwordTuple.getSecond();
+            connectResult = connector.connect("unichorn-teacher@gmx.de", password);
             EReceiver receiver = new EReceiver(connectResult);
             Message[] messages = receiver.receiveMails();
             for (Message msg : messages) {
                 System.out.println("From: " + msg.getFrom()[0].toString() + " Subject: " + msg.getSubject());
             }
-            EReceiver.ReadableMail mail = receiver.openMail("INBOX", messages, (messages.length - 1));
+            EReceiver.ReadableMail mail = receiver.openMail("INBOX", messages, (messages.length - 2));
             mail.getFromList().forEach(e -> Logger.trace(e));
             mail.getPartList().forEach(e -> {
                 Logger.trace(e.getFirst());
