@@ -150,7 +150,7 @@ public class ESender {
             Tuple<PrivateKey, X509Certificate[]> keys = KeyStoreTool.getKeyEntry(keystore,
                     cryptoConf.getAlias(), cryptoConf.getPassword().toCharArray());
             // Create a demo Multipart
-            SignedContent sc = createMultiPartContent(keys);
+            SignedContent sc = (SignedContent)createMultiPartContent(keys, false);
             MimeMessage message = createMessageAndSetReceipients(session);
 
             message.setContent(sc, sc.getContentType());
@@ -171,14 +171,22 @@ public class ESender {
         try {
             Session session = createSession(username, password, from);
 
-            KeyStore keystore = KeyStoreTool.loadAppStore();
-            Tuple<PrivateKey, X509Certificate[]> keys = KeyStoreTool.getAppKeyEntry(keystore);
+            File keyStoreFile = new File(cryptoConf.getKeyStoreFile());
+            KeyStore keystore = KeyStoreTool.loadStore(
+                    new FileInputStream(keyStoreFile),
+                    cryptoConf.getPassword().toCharArray(), "PKCS12");
+            Tuple<PrivateKey, X509Certificate[]> keys = KeyStoreTool.getKeyEntry(keystore,
+                    cryptoConf.getAlias(), cryptoConf.getPassword().toCharArray());
             // Create a demo Multipart
-            SignedContent sc = createMultiPartContent(keys);
+            EncryptedContent ec = (EncryptedContent)createMultiPartContent(keys, true);
+            MimeMessage message = createMessageAndSetReceipients(session);
 
-            MimeMessage message = createSignedAndEncryptedContent(session, keys);
-            message.setContent(sc, sc.getContentType());
-            sc.setHeaders(message);
+           // message.setContent(sc, sc.getContentType());
+            //sc.setHeaders(message);
+            message.setContent(ec, ec.getContentType());
+            // let the EncryptedContent update some message headers
+            ec.setHeaders(message);
+
 
             message.setSubject(subject);
             //transport.sendMessage(message, message.getAllRecipients());
@@ -197,7 +205,7 @@ public class ESender {
      * @return the SignedContent object
      * @throws MessagingException error case
      */
-    private SignedContent createMultiPartContent(Tuple<PrivateKey, X509Certificate[]> keys) throws MessagingException {
+    private Object createMultiPartContent(Tuple<PrivateKey, X509Certificate[]> keys, boolean encrypt) throws MessagingException {
         MimeBodyPart mbp1 = new SMimeBodyPart();
         setHtmlText(mbp1);
 
@@ -215,7 +223,11 @@ public class ESender {
         multipart = new DataHandler(mp, mp.getContentType());
 
 
-        return createSignedContent(keys, multipart);
+        if (!encrypt) {
+            return createSignedContent(keys, multipart);
+        } else {
+            return createSignedAndEncryptedContent(keys, multipart);
+        }
     }
 
     /**
@@ -287,25 +299,16 @@ public class ESender {
         CommandMap.setDefaultCommandMap(mc);
     }
 
-    private MimeMessage createSignedAndEncryptedContent(Session session, Tuple<PrivateKey,
-            X509Certificate[]> keys) throws MessagingException {
-        MimeMessage msg = this.createMessageAndSetReceipients(session);
+    private  EncryptedContent createSignedAndEncryptedContent(Tuple<PrivateKey,
+            X509Certificate[]> keys, DataHandler multipart) throws MessagingException {
 
-        DataHandler dataHandler = null;
-        // try to test an attachment
-        if (attachments.size() == 1) {
-            MimeBodyPart attachment = new SMimeBodyPart();
-            attachment.setDataHandler(new DataHandler(new FileDataSource(attachments.get(0))));
-            attachment.setFileName("anonymous");
-            Multipart mp = new SMimeMultipart();
-            mp.addBodyPart(attachment);
-            dataHandler = new DataHandler(mp, mp.getContentType());
-        }
+
         SignedContent sc = new SignedContent(true);
-        if (dataHandler != null) {
-            sc.setDataHandler(dataHandler);
+        sc.setCertificates(keys.getSecond());
+        if (multipart != null) {
+            sc.setDataHandler(multipart);
         } else {
-            setHtmlText(sc);
+            sc.setText(text);
         }
         sc.setCertificates(keys.getSecond());
         try {
@@ -324,11 +327,8 @@ public class ESender {
         } catch (NoSuchAlgorithmException ex) {
             throw new MessagingException("Content encryption algorithm not supported: " + ex.getMessage());
         }
-        msg.setContent(ec, ec.getContentType());
-        // let the EncryptedContent update some message headers
-        ec.setHeaders(msg);
 
-        return msg;
+        return ec;
     }
 
         /**

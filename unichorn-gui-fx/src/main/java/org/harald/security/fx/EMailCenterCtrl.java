@@ -77,7 +77,7 @@ public class EMailCenterCtrl implements ControllerInit {
                         int index = indices.get(0);
                         displayedMessage = actualMessages.get(index);
                         EReceiver.ReadableMail mail = new EReceiver.ReadableMail(displayedMessage);
-                        mail.analyzeContent();
+                        mail.analyzeContent(null);
                         if (mail.isSigned()) {
                             showSig.setDisable(false);
                         } else {
@@ -193,7 +193,7 @@ public class EMailCenterCtrl implements ControllerInit {
     @FXML
     public void showSig(ActionEvent event) {
         EReceiver.ReadableMail mail = new EReceiver.ReadableMail(displayedMessage);
-        mail.analyzeContent();
+        mail.analyzeContent(null);
         if (mail != null) {
             signedBy.setText(mail.getSigner().getSubjectDN().getName());
         }

@@ -1,7 +1,7 @@
 package org.harry.security.util.mailer;
 
 import com.sun.mail.imap.IMAPFolder;
-import iaik.cms.CMSSignatureException;
+import iaik.smime.EncryptedContent;
 import iaik.smime.SMimeBodyPart;
 import iaik.smime.SMimeMultipart;
 import iaik.smime.SignedContent;
@@ -9,18 +9,16 @@ import iaik.utils.Util;
 import iaik.x509.X509Certificate;
 import org.harry.security.util.SigningUtil;
 import org.harry.security.util.Tuple;
-import org.jvnet.staxex.StreamingDataHandler;
+import org.harry.security.util.certandkey.KeyStoreTool;
 import org.pmw.tinylog.Logger;
+import security.harry.org.emailer_client._1.CryptoConfigType;
 
 import javax.activation.DataHandler;
 import javax.mail.*;
-import javax.mail.internet.MimeBodyPart;
 import javax.mail.internet.MimeMultipart;
-import javax.validation.constraints.Max;
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.lang.reflect.Array;
+import java.io.*;
+import java.security.KeyStore;
+import java.security.PrivateKey;
 import java.security.cert.Certificate;
 import java.util.ArrayList;
 import java.util.List;
@@ -108,7 +106,7 @@ public class EReceiver {
             folder.close(false);
             Message actualMessage = messages[index];
             ReadableMail mail = new ReadableMail(actualMessage);
-            mail.analyzeContent();
+            mail.analyzeContent(null);
             return mail;
         } catch (Exception ex) {
             Logger.trace("fetch failed" + ex.getMessage());
@@ -132,19 +130,36 @@ public class EReceiver {
             this.message = message;
         }
 
-        public void analyzeContent() {
+        public void analyzeContent(Object contentObj) {
             try {
-                Address[] addresses = message.getFrom();
-                for (Address address:addresses) {
-                    fromList.add(address.toString());
+                String type = null;
+                if (contentObj == null) {
+                    Address[] addresses = message.getFrom();
+                    for (Address address : addresses) {
+                        fromList.add(address.toString());
+                    }
+                    addresses = message.getAllRecipients();
+                    for (Address address : addresses) {
+                        toList.add(address.toString());
+                    }
+                    contentObj = message.getContent();
+                    type = message.getContentType();
                 }
-               addresses = message.getAllRecipients();
-                for (Address address:addresses) {
-                    toList.add(address.toString());
-                }
-                Object contentObj = message.getContent();
-                String type = message.getContentType();
-                if (contentObj instanceof SignedContent) {
+                if (contentObj instanceof EncryptedContent) {
+                    CryptoConfigType cryptoConf = EmailClientConfiguration
+                            .getClientConfig()
+                            .getCryptoConfig()
+                            .get(0);
+                    File keyStoreFile = new File(cryptoConf.getKeyStoreFile());
+                    KeyStore keystore = KeyStoreTool.loadStore(
+                            new FileInputStream(keyStoreFile),
+                            cryptoConf.getPassword().toCharArray(), "PKCS12");
+                    Tuple<PrivateKey, X509Certificate[]> keys = KeyStoreTool.getKeyEntry(keystore,
+                            cryptoConf.getAlias(), cryptoConf.getPassword().toCharArray());
+                    EncryptedContent ec = (EncryptedContent)contentObj;
+                    ec.decryptSymmetricKey(keys.getFirst(), 0);
+                    analyzeContent(ec.getContent());
+                } else if (contentObj instanceof SignedContent) {
                     SignedContent signedContent = (SignedContent)contentObj;
                     verifySigned(signedContent);
                     DataHandler handler = signedContent.getDataHandler();

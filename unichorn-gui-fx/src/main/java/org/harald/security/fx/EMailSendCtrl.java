@@ -52,6 +52,8 @@ public class EMailSendCtrl implements ControllerInit {
 
     @FXML CheckBox sign;
 
+    @FXML CheckBox encrypt;
+
     List<File> attachmentFiles = new ArrayList<>();
 
     List<VCard> vcardList = new ArrayList<>();
@@ -157,9 +159,12 @@ public class EMailSendCtrl implements ControllerInit {
             } else {
                 password = credentials.getSecond();
             }
-            if (sign.isSelected()) {
-                CryptoConfigType crypto = EmailClientConfiguration
-                        .getClientConfig().getCryptoConfig().get(0);
+            CryptoConfigType crypto = EmailClientConfiguration
+                    .getClientConfig().getCryptoConfig().get(0);
+            if (sign.isSelected() && encrypt.isSelected()) {
+                sender.sendSignedAndEncrypted(smtpParams
+                                .getEmailAddress(), password, crypto);
+            } else if (sign.isSelected()) {
                 sender.sendSigned(smtpParams
                         .getEmailAddress(), password, crypto);
             } else {
