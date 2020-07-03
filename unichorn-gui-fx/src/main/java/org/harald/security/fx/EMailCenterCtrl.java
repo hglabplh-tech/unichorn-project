@@ -19,10 +19,7 @@ import security.harry.org.emailer._1.ImapConfigType;
 
 
 import javax.activation.DataHandler;
-import javax.mail.Address;
-import javax.mail.Folder;
-import javax.mail.Message;
-import javax.mail.Store;
+import javax.mail.*;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -143,12 +140,19 @@ public class EMailCenterCtrl implements ControllerInit {
                                 actualMessages.addAll(Arrays.asList(messages));
                                 try {
                                     for (Message msg : messages) {
+                                        Flags flagEntries = msg.getFlags();
+                                        Flags.Flag[] flags = flagEntries.getSystemFlags();
+                                        boolean seen = Arrays.asList(flags).contains(Flags.Flag.SEEN);
                                         Address[] from = msg.getFrom();
                                         StringBuffer buf = new StringBuffer();
                                         for (Address addr : from) {
                                             buf.append(addr.toString() + " , ");
                                         }
-                                        mailEntries.add(msg.getSubject() + ";;" + buf.toString());
+                                        if (!seen) {
+                                            mailEntries.add("NEW -- " + msg.getSubject() + ";;" + buf.toString());
+                                        } else {
+                                            mailEntries.add(msg.getSubject() + ";;" + buf.toString());
+                                        }
                                     }
                                     mailList.getItems().clear();
                                     mailList.getItems().addAll(mailEntries);
@@ -196,8 +200,8 @@ public class EMailCenterCtrl implements ControllerInit {
     }
 
     @FXML
-    public void addresses(ActionEvent event) {
-
+    public void addresses(ActionEvent event) throws IOException {
+        SecHarry.setRoot("addressbook", SecHarry.CSS.UNICHORN);
     }
 
     @FXML

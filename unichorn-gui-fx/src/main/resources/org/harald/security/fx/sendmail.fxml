@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
+<?import javafx.scene.web.*?>
 <?import javafx.scene.effect.*?>
 <?import javafx.scene.control.*?>
 <?import java.lang.*?>
@@ -7,7 +8,7 @@
 
 <VBox maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="800.0" prefWidth="1200.0" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.harald.security.fx.EMailSendCtrl">
    <children>
-      <GridPane prefHeight="334.0" prefWidth="1200.0">
+      <GridPane prefHeight="390.0" prefWidth="1200.0">
         <columnConstraints>
             <ColumnConstraints hgrow="SOMETIMES" maxWidth="395.0" minWidth="10.0" prefWidth="100.0" />
             <ColumnConstraints hgrow="SOMETIMES" maxWidth="541.0" minWidth="10.0" prefWidth="541.0" />
@@ -18,8 +19,8 @@
         <rowConstraints>
           <RowConstraints />
           <RowConstraints maxHeight="219.0" minHeight="10.0" prefHeight="42.0" vgrow="SOMETIMES" />
-          <RowConstraints maxHeight="242.0" minHeight="10.0" prefHeight="77.0" vgrow="SOMETIMES" />
-            <RowConstraints maxHeight="177.0" minHeight="0.0" prefHeight="177.0" vgrow="SOMETIMES" />
+          <RowConstraints maxHeight="242.0" minHeight="10.0" prefHeight="64.0" vgrow="SOMETIMES" />
+            <RowConstraints maxHeight="270.0" minHeight="0.0" prefHeight="224.0" vgrow="SOMETIMES" />
             <RowConstraints maxHeight="25.0" minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
         </rowConstraints>
          <children>
@@ -35,7 +36,6 @@
             </ListView>
             <Label text="To" GridPane.rowIndex="2" />
             <Label text="Content" GridPane.rowIndex="3" />
-            <TextArea fx:id="content" prefHeight="200.0" prefWidth="200.0" GridPane.columnIndex="1" GridPane.columnSpan="2" GridPane.rowIndex="3" />
             <Button fx:id="sendMail" mnemonicParsing="false" onAction="#sendMail" text="Send" GridPane.columnIndex="3" GridPane.rowIndex="1" />
             <Label fx:id="status" text="Status......" GridPane.columnIndex="1" GridPane.rowIndex="4" />
             <Button fx:id="cancel" mnemonicParsing="false" onAction="#cancel" text="Cancel" GridPane.columnIndex="3" GridPane.rowIndex="3" />
@@ -45,6 +45,7 @@
             <Button fx:id="addAttachment" mnemonicParsing="false" onAction="#addAttachment" text="Add attachment" GridPane.columnIndex="3" GridPane.rowIndex="2" />
             <CheckBox fx:id="sign" mnemonicParsing="false" text="Sign" GridPane.columnIndex="4" GridPane.rowIndex="1" />
             <CheckBox fx:id="encrypt" mnemonicParsing="false" text="encrypt" GridPane.columnIndex="4" GridPane.rowIndex="2" />
+            <HTMLEditor fx:id="content" htmlText="&lt;html&gt;&lt;head&gt;&lt;/head&gt;&lt;body contenteditable=&quot;true&quot;&gt;&lt;/body&gt;&lt;/html&gt;" prefHeight="200.0" prefWidth="506.0" GridPane.columnIndex="1" GridPane.columnSpan="2" GridPane.rowIndex="3" GridPane.rowSpan="2" />
          </children>
       </GridPane>
    </children>

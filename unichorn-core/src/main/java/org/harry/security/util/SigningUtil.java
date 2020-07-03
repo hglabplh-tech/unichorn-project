@@ -870,11 +870,25 @@ public class SigningUtil {
         private final InputStream myStream;
 
         /**
+         * the used stream
+         */
+        private  String mimeType = null;
+
+        /**
          * CTOr for the datasource
          * @param in the input stream to wrap
          */
         public InputStreamDataSource(InputStream in) {
             myStream = in;
+        }
+
+        /**
+         * CTOr for the datasource
+         * @param in the input stream to wrap
+         */
+        public InputStreamDataSource(InputStream in, String mimeType) {
+            myStream = in;
+            this.mimeType = mimeType;
         }
 
 
@@ -900,7 +914,11 @@ public class SigningUtil {
          */
         @Override
         public String getContentType() {
-            return "application/cms";
+            if (this.mimeType != null) {
+                return mimeType;
+            } else {
+                return "application/cms";
+            }
         }
 
         /**

@@ -9,6 +9,7 @@ public class CommonConst {
     public static final String PROP_SIGNSTORE = "signStore.p12";
     public static final String PROP_MAILBOXES = "mailboxes.xml";
     public static final String PROP_CLIENTCONF = "email-client-conf.xml";
+    public static final String PROP_ADDRESSBOOK = "addressbook.xml";
     /**
      * The applications configuration and data directory
      */

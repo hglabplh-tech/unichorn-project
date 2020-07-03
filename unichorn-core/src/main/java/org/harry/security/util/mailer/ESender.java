@@ -1,11 +1,16 @@
 package org.harry.security.util.mailer;
 
+import com.sun.mail.iap.ByteArray;
 import iaik.asn1.structures.AlgorithmID;
 import iaik.smime.*;
 import iaik.x509.X509Certificate;
+import org.harry.security.util.SigningUtil;
 import org.harry.security.util.Tuple;
 import org.harry.security.util.certandkey.KeyStoreTool;
 import org.harry.security.util.httpclient.SSLUtils;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Entities;
 import org.pmw.tinylog.Logger;
 import security.harry.org.emailer_client._1.CryptoConfigType;
 
@@ -17,6 +22,7 @@ import javax.mail.internet.MimeMessage;
 import javax.mail.internet.MimeMultipart;
 import javax.net.ssl.SSLContext;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.security.KeyStore;
@@ -83,9 +89,7 @@ public class ESender {
             message.setSubject(subject);
             // Create the message part
             BodyPart messageBodyPart = new MimeBodyPart();
-
-            // Now set the actual message
-            messageBodyPart.setText(text);
+            setHtmlText(messageBodyPart);
 
             // Create a multipar message
             MimeMultipart multi = new MimeMultipart();
@@ -112,6 +116,19 @@ public class ESender {
         }
     }
 
+    private void setHtmlText(BodyPart messageBodyPart) throws MessagingException {
+        Document doc = Jsoup.parse(text);
+        doc.outputSettings().escapeMode(Entities.EscapeMode.base);
+        doc.outputSettings().charset("ASCII");
+        messageBodyPart.setContent(doc.toString(), "text/html");
+    }
+
+    private void setHtmlText(SignedContent messageBodyPart) throws MessagingException {
+        Document doc = Jsoup.parse(text);
+        doc.outputSettings().escapeMode(Entities.EscapeMode.base);
+        doc.outputSettings().charset("ASCII");
+        messageBodyPart.setContent(doc.toString(), "text/html");
+    }
 
 
     /**
@@ -182,7 +199,8 @@ public class ESender {
      */
     private SignedContent createMultiPartContent(Tuple<PrivateKey, X509Certificate[]> keys) throws MessagingException {
         MimeBodyPart mbp1 = new SMimeBodyPart();
-        mbp1.setText(text);
+        setHtmlText(mbp1);
+
         DataHandler multipart = null;
         Multipart mp = new SMimeMultipart();
         mp.addBodyPart(mbp1);
@@ -287,7 +305,7 @@ public class ESender {
         if (dataHandler != null) {
             sc.setDataHandler(dataHandler);
         } else {
-            sc.setText(text);
+            setHtmlText(sc);
         }
         sc.setCertificates(keys.getSecond());
         try {

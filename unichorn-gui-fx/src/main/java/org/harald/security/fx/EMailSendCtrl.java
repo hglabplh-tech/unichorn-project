@@ -1,15 +1,20 @@
 package org.harald.security.fx;
 
+import ezvcard.VCard;
+import ezvcard.property.Email;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.TextFieldListCell;
+import javafx.scene.web.HTMLEditor;
 import javafx.util.Callback;
 import javafx.util.StringConverter;
 import org.harry.security.util.Tuple;
 import org.harry.security.util.mailer.ESender;
 import org.harry.security.util.mailer.EmailClientConfiguration;
+import org.harry.security.util.mailer.VCardHandler;
+import org.pmw.tinylog.Logger;
 import security.harry.org.emailer._1.AccountConfig;
 import security.harry.org.emailer._1.ImapConfigType;
 import security.harry.org.emailer._1.SmtpConfigType;
@@ -19,12 +24,15 @@ import security.harry.org.emailer_client._1.CryptoConfigType;
 import javax.mail.Folder;
 import javax.mail.Store;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
 import static org.harald.security.fx.util.Miscellaneous.showOpenDialogButton;
+import static org.harry.security.CommonConst.APP_DIR_EMAILER;
+import static org.harry.security.CommonConst.PROP_ADDRESSBOOK;
 
 public class EMailSendCtrl implements ControllerInit {
 
@@ -35,7 +43,7 @@ public class EMailSendCtrl implements ControllerInit {
     ListView<String> toBox;
 
     @FXML
-    TextArea content;
+    HTMLEditor content;
 
     @FXML
     TextField subject;
@@ -46,10 +54,21 @@ public class EMailSendCtrl implements ControllerInit {
 
     List<File> attachmentFiles = new ArrayList<>();
 
+    List<VCard> vcardList = new ArrayList<>();
+
 
     AccountConfig mailboxes;
     @Override
     public Scene init() {
+        File addrFile = new File(APP_DIR_EMAILER, PROP_ADDRESSBOOK);
+        try {
+            if (addrFile.exists()) {
+                vcardList = VCardHandler.parseVCardXML(new FileInputStream(addrFile));
+            }
+        } catch (Exception ex) {
+            Logger.trace(ex);
+            throw new IllegalStateException("init error", ex);
+        }
         mailboxes = EMailCenterCtrl.getMailBoxes();
         for (ImapConfigType box: mailboxes.getImapConfig()) {
             if (box.getEmailAddress() != null) {
@@ -65,6 +84,10 @@ public class EMailSendCtrl implements ControllerInit {
 
                     @Override
                     public String toString(String input) {
+                        Optional<VCard> vCard = VCardHandler.findVCard(input);
+                        if (vCard.isPresent()) {
+                            input = vCard.get().getEmails().get(0).getValue();
+                        }
                         return input;
                     }
 
@@ -77,7 +100,6 @@ public class EMailSendCtrl implements ControllerInit {
             }
         });
         from.getSelectionModel().select(0);
-        content.setEditable(true);
         toBox.setEditable(true);
         return from.getScene();
     }
@@ -106,13 +128,28 @@ public class EMailSendCtrl implements ControllerInit {
                     connParms.getSecond(),
                     smtpParams.getSmtpHost(),
                     smtpParams.getSmtpPort()).setSubject(subject.getText()).setFrom(email);
+
             for (String toEmail :toBox.getItems()) {
-                builder.addTo(toEmail);
+                String mailAddr = toEmail;
+                Optional<VCard> vcardOpt = VCardHandler.findVCard(toEmail);
+                if (vcardOpt.isPresent()) {
+                    List<Email> emails = vcardOpt.get().getEmails();
+                    for (Email mail: emails) {
+                        if (mail != null) {
+                            mailAddr = mail.getValue();
+                            if (mailAddr != null && mailAddr.contains("@")) {
+                                builder.addTo(mailAddr);
+                            }
+                        }
+                    }
+                } else {
+                    builder.addTo(mailAddr);
+                }
             }
             if (attachmentFiles.size() > 0) {
                 builder.setAttachements(attachmentFiles);
             }
-            ESender sender = builder.setText(content.getText()).build();
+            ESender sender = builder.setText(content.getHtmlText()).build();
             Tuple<String, String> credentials = EMailCenterCtrl.getEMailPasswd(smtpParams.getEmailAddress());
             String password;
             if (credentials == null) {

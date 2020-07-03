@@ -140,6 +140,12 @@
             <artifactId>commons-io</artifactId>
         </dependency>
 
+        <!-- https://mvnrepository.com/artifact/com.googlecode.ez-vcard/ez-vcard -->
+        <dependency>
+            <groupId>com.googlecode.ez-vcard</groupId>
+            <artifactId>ez-vcard</artifactId>
+        </dependency>
+
         <!-- https://mvnrepository.com/artifact/org.apache.httpcomponents/httpclient -->
         <dependency>
             <groupId>org.apache.httpcomponents</groupId>
