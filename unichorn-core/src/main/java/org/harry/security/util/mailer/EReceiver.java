@@ -9,15 +9,12 @@ import iaik.utils.Util;
 import iaik.x509.X509Certificate;
 import org.harry.security.util.SigningUtil;
 import org.harry.security.util.Tuple;
-import org.harry.security.util.certandkey.KeyStoreTool;
 import org.pmw.tinylog.Logger;
-import security.harry.org.emailer_client._1.CryptoConfigType;
 
 import javax.activation.DataHandler;
 import javax.mail.*;
 import javax.mail.internet.MimeMultipart;
 import java.io.*;
-import java.security.KeyStore;
 import java.security.PrivateKey;
 import java.security.cert.Certificate;
 import java.util.ArrayList;
@@ -27,8 +24,11 @@ public class EReceiver {
 
     private final Tuple<Store, Folder> instance;
 
-    public EReceiver(Tuple<Store, Folder> instance) {
+    private final Tuple<PrivateKey, X509Certificate[]> keys;
+
+    public EReceiver(Tuple<Store, Folder> instance, Tuple<PrivateKey, X509Certificate[]> keys) {
         this.instance = instance;
+        this.keys = keys;
     }
 
     public Message[] receiveMails() {
@@ -105,7 +105,7 @@ public class EReceiver {
            // folder.fetch(messages, metadataProfile);
             folder.close(false);
             Message actualMessage = messages[index];
-            ReadableMail mail = new ReadableMail(actualMessage);
+            ReadableMail mail = new ReadableMail(actualMessage, keys);
             mail.analyzeContent(null);
             return mail;
         } catch (Exception ex) {
@@ -118,6 +118,8 @@ public class EReceiver {
     public static class ReadableMail{
         private final Message message;
 
+        private final Tuple<PrivateKey, X509Certificate[]> keys;
+
         List<String> fromList = new ArrayList<>();
 
         List<String> toList = new ArrayList<>();
@@ -126,7 +128,8 @@ public class EReceiver {
 
         List<Tuple<String, DataHandler>> partList = new ArrayList<>();
 
-        public ReadableMail(Message message) {
+        public ReadableMail(Message message, Tuple<PrivateKey, X509Certificate[]> keys) {
+            this.keys = keys;
             this.message = message;
         }
 
@@ -146,16 +149,6 @@ public class EReceiver {
                     type = message.getContentType();
                 }
                 if (contentObj instanceof EncryptedContent) {
-                    CryptoConfigType cryptoConf = EmailClientConfiguration
-                            .getClientConfig()
-                            .getCryptoConfig()
-                            .get(0);
-                    File keyStoreFile = new File(cryptoConf.getKeyStoreFile());
-                    KeyStore keystore = KeyStoreTool.loadStore(
-                            new FileInputStream(keyStoreFile),
-                            cryptoConf.getPassword().toCharArray(), "PKCS12");
-                    Tuple<PrivateKey, X509Certificate[]> keys = KeyStoreTool.getKeyEntry(keystore,
-                            cryptoConf.getAlias(), cryptoConf.getPassword().toCharArray());
                     EncryptedContent ec = (EncryptedContent)contentObj;
                     ec.decryptSymmetricKey(keys.getFirst(), 0);
                     analyzeContent(ec.getContent());
@@ -292,4 +285,5 @@ public class EReceiver {
             return signer;
         }
     }
+
 }

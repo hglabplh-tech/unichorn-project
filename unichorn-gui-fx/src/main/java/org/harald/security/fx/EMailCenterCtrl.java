@@ -21,10 +21,13 @@ import security.harry.org.emailer._1.ImapConfigType;
 import javax.activation.DataHandler;
 import javax.mail.*;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.util.*;
+
+import static org.harald.security.fx.util.Miscellaneous.getPrivateKeyTuple;
 
 public class EMailCenterCtrl implements ControllerInit {
 
@@ -76,7 +79,7 @@ public class EMailCenterCtrl implements ControllerInit {
                     try {
                         int index = indices.get(0);
                         displayedMessage = actualMessages.get(index);
-                        EReceiver.ReadableMail mail = new EReceiver.ReadableMail(displayedMessage);
+                        EReceiver.ReadableMail mail = new EReceiver.ReadableMail(displayedMessage, getPrivateKeyTuple());
                         mail.analyzeContent(null);
                         if (mail.isSigned()) {
                             showSig.setDisable(false);
@@ -133,8 +136,15 @@ public class EMailCenterCtrl implements ControllerInit {
                                             .filter(e -> e.getName().equals(new_val.getValue()))
                                     .findFirst();
                             if (selected.isPresent()) {
-                                EReceiver receiver = new EReceiver(new Tuple<Store, Folder>(login.getFirst(),
-                                        selected.get()));
+                                EReceiver receiver = null;
+                                try {
+                                    receiver = new EReceiver(new Tuple<Store, Folder>(login.getFirst(),
+                                            selected.get()), getPrivateKeyTuple());
+                                } catch (FileNotFoundException e) {
+                                    e.printStackTrace();
+                                } catch (Exception e) {
+                                    e.printStackTrace();
+                                }
                                 Message[] messages = receiver.receiveMails();
                                 actualMessages.clear();
                                 actualMessages.addAll(Arrays.asList(messages));
@@ -191,8 +201,8 @@ public class EMailCenterCtrl implements ControllerInit {
     }
 
     @FXML
-    public void showSig(ActionEvent event) {
-        EReceiver.ReadableMail mail = new EReceiver.ReadableMail(displayedMessage);
+    public void showSig(ActionEvent event) throws Exception {
+        EReceiver.ReadableMail mail = new EReceiver.ReadableMail(displayedMessage, getPrivateKeyTuple());
         mail.analyzeContent(null);
         if (mail != null) {
             signedBy.setText(mail.getSigner().getSubjectDN().getName());

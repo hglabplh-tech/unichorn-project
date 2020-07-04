@@ -8,6 +8,7 @@ import javafx.scene.Scene;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.TextField;
+import org.harald.security.fx.util.Miscellaneous;
 import org.harry.security.util.SignXAdESUtil;
 import org.harry.security.util.Tuple;
 import org.harry.security.util.algoritms.XAdESDigestAlg;
@@ -57,7 +58,7 @@ public class SingningXAdESCtrl implements ControllerInit {
 
     @Override
     public Scene init() {
-        signingBean = SecHarry.contexts.get();
+        signingBean = Miscellaneous.contexts.get().getBean();
         sigAlg.getItems().addAll(XAdESSigAlg.values());
         digestAlg.getItems().addAll(XAdESDigestAlg.values());
         return null;

@@ -50,7 +50,7 @@ public class CertToolCtrl implements ControllerInit {
 
     @FXML
     private void processAction(ActionEvent event) throws IOException {
-        SigningBean signingBean = SecHarry.contexts.get();
+        SigningBean signingBean = contexts.get().getBean();
         TextField passwd= getTextFieldByFXID("keyStorePass");
         ComboBox aliasBox = getComboBoxByFXID("alias");
         String alias = (String)aliasBox.getSelectionModel().getSelectedItem();
@@ -82,7 +82,7 @@ public class CertToolCtrl implements ControllerInit {
                 .setDataIN(dataInputStream)
                 .setDataINPath(dataInput)
                 .setOutputPath(outPathString);
-        SecHarry.contexts.set(signingBean);
+        contexts.get().setBean(signingBean);
         if (action.equals(CMSSigner.Commands.ENCRYPT) || action.equals(CMSSigner.Commands.SIGN)) {
             SecHarry.setRoot("signing", SecHarry.CSS.ABBY);
         } else if (action.equals(CMSSigner.Commands.VERIFY_SIGNATURE)) {
@@ -108,7 +108,7 @@ public class CertToolCtrl implements ControllerInit {
 
     @FXML
     private void initApp(ActionEvent event) throws Exception {
-        SigningBean signingBean = SecHarry.contexts.get();
+        SigningBean signingBean = contexts.get().getBean();
         File keystore = new File(APP_DIR, PROP_STORE_NAME);
         File trustFile = new File(APP_DIR_TRUST, PROP_TRUST_NAME);
         keystore.delete();

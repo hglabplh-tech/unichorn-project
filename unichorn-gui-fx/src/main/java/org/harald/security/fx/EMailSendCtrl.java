@@ -12,13 +12,11 @@ import javafx.util.Callback;
 import javafx.util.StringConverter;
 import org.harry.security.util.Tuple;
 import org.harry.security.util.mailer.ESender;
-import org.harry.security.util.mailer.EmailClientConfiguration;
 import org.harry.security.util.mailer.VCardHandler;
 import org.pmw.tinylog.Logger;
 import security.harry.org.emailer._1.AccountConfig;
 import security.harry.org.emailer._1.ImapConfigType;
 import security.harry.org.emailer._1.SmtpConfigType;
-import security.harry.org.emailer_client._1.CryptoConfigType;
 
 
 import javax.mail.Folder;
@@ -30,6 +28,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+import static org.harald.security.fx.util.Miscellaneous.getPrivateKeyTuple;
 import static org.harald.security.fx.util.Miscellaneous.showOpenDialogButton;
 import static org.harry.security.CommonConst.APP_DIR_EMAILER;
 import static org.harry.security.CommonConst.PROP_ADDRESSBOOK;
@@ -115,7 +114,7 @@ public class EMailSendCtrl implements ControllerInit {
     }
 
     @FXML
-    public void sendMail(ActionEvent event) {
+    public void sendMail(ActionEvent event) throws Exception {
         String email = from.getSelectionModel().getSelectedItem();
         Optional<ImapConfigType> box =
                 mailboxes.getImapConfig()
@@ -129,7 +128,7 @@ public class EMailSendCtrl implements ControllerInit {
             ESender.Builder builder = ESender.newBuilder(connParms.getFirst(),
                     connParms.getSecond(),
                     smtpParams.getSmtpHost(),
-                    smtpParams.getSmtpPort()).setSubject(subject.getText()).setFrom(email);
+                    smtpParams.getSmtpPort(), getPrivateKeyTuple()).setSubject(subject.getText()).setFrom(email);
 
             for (String toEmail :toBox.getItems()) {
                 String mailAddr = toEmail;
@@ -159,14 +158,12 @@ public class EMailSendCtrl implements ControllerInit {
             } else {
                 password = credentials.getSecond();
             }
-            CryptoConfigType crypto = EmailClientConfiguration
-                    .getClientConfig().getCryptoConfig().get(0);
             if (sign.isSelected() && encrypt.isSelected()) {
                 sender.sendSignedAndEncrypted(smtpParams
-                                .getEmailAddress(), password, crypto);
+                                .getEmailAddress(), password);
             } else if (sign.isSelected()) {
                 sender.sendSigned(smtpParams
-                        .getEmailAddress(), password, crypto);
+                        .getEmailAddress(), password);
             } else {
                 sender.sendEmail(smtpParams
                         .getEmailAddress(), password);

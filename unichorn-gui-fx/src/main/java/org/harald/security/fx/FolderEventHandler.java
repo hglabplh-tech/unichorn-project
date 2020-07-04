@@ -16,6 +16,8 @@ import javax.mail.Store;
 import java.util.ArrayList;
 import java.util.List;
 
+import static org.harald.security.fx.util.Miscellaneous.getPrivateKeyTuple;
+
 public class FolderEventHandler<ActionEvent> implements EventHandler {
 
     private final IMAPFolder imapFolder;
@@ -33,10 +35,11 @@ public class FolderEventHandler<ActionEvent> implements EventHandler {
     }
 
     @Override
-    public void handle(Event event) {
-        EReceiver receiver = new EReceiver(new Tuple<Store,Folder>(store, imapFolder));
-        Message[] messages = receiver.receiveMails();
+    public void handle(Event event)  {
+
         try {
+            EReceiver receiver = new EReceiver(new Tuple<Store,Folder>(store, imapFolder), getPrivateKeyTuple());
+            Message[] messages = receiver.receiveMails();
             for (Message msg : messages) {
                 Address[] from = msg.getFrom();
                 StringBuffer buf = new StringBuffer();

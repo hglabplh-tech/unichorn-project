@@ -11,7 +11,6 @@ import org.harry.security.util.Tuple;
 import org.harry.security.util.bean.AttrCertBean;
 import org.harry.security.util.certandkey.KeyStoreTool;
 
-import java.awt.*;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;

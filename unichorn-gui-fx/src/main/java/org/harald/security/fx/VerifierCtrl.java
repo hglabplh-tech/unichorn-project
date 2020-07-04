@@ -37,7 +37,7 @@ public class VerifierCtrl implements ControllerInit {
 
     @Override
     public Scene init() {
-        signingBean = SecHarry.contexts.get();
+        signingBean = contexts.get().getBean();
         TextField dataPathField = getTextFieldByFXID("dataPath");
         inputPath = signingBean.getDataINPath();
         ComboBox sigType = getComboBoxByFXID("sigType");
@@ -60,7 +60,7 @@ public class VerifierCtrl implements ControllerInit {
         verifyResults.getSelectionModel().setCellSelectionEnabled(true);
         verifyResults.setEditable(false);
         verifyResults.getSelectionModel().getSelectedItem();
-        signingBean = SecHarry.contexts.get();
+        signingBean = contexts.get().getBean();
         CheckBox check = getCheckBoxByFXID("ocspPathCheck");
         CheckBox altResponder = getCheckBoxByFXID("altResponder");
         Label status = getLabelByFXID("status");
@@ -200,12 +200,12 @@ public class VerifierCtrl implements ControllerInit {
 
     @FXML
     public void downloadTrust(ActionEvent event) {
-        SigningBean bean = SecHarry.contexts.get();
+        SigningBean bean = contexts.get().getBean();
         ConfigReader.MainProperties params = ConfigReader.loadStore();
         downloadTrusts(params.getTrustLists());
         TrustStatusListType loaded = ConfigReader.loadSpecificTrust("TL-DE");
         List<TrustListManager> walkers = ConfigReader.loadAllTrusts();
         bean.setWalker(walkers);
-        SecHarry.contexts.set(bean);
+        contexts.get().setBean(bean);
     }
 }

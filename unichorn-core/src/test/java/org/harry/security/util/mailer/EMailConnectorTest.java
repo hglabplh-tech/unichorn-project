@@ -1,26 +1,23 @@
 package org.harry.security.util.mailer;
 
-import org.apache.commons.net.imap.IMAPClient;
-import org.apache.commons.net.imap.IMAPSClient;
+import iaik.x509.X509Certificate;
 import org.harry.security.testutils.TestBase;
 import org.harry.security.util.Tuple;
+import org.harry.security.util.certandkey.KeyStoreTool;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.pmw.tinylog.Configurator;
 import org.pmw.tinylog.Level;
-import org.pmw.tinylog.Logger;
 import org.pmw.tinylog.writers.ConsoleWriter;
-import org.pmw.tinylog.writers.FileWriter;
 import security.harry.org.emailer_client._1.ClientConfig;
-import security.harry.org.emailer_client._1.CryptoConfigType;
 
 import javax.mail.Folder;
 import javax.mail.Message;
-import javax.mail.Session;
 import javax.mail.Store;
 import java.io.File;
-import java.net.URI;
 import java.net.URL;
+import java.security.KeyStore;
+import java.security.PrivateKey;
 import java.util.Locale;
 
 import static org.harry.security.util.mailer.EMailConnector.*;
@@ -39,8 +36,9 @@ public class EMailConnectorTest extends TestBase {
     public void connectSendReceiveMailDisconnect() throws Exception {
         Tuple<Store, Folder> connectResult = null;
         try {
+            KeyStore store = KeyStoreTool.loadAppStore();
+            Tuple<PrivateKey, X509Certificate[]> keys = KeyStoreTool.getAppKeyEntry(store);
             EmailClientConfiguration.loadConfig();
-            ClientConfig clientConfig = EmailClientConfiguration.getClientConfig();
             URL htmlURL = EMailConnectorTest.class.getResource("/data/mail.html");
             File htmlFile = new File(htmlURL.toURI());
             EMailConnector connector = new EMailConnector(T_ONLINE_IMAP_URI_HOST, T_ONLINE_IMAP_PORT);
@@ -48,7 +46,7 @@ public class EMailConnectorTest extends TestBase {
             connectResult = connector.connect("harald.glab-plhak@t-online.de", password);
             ESender sender = ESender.newBuilder(connectResult.getFirst(), connectResult.getSecond(),
                     T_ONLINE_SMTP_URI_HOST,
-                    Integer.toString(T_ONLINE_SMTP_PORT))
+                    Integer.toString(T_ONLINE_SMTP_PORT), keys)
                     .addTo("heike.glab@t-online.de")
                     .addTo("juliane.glab@gmx.de")
                     .setFrom("harald.glab-plhak@t-online.de")
@@ -57,10 +55,10 @@ public class EMailConnectorTest extends TestBase {
                             "\nBest regards\n\nHarald Glab-Plhak")
                     .addAttachement(htmlFile)
                     .build();
-            sender.sendSigned("harald.glab-plhak@t-online.de", password,  clientConfig.getCryptoConfig().get(0));
+            sender.sendSigned("harald.glab-plhak@t-online.de", password);
             sender = ESender.newBuilder(connectResult.getFirst(), connectResult.getSecond(),
                     T_ONLINE_SMTP_URI_HOST,
-                    Integer.toString(T_ONLINE_SMTP_PORT))
+                    Integer.toString(T_ONLINE_SMTP_PORT), keys)
                     .addTo("harald.glab-plhak@t-online.de")
                     .setFrom("harald.glab-plhak@t-online.de")
                     .setSubject("Hey people...")
@@ -68,8 +66,8 @@ public class EMailConnectorTest extends TestBase {
                             "\nBest regards\n\nHarald Glab-Plhak")
                     .addAttachement(htmlFile)
                     .build();
-            sender.sendSignedAndEncrypted("harald.glab-plhak@t-online.de", password, clientConfig.getCryptoConfig().get(0));
-            EReceiver receiver = new EReceiver(connectResult);
+            sender.sendSignedAndEncrypted("harald.glab-plhak@t-online.de", password);
+            EReceiver receiver = new EReceiver(connectResult, keys);
             Message[] messages = receiver.receiveMails();
             for (Message msg: messages) {
                 System.out.println("From: " + msg.getFrom()[0].toString() + " Subject: " + msg.getSubject());

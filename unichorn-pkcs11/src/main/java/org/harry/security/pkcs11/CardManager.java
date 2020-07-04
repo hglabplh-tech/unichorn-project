@@ -71,13 +71,13 @@ public class CardManager {
     /**
      * The signature key. In this case only a proxy object, but the application cannot see this.
      */
-    protected PrivateKey signatureKey_;
+    protected PrivateKey signatureKey_ = null;
 
     /**
      * This is the certificate used for verifying the signature. In contrast to the signature key,
      * this key holds the actual keying material.
      */
-    protected X509Certificate signerCertificate_;
+    protected X509Certificate signerCertificate_ = null;
 
     protected List<X509Certificate> certificates = new ArrayList<X509Certificate>();
 
@@ -86,6 +86,8 @@ public class CardManager {
     protected List<iaik.pkcs.pkcs11.objects.PublicKey> publicKeys = new ArrayList<>();
 
     protected List<iaik.pkcs.pkcs11.objects.PrivateKey> privateKeys = new ArrayList<>();
+
+    protected Session session = null;
 
 
 
@@ -130,9 +132,11 @@ public class CardManager {
     public void readCardData(String pin) throws Exception {
         TokenManager manager = pkcs11Provider_.getTokenManager();
 
-        Session session = manager.getToken().openSession(Token.SessionType.SERIAL_SESSION,
-                Token.SessionReadWriteBehavior.RO_SESSION, null, null);
-        session.login(Session.UserType.USER, pin.toCharArray());
+        if (signatureKey_ == null || signerCertificate_ == null) {
+            session = manager.getToken().openSession(Token.SessionType.SERIAL_SESSION,
+                    Token.SessionReadWriteBehavior.RO_SESSION, null, null);
+            session.login(Session.UserType.USER, pin.toCharArray());
+        }
         SessionInfo sessionInfo = session.getSessionInfo();
         System.out.println(" using session:");
         System.out.println(sessionInfo);

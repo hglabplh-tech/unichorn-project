@@ -1,18 +1,14 @@
 package org.harry.security.util.mailer;
 
-import com.sun.mail.iap.ByteArray;
 import iaik.asn1.structures.AlgorithmID;
 import iaik.smime.*;
 import iaik.x509.X509Certificate;
-import org.harry.security.util.SigningUtil;
 import org.harry.security.util.Tuple;
-import org.harry.security.util.certandkey.KeyStoreTool;
 import org.harry.security.util.httpclient.SSLUtils;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Entities;
 import org.pmw.tinylog.Logger;
-import security.harry.org.emailer_client._1.CryptoConfigType;
 
 import javax.activation.*;
 import javax.mail.*;
@@ -22,10 +18,7 @@ import javax.mail.internet.MimeMessage;
 import javax.mail.internet.MimeMultipart;
 import javax.net.ssl.SSLContext;
 
-import java.io.ByteArrayInputStream;
 import java.io.File;
-import java.io.FileInputStream;
-import java.security.KeyStore;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.interfaces.RSAPrivateKey;
@@ -39,6 +32,7 @@ import static org.harry.security.util.mailer.IMAPUtils.PROTOCOL;
  */
 public class ESender {
 
+    private final Tuple<PrivateKey, X509Certificate[]> keys;
     private final Store store;
     private final String  smtpPort;
     private final String host;
@@ -58,11 +52,12 @@ public class ESender {
      * @param host the smtp host
      * @param smtpPort the smtp port
      */
-    public ESender(Store store, Folder folder, String host, String smtpPort) {
+    public ESender(Store store, Folder folder, String host, String smtpPort, Tuple<PrivateKey, X509Certificate[]> keys) {
         this.host = host;
         this.smtpPort = smtpPort;
         this.store = store;
         this.defaultFolder = folder;
+        this.keys = keys;
         //setMailCapabilities();
     }
 
@@ -137,18 +132,11 @@ public class ESender {
      * @param password the users password
      * @return true if success     *
      */
-    public boolean sendSigned(String username, String password, CryptoConfigType cryptoConf)
+    public boolean sendSigned(String username, String password)
     {
 
         try {
             Session session = createSession(username, password, from);
-
-            File keyStoreFile = new File(cryptoConf.getKeyStoreFile());
-            KeyStore keystore = KeyStoreTool.loadStore(
-                    new FileInputStream(keyStoreFile),
-                    cryptoConf.getPassword().toCharArray(), "PKCS12");
-            Tuple<PrivateKey, X509Certificate[]> keys = KeyStoreTool.getKeyEntry(keystore,
-                    cryptoConf.getAlias(), cryptoConf.getPassword().toCharArray());
             // Create a demo Multipart
             SignedContent sc = (SignedContent)createMultiPartContent(keys, false);
             MimeMessage message = createMessageAndSetReceipients(session);
@@ -167,16 +155,10 @@ public class ESender {
         }
     }
 
-    public boolean sendSignedAndEncrypted(String username, String password, CryptoConfigType cryptoConf) {
+    public boolean sendSignedAndEncrypted(String username, String password) {
         try {
             Session session = createSession(username, password, from);
 
-            File keyStoreFile = new File(cryptoConf.getKeyStoreFile());
-            KeyStore keystore = KeyStoreTool.loadStore(
-                    new FileInputStream(keyStoreFile),
-                    cryptoConf.getPassword().toCharArray(), "PKCS12");
-            Tuple<PrivateKey, X509Certificate[]> keys = KeyStoreTool.getKeyEntry(keystore,
-                    cryptoConf.getAlias(), cryptoConf.getPassword().toCharArray());
             // Create a demo Multipart
             EncryptedContent ec = (EncryptedContent)createMultiPartContent(keys, true);
             MimeMessage message = createMessageAndSetReceipients(session);
@@ -399,8 +381,8 @@ public class ESender {
          * @param smtpPort the smtp port
          * @return a initialized ESender object
          */
-        public static Builder newBuilder (Store store, Folder folder, String host, String smtpPort){
-            return new Builder(store, folder, host, smtpPort);
+        public static Builder newBuilder (Store store, Folder folder, String host, String smtpPort, Tuple<PrivateKey, X509Certificate[]> keys){
+            return new Builder(store, folder, host, smtpPort, keys);
         }
 
         /**
@@ -413,8 +395,8 @@ public class ESender {
              */
             private ESender sender = null;
 
-            public Builder(Store store, Folder folder, String host, String smtpPort) {
-                sender = new ESender(store, folder, host, smtpPort);
+            public Builder(Store store, Folder folder, String host, String smtpPort, Tuple<PrivateKey, X509Certificate[]> keys) {
+                sender = new ESender(store, folder, host, smtpPort, keys);
             }
 
             public Builder setFrom(String from) {

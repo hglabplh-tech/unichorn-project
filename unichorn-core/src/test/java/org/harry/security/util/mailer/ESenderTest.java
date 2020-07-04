@@ -1,7 +1,9 @@
 package org.harry.security.util.mailer;
 
+import iaik.x509.X509Certificate;
 import org.harry.security.testutils.TestBase;
 import org.harry.security.util.Tuple;
+import org.harry.security.util.certandkey.KeyStoreTool;
 import org.harry.security.util.pwdmanager.PasswordManager;
 import org.junit.Before;
 import org.junit.Test;
@@ -12,6 +14,8 @@ import security.harry.org.emailer._1.AccountConfig;
 import javax.mail.Folder;
 import javax.mail.Store;
 
+import java.security.KeyStore;
+import java.security.PrivateKey;
 import java.util.Optional;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -31,6 +35,8 @@ public class ESenderTest extends TestBase {
     public void plainFromGMXToTOnline() throws Exception {
             Tuple<Store, Folder> connRes = null;
             try {
+                KeyStore store = KeyStoreTool.loadAppStore();
+                Tuple<PrivateKey, X509Certificate[]> keys = KeyStoreTool.getAppKeyEntry(store);
             AccountConfig mailboxes = EmailClientConfiguration.getMailboxes();
             String email = GMX_ADDRESS;
             ImapConfigType box = getMailboxParameters(mailboxes, email);
@@ -41,7 +47,7 @@ public class ESenderTest extends TestBase {
             ESender sender = ESender.newBuilder(connRes.getFirst(),
                     connRes.getSecond(),
                     smtpBox.getSmtpHost(),
-                    smtpBox.getSmtpPort())
+                    smtpBox.getSmtpPort(), keys)
                     .setText("Test mail from: " + T_ONLINE_ADDRESS)
                     .setSubject("Test mail from JUNIT")
                     .setFrom(GMX_ADDRESS)

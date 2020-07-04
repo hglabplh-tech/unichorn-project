@@ -1,9 +1,6 @@
 package org.harald.security.fx;
 
 import ezvcard.VCard;
-import ezvcard.parameter.VCardParameter;
-import ezvcard.parameter.VCardParameters;
-import ezvcard.property.Nickname;
 import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;

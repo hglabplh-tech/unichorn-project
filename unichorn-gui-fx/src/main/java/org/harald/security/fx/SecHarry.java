@@ -8,6 +8,7 @@ import javafx.scene.Scene;
 import javafx.scene.layout.Pane;
 import javafx.stage.Screen;
 import javafx.stage.Stage;
+import org.harald.security.fx.util.Miscellaneous;
 import org.harry.security.CMSSigner;
 import org.harry.security.util.CertificateWizzard;
 import org.harry.security.util.ConfigReader;
@@ -20,7 +21,6 @@ import java.net.URL;
 import java.util.List;
 import java.util.Properties;
 
-import static org.harry.security.util.httpclient.SSLUtils.installHttpHttpsProtocol;
 import static org.harry.security.util.ocsp.PredefinedResponses.workingData;
 
 /**
@@ -34,13 +34,19 @@ public class SecHarry extends Application {
 
     public static ThreadLocal<Properties> bookmarkLocal = null;
 
+    public static void setRoot(String fxml, CSS css) throws IOException {
+        scene.setRoot(loadFXML(fxml, css));
+}
+
     @Override
     public void start(Stage stage) throws IOException {
         workingData.set(new PredefinedResponses.LocalCache());
         CMSSigner.setProviders();
         CertificateWizzard.initThis();
         List<TrustListManager> walkers = ConfigReader.loadAllTrusts();
-        SigningBean context = new SigningBean().setWalker(walkers);
+        Miscellaneous.ThreadBean context = new Miscellaneous.ThreadBean();
+        SigningBean signingBean = new SigningBean().setWalker(walkers);
+        context.setBean(signingBean);
         Screen screen = Screen.getPrimary();
         Rectangle2D bounds = screen.getVisualBounds();
 
@@ -48,7 +54,7 @@ public class SecHarry extends Application {
         stage.setY(bounds.getMinY());
         stage.setWidth(bounds.getWidth());
         stage.setHeight(bounds.getHeight());
-        contexts.set(context);
+        Miscellaneous.contexts.set(context);
         scene = new Scene(loadFXML("main", CSS.UNICHORN));
         stage.setScene(scene);
         synchronized (SecHarry.class)  {
@@ -59,11 +65,6 @@ public class SecHarry extends Application {
         }
         stage.show();
     }
-
-    public static void setRoot(String fxml, CSS css) throws IOException {
-        scene.setRoot(loadFXML(fxml, css));
-}
-
 
 
     public static Parent loadFXML(String fxml, CSS css) throws IOException {
@@ -89,20 +90,14 @@ public class SecHarry extends Application {
         launch();
     }
 
-    public  static final ThreadLocal<SigningBean> contexts = new ThreadLocal<>();
+    public void doGet(Miscellaneous.ThreadBean context) {
 
-    public static SigningBean getContext() {
-        return contexts.get(); // get returns the variable unique to this thread
-    }
-
-    public void doGet(SigningBean context) {
-
-        contexts.set(context); // save that context to our thread-local - other threads
+        Miscellaneous.contexts.set(context); // save that context to our thread-local - other threads
         // making this call don't overwrite ours
         try {
             // business logic
         } finally {
-            contexts.remove(); // 'ensure' removal of thread-local variable
+            Miscellaneous.contexts.remove(); // 'ensure' removal of thread-local variable
         }
     }
 

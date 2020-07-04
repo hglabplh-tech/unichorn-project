@@ -71,7 +71,7 @@ public class SigningCtrl implements ControllerInit {
     File dataInput = null;
     File outFile = null;
     AttributeCertificate attributeCertificate;
-    SigningBean signingBean = SecHarry.contexts.get();
+    SigningBean signingBean = contexts.get().getBean();
     File keystoreFile;
 
 
@@ -122,7 +122,7 @@ public class SigningCtrl implements ControllerInit {
         CheckBox archiveInfo = getCheckBoxByFXID("archiveInfo");
         CheckBox cardSigning = getCheckBoxByFXID("cardsigning");
         boolean addArchiveInfo = archiveInfo.isSelected();
-        signingBean = SecHarry.contexts.get();
+        signingBean = contexts.get().getBean();
         String alias = (String)aliasBox.getSelectionModel().getSelectedItem();
         if (!cardSigning.isSelected()) {
             Tuple<PrivateKey, X509Certificate[]> keys = KeyStoreTool.getKeyEntry(store, alias, pin.getText().toCharArray());

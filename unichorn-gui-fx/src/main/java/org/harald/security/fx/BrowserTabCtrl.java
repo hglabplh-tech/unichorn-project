@@ -11,7 +11,6 @@ import javafx.collections.ListChangeListener;
 import javafx.concurrent.Task;
 import javafx.concurrent.Worker;
 import javafx.event.ActionEvent;
-import javafx.event.Event;
 import javafx.event.EventHandler;
 import javafx.fxml.FXML;
 import javafx.scene.Parent;
@@ -23,7 +22,6 @@ import javafx.stage.StageStyle;
 import javafx.util.Callback;
 import org.harry.security.util.HttpsChecker;
 import org.harry.security.util.Tuple;
-import org.harry.security.util.certandkey.KeyStoreTool;
 import org.harry.security.util.httpclient.ClientFactory;
 import org.harry.security.util.httpclient.SSLUtils;
 import org.harry.security.util.pwdmanager.PasswordManager;
@@ -35,12 +33,9 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.*;
 import java.util.List;
-import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 
 import static org.harald.security.fx.SecHarry.bookmarkLocal;
-import static org.harald.security.fx.util.Miscellaneous.getTabByFXID;
-import static org.harald.security.fx.util.Miscellaneous.getTabPaneByFXID;
 import static org.harry.security.CommonConst.APP_DIR;
 import static org.harry.security.util.certandkey.KeyStoreTool.KEYSTORE_FNAME;
 
