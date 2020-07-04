@@ -17,12 +17,15 @@ import org.harry.security.util.mailer.EmailClientConfiguration;
 import security.harry.org.emailer_client._1.ClientConfig;
 import security.harry.org.emailer_client._1.CryptoConfigType;
 
+import javax.mail.Message;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.security.KeyStore;
 import java.security.PrivateKey;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 
 public class Miscellaneous {
@@ -250,8 +253,11 @@ public class Miscellaneous {
     }
 
     public static class ThreadBean {
+        private Message replyMsg = null;
+        private Message orgForReplyMsg = null;
         private SigningBean bean = null;
         private Session session = null;
+        private List<String> toAddresses = new ArrayList<>();
         private Tuple<PrivateKey, X509Certificate[]> emailKeys = null;
 
         public SigningBean getBean() {
@@ -278,6 +284,33 @@ public class Miscellaneous {
 
         public ThreadBean setEmailKeys(Tuple<PrivateKey, X509Certificate[]> emailKeys) {
             this.emailKeys = emailKeys;
+            return this;
+        }
+
+        public List<String> getToAddresses() {
+            return toAddresses;
+        }
+
+        public ThreadBean setToAddresses(List<String> toAddresses) {
+            this.toAddresses = toAddresses;
+            return this;
+        }
+
+        public Message getReplyMsg() {
+            return replyMsg;
+        }
+
+        public ThreadBean setReplyMsg(Message replyMsg) {
+            this.replyMsg = replyMsg;
+            return this;
+        }
+
+        public Message getOrgForReplyMsg() {
+            return orgForReplyMsg;
+        }
+
+        public ThreadBean setOrgForReplyMsg(Message orgForReplyMsg) {
+            this.orgForReplyMsg = orgForReplyMsg;
             return this;
         }
     }

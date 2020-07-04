@@ -27,6 +27,7 @@ import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.util.*;
 
+import static org.harald.security.fx.util.Miscellaneous.contexts;
 import static org.harald.security.fx.util.Miscellaneous.getPrivateKeyTuple;
 
 public class EMailCenterCtrl implements ControllerInit {
@@ -191,7 +192,18 @@ public class EMailCenterCtrl implements ControllerInit {
     }
 
     @FXML
-    public void reply(ActionEvent event) {
+    public void reply(ActionEvent event) throws Exception {
+        if (displayedMessage != null) {
+            Message replyMsg = ESender.buildMsgAsReplyOrForward(null, null, displayedMessage);
+            contexts.get().getToAddresses().clear();
+            contexts.get().getToAddresses()
+                    .add(Arrays.asList(displayedMessage
+                            .getFrom())
+                            .get(0).toString());
+            contexts.get().setReplyMsg(replyMsg);
+            contexts.get().setOrgForReplyMsg(displayedMessage);
+            SecHarry.setRoot("sendmail", SecHarry.CSS.UNICHORN);
+        }
 
     }
 

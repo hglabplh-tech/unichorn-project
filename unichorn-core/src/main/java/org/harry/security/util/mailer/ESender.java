@@ -125,6 +125,17 @@ public class ESender {
         messageBodyPart.setContent(doc.toString(), "text/html");
     }
 
+    public static Message buildMsgAsReplyOrForward(String username, String password, Message original) {
+        try {
+
+            Message replyMessage;
+            replyMessage = (MimeMessage) original.reply(false);
+            return replyMessage;
+        } catch (Exception ex) {
+            throw new IllegalStateException("build reply forward message", ex);
+        }
+    }
+
 
     /**
      * Send a e-mail with signed content

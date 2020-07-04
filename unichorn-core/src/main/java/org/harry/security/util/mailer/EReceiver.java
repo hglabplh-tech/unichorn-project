@@ -138,12 +138,16 @@ public class EReceiver {
                 String type = null;
                 if (contentObj == null) {
                     Address[] addresses = message.getFrom();
-                    for (Address address : addresses) {
-                        fromList.add(address.toString());
+                    if (addresses != null) {
+                        for (Address address : addresses) {
+                            fromList.add(address.toString());
+                        }
                     }
                     addresses = message.getAllRecipients();
-                    for (Address address : addresses) {
-                        toList.add(address.toString());
+                    if (addresses != null) {
+                        for (Address address : addresses) {
+                            toList.add(address.toString());
+                        }
                     }
                     contentObj = message.getContent();
                     type = message.getContentType();

@@ -2,6 +2,7 @@ package org.harald.security.fx;
 
 import ezvcard.VCard;
 import ezvcard.property.Email;
+import iaik.x509.X509Certificate;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.Scene;
@@ -10,7 +11,10 @@ import javafx.scene.control.cell.TextFieldListCell;
 import javafx.scene.web.HTMLEditor;
 import javafx.util.Callback;
 import javafx.util.StringConverter;
+import org.apache.commons.io.IOUtils;
+import org.harald.security.fx.util.Miscellaneous;
 import org.harry.security.util.Tuple;
+import org.harry.security.util.mailer.EReceiver;
 import org.harry.security.util.mailer.ESender;
 import org.harry.security.util.mailer.VCardHandler;
 import org.pmw.tinylog.Logger;
@@ -19,17 +23,19 @@ import security.harry.org.emailer._1.ImapConfigType;
 import security.harry.org.emailer._1.SmtpConfigType;
 
 
+import javax.activation.DataHandler;
 import javax.mail.Folder;
+import javax.mail.Message;
 import javax.mail.Store;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.security.PrivateKey;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-import static org.harald.security.fx.util.Miscellaneous.getPrivateKeyTuple;
-import static org.harald.security.fx.util.Miscellaneous.showOpenDialogButton;
+import static org.harald.security.fx.util.Miscellaneous.*;
 import static org.harry.security.CommonConst.APP_DIR_EMAILER;
 import static org.harry.security.CommonConst.PROP_ADDRESSBOOK;
 
@@ -61,6 +67,7 @@ public class EMailSendCtrl implements ControllerInit {
     AccountConfig mailboxes;
     @Override
     public Scene init() {
+        List<String> to = contexts.get().getToAddresses();
         File addrFile = new File(APP_DIR_EMAILER, PROP_ADDRESSBOOK);
         try {
             if (addrFile.exists()) {
@@ -76,6 +83,33 @@ public class EMailSendCtrl implements ControllerInit {
                 from.getItems().add(box.getEmailAddress());
             }
 
+        }
+        if (to.size() > 0) {
+            try {
+                toBox.getItems().addAll(to);
+                contexts.get().getToAddresses().clear();
+                Message reply = contexts.get().getReplyMsg();
+                Message orig = contexts.get().getOrgForReplyMsg();
+                Tuple<PrivateKey, X509Certificate[]> keys = Miscellaneous.getPrivateKeyTuple();
+                EReceiver.ReadableMail mail = new EReceiver.ReadableMail(orig, keys);
+                mail.analyzeContent(null);
+                List<String> fromAddr = mail.getToList();
+                from.getItems().add(fromAddr.get(0));
+                from.getSelectionModel().select(from.getItems().size() - 1);
+                List<Tuple<String, DataHandler>> displayContentList =  mail.getPartList();
+                if (displayContentList.size() > 0) {
+                    Tuple<String, DataHandler> displayContent = displayContentList.get(0);
+                    String text = IOUtils.toString(displayContent.getSecond().getInputStream());
+                    String messageText = "---------- Original Message----------------\n" + text;
+                    content.setHtmlText(messageText);
+                    subject.setText("RE: " + orig.getSubject());
+                }
+
+            } catch (Exception ex) {
+                throw new IllegalStateException("reply msg build failed", ex);
+            }
+        } else {
+            from.getSelectionModel().select(0);
         }
         toBox.setCellFactory(new Callback<ListView<String>, ListCell<String>>() {
 
@@ -100,7 +134,7 @@ public class EMailSendCtrl implements ControllerInit {
                 });
             }
         });
-        from.getSelectionModel().select(0);
+
         toBox.setEditable(true);
         return from.getScene();
     }

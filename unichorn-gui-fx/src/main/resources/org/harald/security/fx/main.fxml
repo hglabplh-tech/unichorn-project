@@ -93,6 +93,7 @@
             <Button fx:id="manageCard" mnemonicParsing="false" onAction="#manageCard" text="Manage Card" GridPane.rowIndex="9" />
             <Button fx:id="signxades" mnemonicParsing="false" onAction="#signxades" text="Sign XAdES" GridPane.rowIndex="8" />
             <Button fx:id="emailer" mnemonicParsing="false" onAction="#emailer" text="EMailer" GridPane.rowIndex="10" />
+            <Button fx:id="eclientConf" mnemonicParsing="false" onAction="#eclientConf" text="EMailer Config" GridPane.columnIndex="1" GridPane.rowIndex="10" />
          </children>
       </GridPane>
       <Sphere radius="0.77">
