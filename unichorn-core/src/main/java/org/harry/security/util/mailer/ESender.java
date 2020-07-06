@@ -125,11 +125,31 @@ public class ESender {
         messageBodyPart.setContent(doc.toString(), "text/html");
     }
 
-    public static Message buildMsgAsReplyOrForward(String username, String password, Message original) {
+    public  Message forwardMessageTo(String username, String password,
+                                                   Message original,
+                                                   boolean addAttachments) {
         try {
+            Session session = createSession(username, password, from);
+            MimeMessage replyMessage = createMessageAndSetReceipients(session);
+            MimeBodyPart mbp1 = new MimeBodyPart();
+            setHtmlText(mbp1);
 
-            Message replyMessage;
-            replyMessage = (MimeMessage) original.reply(false);
+            MimeBodyPart messageBodyPart;
+            // Create the message part
+            messageBodyPart = new MimeBodyPart();
+            // Create a multipart message
+            Multipart multipart = new MimeMultipart();
+            // set content
+            messageBodyPart.setContent(original, "message/rfc822");
+            // Add part to multi part
+            multipart.addBodyPart(mbp1);
+            multipart.addBodyPart(messageBodyPart);
+            // Associate multi-part with message
+            replyMessage.setContent(multipart);
+            replyMessage.setSubject(subject);
+
+            //transport.sendMessage(message, message.getAllRecipients());
+            sendAndPlaceINFolder(username, password, replyMessage);
             return replyMessage;
         } catch (Exception ex) {
             throw new IllegalStateException("build reply forward message", ex);

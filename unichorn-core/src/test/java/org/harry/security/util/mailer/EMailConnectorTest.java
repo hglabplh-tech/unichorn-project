@@ -9,7 +9,6 @@ import org.junit.Test;
 import org.pmw.tinylog.Configurator;
 import org.pmw.tinylog.Level;
 import org.pmw.tinylog.writers.ConsoleWriter;
-import security.harry.org.emailer_client._1.ClientConfig;
 
 import javax.mail.Folder;
 import javax.mail.Message;
@@ -68,7 +67,8 @@ public class EMailConnectorTest extends TestBase {
                     .build();
             sender.sendSignedAndEncrypted("harald.glab-plhak@t-online.de", password);
             EReceiver receiver = new EReceiver(connectResult, keys);
-            Message[] messages = receiver.receiveMails();
+            Message[] messages = new Message[0];
+            messages = receiver.receiveMails(null);
             for (Message msg: messages) {
                 System.out.println("From: " + msg.getFrom()[0].toString() + " Subject: " + msg.getSubject());
             }

@@ -24,19 +24,26 @@ public class EMailConnector {
     private final String imapHost;
     private final int port;
 
+    private Session session = null;
+
     public EMailConnector(final String imapHost, final int port) {
         this.imapHost = imapHost;
         this.port = port;
     }
     public Tuple<Store, Folder> connect(String username, String password) {
         try {
-            Store store = IMAPUtils.imapLogin(imapHost, port, username, password, 100000, null);
-            Folder folder = store.getFolder("INBOX");
-            return new Tuple<>(store, folder);
+            Tuple<Session,Store> store = IMAPUtils.imapLogin(imapHost, port, username, password, 100000, null);
+            Folder folder = store.getSecond().getFolder("INBOX");
+            this.session = store.getFirst();
+            return new Tuple<>(store.getSecond(), folder);
         } catch(Exception ex) {
             Logger.trace("Login failed with: " + ex.getMessage());
             Logger.trace(ex);
             throw new IllegalStateException("IMAP Login failed", ex);
         }
+    }
+
+    public Session getSession() {
+        return session;
     }
 }

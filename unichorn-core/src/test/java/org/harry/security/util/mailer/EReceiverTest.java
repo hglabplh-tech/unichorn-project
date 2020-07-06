@@ -24,8 +24,6 @@ import java.nio.charset.Charset;
 import java.security.KeyStore;
 import java.security.PrivateKey;
 
-import static org.harry.security.util.mailer.EMailConnector.T_ONLINE_IMAP_PORT;
-import static org.harry.security.util.mailer.EMailConnector.T_ONLINE_IMAP_URI_HOST;
 import static org.junit.Assert.fail;
 
 public class EReceiverTest extends TestBase {
@@ -50,7 +48,8 @@ public class EReceiverTest extends TestBase {
             String password = passwordTuple.getSecond();
             connectResult = connector.connect("unichorn-teacher@gmx.de", password);
             EReceiver receiver = new EReceiver(connectResult, getPrivateKeyTuple());
-            Message[] messages = receiver.receiveMails();
+            Message[] messages = new Message[0];
+            messages = receiver.receiveMails(null);
             for (Message msg : messages) {
                 System.out.println("From: " + msg.getFrom()[0].toString() + " Subject: " + msg.getSubject());
             }

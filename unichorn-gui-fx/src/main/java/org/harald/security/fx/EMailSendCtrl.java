@@ -59,6 +59,9 @@ public class EMailSendCtrl implements ControllerInit {
 
     @FXML CheckBox encrypt;
 
+
+    private Message forwardMessage = null;
+
     List<File> attachmentFiles = new ArrayList<>();
 
     List<VCard> vcardList = new ArrayList<>();
@@ -67,6 +70,7 @@ public class EMailSendCtrl implements ControllerInit {
     AccountConfig mailboxes;
     @Override
     public Scene init() {
+        forwardMessage = null;
         List<String> to = contexts.get().getToAddresses();
         File addrFile = new File(APP_DIR_EMAILER, PROP_ADDRESSBOOK);
         try {
@@ -84,30 +88,56 @@ public class EMailSendCtrl implements ControllerInit {
             }
 
         }
-        if (to.size() > 0) {
+        Message temp = contexts.get().getOrgForReplyMsg();
+        if (temp != null) {
             try {
-                toBox.getItems().addAll(to);
-                contexts.get().getToAddresses().clear();
-                Message reply = contexts.get().getReplyMsg();
-                Message orig = contexts.get().getOrgForReplyMsg();
-                Tuple<PrivateKey, X509Certificate[]> keys = Miscellaneous.getPrivateKeyTuple();
-                EReceiver.ReadableMail mail = new EReceiver.ReadableMail(orig, keys);
-                mail.analyzeContent(null);
-                List<String> fromAddr = mail.getToList();
-                from.getItems().add(fromAddr.get(0));
-                from.getSelectionModel().select(from.getItems().size() - 1);
-                List<Tuple<String, DataHandler>> displayContentList =  mail.getPartList();
-                if (displayContentList.size() > 0) {
-                    Tuple<String, DataHandler> displayContent = displayContentList.get(0);
-                    String text = IOUtils.toString(displayContent.getSecond().getInputStream());
-                    String messageText = "---------- Original Message----------------\n" + text;
-                    content.setHtmlText(messageText);
-                    subject.setText("RE: " + orig.getSubject());
+                if (contexts.get().isForeward()) {
+                    forwardMessage = temp;
+                    Tuple<PrivateKey, X509Certificate[]> keys = Miscellaneous.getPrivateKeyTuple();
+                    EReceiver.ReadableMail mail = new EReceiver.ReadableMail(forwardMessage, keys);
+                    mail.analyzeContent(null);
+                    List<String> fromAddr = mail.getToList();
+                    from.getItems().add(fromAddr.get(0));
+                    from.getSelectionModel().select(from.getItems().size() - 1);
+                    List<Tuple<String, DataHandler>> displayContentList = mail.getPartList();
+                    if (displayContentList.size() > 0) {
+                        Tuple<String, DataHandler> displayContent = displayContentList.get(0);
+                        String text = IOUtils.toString(displayContent.getSecond().getInputStream());
+                        String messageText = "---------- Original Message----------------\\\n"
+                                + "From:" + forwardMessage.getFrom()[0].toString()
+                                + "\\\n ---------------------------------- "
+                                + text;
+                        content.setHtmlText(messageText);
+                        subject.setText("FWD: " + forwardMessage.getSubject());
+                    }
+
+                } else {
+                    toBox.getItems().addAll(to);
+                    contexts.get().getToAddresses().clear();
+                    Message orig = temp;
+                    Tuple<PrivateKey, X509Certificate[]> keys = Miscellaneous.getPrivateKeyTuple();
+                    EReceiver.ReadableMail mail = new EReceiver.ReadableMail(orig, keys);
+                    mail.analyzeContent(null);
+                    List<String> fromAddr = mail.getToList();
+                    from.getItems().add(fromAddr.get(0));
+                    from.getSelectionModel().select(from.getItems().size() - 1);
+                    List<Tuple<String, DataHandler>> displayContentList = mail.getPartList();
+                    if (displayContentList.size() > 0) {
+                        Tuple<String, DataHandler> displayContent = displayContentList.get(0);
+                        String text = IOUtils.toString(displayContent.getSecond().getInputStream());
+                        String messageText = "---------- Original Message----------------\\\n"
+                                + "From:" + orig.getFrom()[0].toString()
+                                + "\\\n at " + orig.getSentDate().toString()
+                                + "\\\n ---------------------------------- "
+                                + text;
+                        content.setHtmlText(messageText);
+                        subject.setText("RE: " + orig.getSubject());
+                    }
+                }
+                } catch(Exception ex){
+                    throw new IllegalStateException("reply msg build failed", ex);
                 }
 
-            } catch (Exception ex) {
-                throw new IllegalStateException("reply msg build failed", ex);
-            }
         } else {
             from.getSelectionModel().select(0);
         }
@@ -136,6 +166,8 @@ public class EMailSendCtrl implements ControllerInit {
         });
 
         toBox.setEditable(true);
+        contexts.get().setForeward(false);
+        contexts.get().setOrgForReplyMsg(null);
         return from.getScene();
     }
 
@@ -149,13 +181,23 @@ public class EMailSendCtrl implements ControllerInit {
 
     @FXML
     public void sendMail(ActionEvent event) throws Exception {
-        String email = from.getSelectionModel().getSelectedItem();
+
+        String temp1 = from.getSelectionModel().getSelectedItem();
+
         Optional<ImapConfigType> box =
                 mailboxes.getImapConfig()
                         .stream()
-                        .filter(e -> email.equals(e.getEmailAddress()))
+                        .filter(e -> temp1.equals(e.getEmailAddress()))
                         .findFirst();
-        if (box.isPresent()) {
+        if (!box.isPresent()) {
+            String  temp2 = from.getItems().get(0);
+            box = mailboxes.getImapConfig()
+                            .stream()
+                            .filter(e -> temp2.equals(e.getEmailAddress()))
+                            .findFirst();
+        }
+        String email = (box.isPresent()) ? box.get().getEmailAddress() : null;
+        if (box.isPresent() && email != null) {
             ImapConfigType selected = box.get();
             Tuple<Store, Folder> connParms =  EMailCenterCtrl.getConnectParams(selected.getEmailAddress());
             SmtpConfigType smtpParams = getSmtpParams(mailboxes);
@@ -199,8 +241,13 @@ public class EMailSendCtrl implements ControllerInit {
                 sender.sendSigned(smtpParams
                         .getEmailAddress(), password);
             } else {
-                sender.sendEmail(smtpParams
-                        .getEmailAddress(), password);
+                if (forwardMessage != null) {
+                    sender.forwardMessageTo(smtpParams
+                            .getEmailAddress(), password, forwardMessage, true);
+                } else {
+                    sender.sendEmail(smtpParams
+                            .getEmailAddress(), password);
+                }
             }
         }
     }

@@ -57,7 +57,7 @@ public class IMAPUtils {
 
     public static final List<String> sentNamePatterns = Arrays.asList("Sent", "Gesendet");
 
-    static Store imapLogin(final String host, final int port,
+    static Tuple<Session, Store> imapLogin(final String host, final int port,
                            final String username,
                            String password,
                            final int defaultTimeout,
@@ -82,7 +82,7 @@ public class IMAPUtils {
             store.connect(host, port, username, password);
         }
 
-        return store;
+        return new Tuple<>(session, store);
     }
 
     public static Folder[] listFolders(Tuple<Store, Folder> params, String emeil) {

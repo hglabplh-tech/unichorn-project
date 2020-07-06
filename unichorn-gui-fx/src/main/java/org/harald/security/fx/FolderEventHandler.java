@@ -4,7 +4,6 @@ import com.sun.mail.imap.IMAPFolder;
 import javafx.event.Event;
 import javafx.event.EventHandler;
 import javafx.scene.control.ListView;
-import org.apache.maven.lifecycle.internal.LifecycleStarter;
 import org.harry.security.util.Tuple;
 import org.harry.security.util.mailer.EReceiver;
 import org.pmw.tinylog.Logger;
@@ -39,7 +38,8 @@ public class FolderEventHandler<ActionEvent> implements EventHandler {
 
         try {
             EReceiver receiver = new EReceiver(new Tuple<Store,Folder>(store, imapFolder), getPrivateKeyTuple());
-            Message[] messages = receiver.receiveMails();
+            Message[] messages = new Message[0];
+            messages = receiver.receiveMails("dummy");
             for (Message msg : messages) {
                 Address[] from = msg.getFrom();
                 StringBuffer buf = new StringBuffer();

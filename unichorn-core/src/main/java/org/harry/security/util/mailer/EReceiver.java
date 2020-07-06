@@ -20,6 +20,9 @@ import java.security.cert.Certificate;
 import java.util.ArrayList;
 import java.util.List;
 
+import static org.harry.security.CommonConst.APP_DIR_EMAILER;
+import static org.harry.security.CommonConst.PROP_FOLDERINDEXFILE;
+
 public class EReceiver {
 
     private final Tuple<Store, Folder> instance;
@@ -31,7 +34,7 @@ public class EReceiver {
         this.keys = keys;
     }
 
-    public Message[] receiveMails() {
+    public Message[] receiveMails(String path) {
         try {
             int totalNumberOfMessages = 0;
             IMAPFolder  folder = (IMAPFolder) instance.getSecond();
@@ -42,10 +45,25 @@ public class EReceiver {
              * This way the new mails arrive with the first chunks and older mails
              * afterwards.
              */
+
+            int startFetch = 1;
+            if (path != null) {
+                File intFile = new File(APP_DIR_EMAILER + "\\" + path, PROP_FOLDERINDEXFILE);
+                if (intFile.exists()) {
+                    InputStream in = new FileInputStream(intFile);
+                    byte [] buffer = new byte[20];
+                    int read = in.read(buffer);
+                    in.close();
+                    String indexStr = new String(buffer, 0, read);
+                    startFetch = Integer.parseInt(indexStr.trim());
+
+                }
+            }
+
             long largestUid = folder.getUIDNext() - 1;
             int chunkSize = 500;
             for (long offset = 0; offset < largestUid; offset += chunkSize) {
-                long start = Math.max(1, largestUid - offset - chunkSize + 1);
+                long start = startFetch;
                 long end = Math.max(1, largestUid - offset);
 
                 /*
@@ -90,6 +108,8 @@ public class EReceiver {
             }
          return null;
         } catch (Exception ex) {
+            Logger.trace("fetch emails failed" + ex.getMessage());
+            Logger.trace(ex);
             throw new IllegalStateException("fetch emails failed", ex);
         }
     }

@@ -1,5 +1,7 @@
 package org.harald.security.fx;
 
+import com.sun.mail.imap.IMAPFolder;
+import com.sun.mail.imap.IMAPMessage;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.ObservableList;
@@ -20,15 +22,16 @@ import security.harry.org.emailer._1.ImapConfigType;
 
 import javax.activation.DataHandler;
 import javax.mail.*;
+import javax.mail.internet.MimeMessage;
 
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.nio.charset.Charset;
 import java.util.*;
 
 import static org.harald.security.fx.util.Miscellaneous.contexts;
 import static org.harald.security.fx.util.Miscellaneous.getPrivateKeyTuple;
+import static org.harry.security.CommonConst.APP_DIR_EMAILER;
+import static org.harry.security.CommonConst.PROP_FOLDERINDEXFILE;
 
 public class EMailCenterCtrl implements ControllerInit {
 
@@ -58,11 +61,15 @@ public class EMailCenterCtrl implements ControllerInit {
     Label signedBy;
 
     List<Tuple<String, DataHandler>> contentList = new ArrayList<>();
-    static Map<String, Tuple<Store, Folder>> connectResult = new HashMap<>();
+    static Map<String, Tuple<Session, Tuple<Store, Folder>>> connectResult = new HashMap<>();
 
     Map<String, Folder[]> foldersMap = new HashMap<>();
 
-    List<Message> actualMessages = new ArrayList<>();
+    Map<String, Message> actualMessages = new LinkedHashMap<>();
+
+    List<Message> actualMessagesList = new ArrayList<>();
+
+    Map<String, Message> messageMap = new LinkedHashMap<>();
 
     Message displayedMessage = null;
 
@@ -79,7 +86,7 @@ public class EMailCenterCtrl implements ControllerInit {
                 if (indices.size() > 0) {
                     try {
                         int index = indices.get(0);
-                        displayedMessage = actualMessages.get(index);
+                        displayedMessage = actualMessagesList.get(index);
                         EReceiver.ReadableMail mail = new EReceiver.ReadableMail(displayedMessage, getPrivateKeyTuple());
                         mail.analyzeContent(null);
                         if (mail.isSigned()) {
@@ -130,7 +137,7 @@ public class EMailCenterCtrl implements ControllerInit {
                         }
                         Folder[] folders = foldersMap.get(key);
                         if (folders != null) {
-                            Tuple<Store, Folder> login = connectResult.get(key);
+                            Tuple<Session,Tuple<Store, Folder>> login = connectResult.get(key);
                             List<String> mailEntries = new ArrayList<>();
                             Optional<Folder> selected =
                                     Arrays.stream(folders)
@@ -139,22 +146,39 @@ public class EMailCenterCtrl implements ControllerInit {
                             if (selected.isPresent()) {
                                 EReceiver receiver = null;
                                 try {
-                                    receiver = new EReceiver(new Tuple<Store, Folder>(login.getFirst(),
+                                    receiver = new EReceiver(new Tuple<Store, Folder>(login.getSecond().getFirst(),
                                             selected.get()), getPrivateKeyTuple());
                                 } catch (FileNotFoundException e) {
                                     e.printStackTrace();
                                 } catch (Exception e) {
                                     e.printStackTrace();
                                 }
-                                Message[] messages = receiver.receiveMails();
-                                actualMessages.clear();
-                                actualMessages.addAll(Arrays.asList(messages));
+                                String path = key + new_val.getValue();
+                                Message[] messagesReceived = new Message[0];
                                 try {
-                                    for (Message msg : messages) {
+                                    messageMap = loadMessages(path, login);
+                                    messagesReceived = receiver.receiveMails(path);
+                                    saveMessages(messagesReceived, path);
+                                } catch (Exception e) {
+                                    e.printStackTrace();
+                                }
+                                actualMessages.clear();
+                                actualMessagesList.clear();
+                                actualMessages.putAll(messageMap);
+                                actualMessagesList.addAll(messageMap.values());
+                                try {
+                                    for (Map.Entry<String, Message> msgEntry: actualMessages.entrySet()) {
+                                        MimeMessage msg = (MimeMessage) msgEntry.getValue();
                                         Flags flagEntries = msg.getFlags();
                                         Flags.Flag[] flags = flagEntries.getSystemFlags();
                                         boolean seen = Arrays.asList(flags).contains(Flags.Flag.SEEN);
-                                        Address[] from = msg.getFrom();
+
+                                        Address[] from = new Address[0];
+                                        try {
+                                            from = msg.getFrom();
+                                        } catch(Exception ex) {
+                                            Logger.trace("Ignorable From Address Error" + ex.getMessage());
+                                        }
                                         StringBuffer buf = new StringBuffer();
                                         for (Address addr : from) {
                                             buf.append(addr.toString() + " , ");
@@ -194,13 +218,11 @@ public class EMailCenterCtrl implements ControllerInit {
     @FXML
     public void reply(ActionEvent event) throws Exception {
         if (displayedMessage != null) {
-            Message replyMsg = ESender.buildMsgAsReplyOrForward(null, null, displayedMessage);
             contexts.get().getToAddresses().clear();
             contexts.get().getToAddresses()
                     .add(Arrays.asList(displayedMessage
                             .getFrom())
                             .get(0).toString());
-            contexts.get().setReplyMsg(replyMsg);
             contexts.get().setOrgForReplyMsg(displayedMessage);
             SecHarry.setRoot("sendmail", SecHarry.CSS.UNICHORN);
         }
@@ -208,8 +230,13 @@ public class EMailCenterCtrl implements ControllerInit {
     }
 
     @FXML
-    public void forward(ActionEvent event) {
-
+    public void forward(ActionEvent event) throws IOException {
+        if (displayedMessage != null) {
+            contexts.get().getToAddresses().clear();
+            contexts.get().setOrgForReplyMsg(displayedMessage);
+            contexts.get().setForeward(true);
+            SecHarry.setRoot("sendmail", SecHarry.CSS.UNICHORN);
+        }
     }
 
     @FXML
@@ -233,8 +260,8 @@ public class EMailCenterCtrl implements ControllerInit {
 
     @FXML
     public void back(ActionEvent event) throws Exception {
-        for (Tuple<Store, Folder> result: connectResult.values()) {
-            result.getFirst().close();
+        for (Tuple<Session, Tuple<Store, Folder>> result: connectResult.values()) {
+            result.getSecond().getFirst().close();
         }
         SecHarry.setRoot("main", SecHarry.CSS.UNICHORN);
     }
@@ -260,7 +287,7 @@ public class EMailCenterCtrl implements ControllerInit {
             if (!item.isPresent()) {
                 root.getChildren().add(child);
             }
-            Tuple<Store, Folder> connRes = connectResult.get(box.getEmailAddress());
+            Tuple<Session, Tuple<Store, Folder>> connRes = connectResult.get(box.getEmailAddress());
             String password;
             if (connRes == null) {
                 EMailConnector connector = new EMailConnector(box.getImapHost(),
@@ -271,10 +298,12 @@ public class EMailCenterCtrl implements ControllerInit {
                 } else {
                     password = credentials.getSecond();
                 }
-                connRes = connector.connect(box.getEmailAddress(), password);
+                Tuple<Store, Folder> result = connector.connect(box.getEmailAddress(), password);
+                Session resultSession = connector.getSession();
+                connRes = new Tuple<>(resultSession, result);
                 connectResult.put(box.getEmailAddress(), connRes);
             }
-            Folder[] folders = IMAPUtils.listFolders(connRes, box.getEmailAddress());
+            Folder[] folders = IMAPUtils.listFolders(connRes.getSecond(), box.getEmailAddress());
             foldersMap.put(box.getEmailAddress(), folders);
             for(Folder folder: folders) {
                 TreeItem<String> folderItem = new TreeItem<>(folder.getName());
@@ -300,7 +329,67 @@ public class EMailCenterCtrl implements ControllerInit {
     }
 
     public static Tuple<Store, Folder> getConnectParams(String email) {
-        return connectResult.get(email);
+        return connectResult.get(email).getSecond();
+    }
+
+    public void saveMessages(Message[] messages, String path) throws Exception {
+        File base = new File(APP_DIR_EMAILER);
+        File baseDirFile = null;
+        Folder folder = null;
+        long largestUid = 0;
+        if (messages != null && messages.length >= 1) {
+            folder = messages[0].getFolder();
+            folder.open(Folder.READ_WRITE);
+            largestUid = ((IMAPFolder)folder).getUIDNext() - 1;
+        }
+        for (Message msg: messages) {
+            String dirName = path;
+            baseDirFile = new File(base, dirName);
+            String fName = UUID.randomUUID().toString() + ".msg";
+            baseDirFile.mkdirs();
+            File msgFile = new File(baseDirFile, fName);
+            FileOutputStream out = new FileOutputStream(msgFile);
+            msg.writeTo(out);
+            out.close();
+            messageMap.put(msgFile.getAbsolutePath(), msg);
+        }
+        if (folder != null) {
+            folder.close(false);
+        }
+        if (baseDirFile != null && baseDirFile.exists()) {
+            File intFile = new File(baseDirFile, PROP_FOLDERINDEXFILE);
+            PrintWriter writer = new PrintWriter(new FileOutputStream(intFile));
+            writer.print("" + largestUid);
+            writer.close();
+        }
+    }
+
+    public Map<String, Message> loadMessages(String path, Tuple<Session, Tuple<Store, Folder>> connection) throws Exception {
+        Map<String, Message> messages = new LinkedHashMap<>();
+        connection.getSecond().getSecond().open(Folder.READ_WRITE);
+        File base = new File(APP_DIR_EMAILER);
+        File baseDirFile = new File(base, path);
+        File intFile = new File(baseDirFile, PROP_FOLDERINDEXFILE);
+        if (intFile.exists()) {
+            File [] files = baseDirFile.listFiles();
+            int index = 0;
+            for (File file: files) {
+                if (file.getAbsolutePath().endsWith(".msg")) {
+                    MimeMessage msg = new MimeMessage(connection.getFirst(), new FileInputStream(file));
+                    messages.put(file.getAbsolutePath(), msg);
+                }
+            }
+        }
+        for (Map.Entry<String, Message> mesg: messages.entrySet()) {
+            MimeMessage msg = (MimeMessage)mesg.getValue();
+            msg.setFlag(Flags.Flag.SEEN, true);
+            OutputStream out = new FileOutputStream(mesg.getKey());
+            msg.writeTo(out);
+            out.flush();
+            out.close();
+        }
+        connection.getSecond().getSecond().close(false);
+        return messages;
     }
 
 

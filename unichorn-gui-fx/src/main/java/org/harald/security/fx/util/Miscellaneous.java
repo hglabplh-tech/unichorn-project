@@ -253,7 +253,7 @@ public class Miscellaneous {
     }
 
     public static class ThreadBean {
-        private Message replyMsg = null;
+        private boolean foreward = false;
         private Message orgForReplyMsg = null;
         private SigningBean bean = null;
         private Session session = null;
@@ -296,21 +296,21 @@ public class Miscellaneous {
             return this;
         }
 
-        public Message getReplyMsg() {
-            return replyMsg;
-        }
-
-        public ThreadBean setReplyMsg(Message replyMsg) {
-            this.replyMsg = replyMsg;
-            return this;
-        }
-
         public Message getOrgForReplyMsg() {
             return orgForReplyMsg;
         }
 
         public ThreadBean setOrgForReplyMsg(Message orgForReplyMsg) {
             this.orgForReplyMsg = orgForReplyMsg;
+            return this;
+        }
+
+        public boolean isForeward() {
+            return foreward;
+        }
+
+        public ThreadBean setForeward(boolean foreward) {
+            this.foreward = foreward;
             return this;
         }
     }

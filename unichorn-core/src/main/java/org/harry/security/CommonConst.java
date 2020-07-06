@@ -10,6 +10,7 @@ public class CommonConst {
     public static final String PROP_MAILBOXES = "mailboxes.xml";
     public static final String PROP_CLIENTCONF = "email-client-conf.xml";
     public static final String PROP_ADDRESSBOOK = "addressbook.xml";
+    public static final String PROP_FOLDERINDEXFILE = "folderIndex.int";
     /**
      * The applications configuration and data directory
      */
