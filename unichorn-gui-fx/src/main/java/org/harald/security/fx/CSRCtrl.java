@@ -30,6 +30,8 @@ import static org.harry.security.CommonConst.APP_DIR_WORKING;
 public class CSRCtrl implements ControllerInit{
 
 
+    @FXML private TextField emailaddr;
+
     @FXML private CheckBox keyAgreement;
     @FXML private CheckBox digitalSignature;
     @FXML private CheckBox nonRepudiation;
@@ -51,7 +53,8 @@ public class CSRCtrl implements ControllerInit{
     public void sendCSR(ActionEvent event) throws Exception {
         Name subject = createSubject();
         p12Store = Miscellaneous.showSaveDialogFromButton(event,null);
-        CSRHandler.signCert(subject, p12Store.getAbsolutePath(), createKeyUsage(), OCSPSigning.isSelected());
+        CSRHandler.signCert(subject, p12Store.getAbsolutePath(), createKeyUsage(), OCSPSigning.isSelected(),
+                emailaddr.getText());
         KeyStore store = KeyStoreTool.loadStore(new FileInputStream(p12Store),
                 "changeit".toCharArray(), "PKCS12");
         Enumeration<String> aliases = store.aliases();
@@ -68,7 +71,7 @@ public class CSRCtrl implements ControllerInit{
         p12Store = Miscellaneous.showSaveDialogFromButton(event,null);
         KeyPair kp = CertificateWizzard.generateKeyPair("RSA", 4096);
         InputStream certSignStream = CSRHandler.createCertificateRequestStream(subject, kp,"geheim",
-                createKeyUsage(), OCSPSigning.isSelected());
+                createKeyUsage(), OCSPSigning.isSelected(), emailaddr.getText());
         FileOutputStream outPW = new FileOutputStream(new File(APP_DIR_WORKING, "geheim"));
         outPW.write("geheim".getBytes());
         outPW.flush();

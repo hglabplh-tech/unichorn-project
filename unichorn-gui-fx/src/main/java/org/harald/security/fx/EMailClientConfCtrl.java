@@ -65,6 +65,7 @@ public class EMailClientConfCtrl implements ControllerInit{
                         .filter(e -> e.getName().equals(newVal))
                         .findFirst();
                 if (actConf.isPresent()) {
+                    selConfigName.setText(config.getCryptoConfigName());
                     storeLoc.setText(actConf.get().getKeyStoreFile());
                     alias.setText(actConf.get().getAlias());
                     name.setText(actConf.get().getName());
@@ -89,6 +90,15 @@ public class EMailClientConfCtrl implements ControllerInit{
     @FXML
     public void smartCardSel(ActionEvent event) {
 
+    }
+
+    @FXML
+    public void clear(ActionEvent event) {
+        storeLoc.setText("");
+        alias.setText("");
+        name.setText("");
+        password.setText("");
+        smartCardSel.setSelected(false);
     }
 
     @FXML

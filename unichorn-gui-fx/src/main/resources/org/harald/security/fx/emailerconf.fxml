@@ -42,10 +42,11 @@
             </TextField>
             <Button fx:id="back" mnemonicParsing="false" onAction="#back" text="Go Back" GridPane.columnIndex="1" GridPane.rowIndex="8" />
             <Button fx:id="save" mnemonicParsing="false" onAction="#save" text="Sava" GridPane.rowIndex="8" />
-            <Button fx:id="newEntry" mnemonicParsing="false" onAction="#newEntry" text="New Entry" GridPane.rowIndex="7" />
+            <Button fx:id="newEntry" mnemonicParsing="false" onAction="#newEntry" text="Add Entry" GridPane.rowIndex="7" />
             <ListView fx:id="cryptoConfList" prefHeight="200.0" prefWidth="200.0" GridPane.columnSpan="2" GridPane.rowIndex="6" />
-            <Label text="LabelSelected Config Name" />
+            <Label text="Selected Config Name" />
             <TextField fx:id="selConfigName" GridPane.columnIndex="1" />
+            <Button fx:id="clear" mnemonicParsing="false" onAction="#clear" text="Clear Input" GridPane.columnIndex="1" GridPane.rowIndex="5" />
          </children>
       </GridPane>
    </children>

@@ -218,7 +218,7 @@ public class CertificateWizzard {
                     parentKeys.getPrivate(),
                     (AlgorithmID) AlgorithmID.sha256WithRSAEncryption.clone(),
                     subjectKeyID.get(),
-                    usage);
+                    usage, "harald.glab-plhak@t-online.de");
             certChain[0] = intermediateRSA;
             certChain[1] = caRSA;
             // and verify the chain
@@ -238,7 +238,7 @@ public class CertificateWizzard {
                     ca_ec.getPrivate(),
                     (AlgorithmID) AlgorithmID.ecdsa.clone(),
                     subjectKeyIDEC.get(),
-                    usage);
+                    usage, "harald.glab-plhak@t-online.de");
             certChain[0] = intermediateEC;
             certChain[1] = caEC;
             // and verify the chain
@@ -295,7 +295,7 @@ public class CertificateWizzard {
                     parentKeys.getPrivate(),
                     (AlgorithmID) AlgorithmID.sha256WithRSAEncryption.clone(),
                     subjectKeyID.get(),
-                    usage);
+                    usage, "harald.glab-plhak@t-online.de");
             certChain[0] = userCert;
             certChain[1] = intermediateRSA;
             certChain[2] = caRSA;
@@ -315,7 +315,7 @@ public class CertificateWizzard {
                     issuer,
                     inter_ec.getPrivate(),
                     (AlgorithmID) AlgorithmID.ecdsa.clone(),
-                    subjectKeyIDEC.get(), usage);
+                    subjectKeyIDEC.get(), usage, "harald.glab-plhak@t-online.de");
             certChain[0] = userCertEC;
             certChain[1] = intermediateEC;
             certChain[2] = caEC;
@@ -360,11 +360,12 @@ public class CertificateWizzard {
      * @param algorithm the signature algorithm to use
      * @param keyID the key id for the AuthotityKeyIdentifier extension
      * @param keyUsage the usage extension for the certificate
+     * @param emailAddress
      * @return the certificate just created
      */
     public static X509Certificate createCertificate(Name subject, PublicKey publicKey,
                                                     Name issuer, PrivateKey privateKey, AlgorithmID algorithm, byte[] keyID,
-                                                    KeyUsage keyUsage) {
+                                                    KeyUsage keyUsage, String emailAddress) {
 
         // create a new certificate
         KeyUsage usage = new KeyUsage();
@@ -394,10 +395,12 @@ public class CertificateWizzard {
                 AuthorityKeyIdentifier authID = new AuthorityKeyIdentifier();
                 authID.setKeyIdentifier(keyID);
                 cert.addExtension(authID);
-                GeneralNames generalNames = new GeneralNames();
-                generalNames.addName(new GeneralName(GeneralName.rfc822Name, "smimetest@harryglab.com"));
-                SubjectAltName subjectAltName = new SubjectAltName(generalNames);
-                cert.addExtension(subjectAltName);
+                if (emailAddress != null) {
+                    GeneralNames generalNames = new GeneralNames();
+                    generalNames.addName(new GeneralName(GeneralName.rfc822Name, emailAddress));
+                    SubjectAltName subjectAltName = new SubjectAltName(generalNames);
+                    cert.addExtension(subjectAltName);
+                }
                 ExtendedKeyUsage extKeyUsage = new ExtendedKeyUsage();
                 //add purposes
                 extKeyUsage.addKeyPurposeID(ExtendedKeyUsage.ocspSigning);
@@ -949,6 +952,7 @@ public class CertificateWizzard {
         AlgorithmID algorithm;
         byte[] keyID;
         KeyUsage keyUsage;
+        String emailAddress;
 
         public CertificateBuilder() {
 
@@ -989,6 +993,11 @@ public class CertificateWizzard {
             return this;
         }
 
+        public CertificateBuilder setEmailAddress(String emailAddress) {
+            this.emailAddress = emailAddress;
+            return this;
+        }
+
         public X509Certificate build () {
             return createCertificate(this.subject,
                     this.publicKey,
@@ -996,7 +1005,7 @@ public class CertificateWizzard {
                     this.privateKey,
                     this.algorithm,
                     this.keyID,
-                    this.keyUsage);
+                    this.keyUsage, emailAddress);
         }
     }
 }

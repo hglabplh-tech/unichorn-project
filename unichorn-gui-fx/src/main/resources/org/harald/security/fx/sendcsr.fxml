@@ -32,6 +32,8 @@
             <TextField fx:id="org" GridPane.columnIndex="1" GridPane.rowIndex="2" />
             <TextField fx:id="orgunit" GridPane.columnIndex="1" GridPane.rowIndex="3" />
             <TextField fx:id="locality" GridPane.columnIndex="1" GridPane.rowIndex="4" />
+            <Label text="Subject Alt Name (EMAIL)" GridPane.rowIndex="5" />
+            <TextField fx:id="emailaddr" GridPane.columnIndex="1" GridPane.rowIndex="5" />
          </children>
       </GridPane>
       <GridPane>

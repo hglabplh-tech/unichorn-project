@@ -1,10 +1,7 @@
 package org.harry.security.util.certandkey;
 
 import com.google.gson.Gson;
-import iaik.asn1.ObjectID;
-import iaik.asn1.structures.AlgorithmID;
-import iaik.asn1.structures.Attribute;
-import iaik.asn1.structures.Name;
+import iaik.asn1.structures.*;
 import iaik.pkcs.pkcs10.CertificateRequest;
 import iaik.pkcs.pkcs8.EncryptedPrivateKeyInfo;
 import iaik.pkcs.pkcs9.ChallengePassword;
@@ -13,6 +10,7 @@ import iaik.utils.Util;
 import iaik.x509.X509Certificate;
 import iaik.x509.extensions.ExtendedKeyUsage;
 import iaik.x509.extensions.KeyUsage;
+import iaik.x509.extensions.SubjectAltName;
 import iaik.x509.extensions.SubjectKeyIdentifier;
 import org.apache.commons.io.IOUtils;
 import org.apache.http.client.methods.CloseableHttpResponse;
@@ -51,14 +49,16 @@ public class CSRHandler {
      * @param path the output path
      * @param keyUsage the key-usage
      * @param ocspSigning flag for ocsp-signing
+     * @param emailAddress the subject alternative name
      * @throws Exception error case
      */
-    public static void signCert(Name subject, String path, KeyUsage keyUsage, boolean ocspSigning) throws Exception {
+    public static void signCert(Name subject, String path, KeyUsage keyUsage, boolean ocspSigning, String emailAddress) throws Exception {
         String password = getPassCode();
         String token = getToken();
         KeyPair pair = CertificateWizzard.generateKeyPair("RSA", 2048);
         InputStream
-                certReqStream = createCertificateRequestStream(subject, pair, password, keyUsage, ocspSigning);
+                certReqStream = createCertificateRequestStream(subject, pair,
+                password, keyUsage, ocspSigning, emailAddress);
 
         InputStream privKeyEncr = createPrivKeyEncr(pair.getPrivate(), password);
 
@@ -263,7 +263,7 @@ public class CSRHandler {
      */
     public static InputStream createCertificateRequestStream(Name subject, KeyPair pair,
                                                              String password, KeyUsage keyUsage,
-                                                             boolean ocspSigning) throws Exception {
+                                                             boolean ocspSigning, String emailAddress) throws Exception {
 
 
 
@@ -281,6 +281,12 @@ public class CSRHandler {
             extKeyUsage.addKeyPurposeID(ExtendedKeyUsage.ocspSigning);
             extKeyUsage.addKeyPurposeID(ExtendedKeyUsage.timeStamping);
             extensionRequest.addExtension(extKeyUsage);
+        }
+        if (emailAddress != null) {
+            GeneralNames generalNames = new GeneralNames();
+            generalNames.addName(new GeneralName(GeneralName.rfc822Name, emailAddress));
+            SubjectAltName subjectAltName = new SubjectAltName(generalNames);
+            extensionRequest.addExtension(subjectAltName);
         }
         extensionRequest.addExtension(CertificateWizzard.createOCSPUrl(null, OCSP_URL));
 
@@ -436,7 +442,7 @@ public class CSRHandler {
                            keys.getFirst(),
                            certReq.getSignatureAlgorithmID(),
                            subjectKeyID.get(),
-                           keyUsage);
+                           keyUsage, "harald.glab-plhak@t-online.de");
                    Logger.trace("Create certificate success");
                }
                if (userKey != null && userCert != null) {
