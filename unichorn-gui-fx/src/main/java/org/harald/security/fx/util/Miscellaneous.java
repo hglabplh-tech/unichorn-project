@@ -8,6 +8,7 @@ import javafx.scene.control.*;
 import javafx.scene.web.WebView;
 import javafx.stage.FileChooser;
 import javafx.stage.Window;
+import org.harald.security.fx.EMailCenterCtrl;
 import org.harald.security.fx.SecHarry;
 import org.harry.security.pkcs11.CardManager;
 import org.harry.security.util.Tuple;
@@ -211,8 +212,8 @@ public class Miscellaneous {
 
     public static Tuple<PrivateKey, X509Certificate[]> getPrivateKeyTuple() throws Exception {
         Tuple<PrivateKey, X509Certificate[]> stored = contexts.get().getEmailKeys();
-        ClientConfig clientConfig = EmailClientConfiguration
-                .getClientConfig();
+        Tuple<String, String> confPassword = EMailCenterCtrl.getEMailPasswd("emailCryptoConf");
+        ClientConfig clientConfig = EmailClientConfiguration.loadClientConf(confPassword.getSecond());
         String name = clientConfig.getCryptoConfigName();
         Optional<CryptoConfigType> cryptoOpt = clientConfig
                 .getCryptoConfig()

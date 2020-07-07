@@ -47,8 +47,8 @@ public class VCardHandler {
         newCard.addFormattedName(fname);
         newCard.addFormattedName(lname);
         newCard.addFormattedName(nname);
-        newCard.addEmail(business, EmailType.INTERNET);
-        newCard.addEmail(private1, EmailType.HOME);
+        newCard.addEmail(business, EmailType.WORK);
+        newCard.addEmail(private1, EmailType.INTERNET);
         newCard.addEmail(private2, EmailType.HOME);
         vcardList.add(newCard);
     }

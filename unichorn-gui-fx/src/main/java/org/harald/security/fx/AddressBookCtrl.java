@@ -1,6 +1,11 @@
 package org.harald.security.fx;
 
 import ezvcard.VCard;
+import ezvcard.parameter.EmailType;
+import ezvcard.property.Email;
+import ezvcard.property.FormattedName;
+import javafx.beans.value.ChangeListener;
+import javafx.beans.value.ObservableValue;
 import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
@@ -16,6 +21,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 import static org.harry.security.CommonConst.APP_DIR_EMAILER;
 import static org.harry.security.CommonConst.PROP_ADDRESSBOOK;
@@ -60,11 +66,53 @@ public class AddressBookCtrl implements ControllerInit {
                 }
 
             }
+            addr_list.getSelectionModel().selectedItemProperty().addListener(new ChangeListener<String>() {
+                @Override
+                public void changed(ObservableValue<? extends String> observableValue, String s, String t1) {
+                    ObservableList<Integer> indices = addr_list.getSelectionModel().getSelectedIndices();
+                    if (indices.size() > 0) {
+                        try {
+                            int index = indices.get(0);
+                            VCard vcard = vcardList.get(index);
+                            List<FormattedName> names = vcard.getFormattedNames();
+                            firstName.setText(names.get(0).getValue());
+                            lastName.setText(names.get(1).getValue());
+                            nickName.setText(names.get(2).getValue());
+                            List<Email> emails = vcard.getEmails();
+                            Optional<Email> work = getMailAddressByType(emails, EmailType.WORK);
+                            Optional<Email> priv1 = getMailAddressByType(emails, EmailType.INTERNET);
+                            Optional<Email> priv2 = getMailAddressByType(emails, EmailType.HOME);
+                            if (work.isPresent()) {
+                                business.setText(work.get().getValue());
+                            } else {
+                                business.setText("");
+                            }
+                            if (priv1.isPresent()) {
+                                private1.setText(priv1.get().getValue());
+                            } else {
+                                private1.setText("");
+                            }
+                            if (priv2.isPresent()) {
+                                private2.setText(priv2.get().getValue());
+                            } else {
+                                private2.setText("");
+                            }
+                        } catch (Exception ex) {
+
+                        }
+                    }
+                }
+            });
+
         } catch (Exception ex) {
             Logger.trace(ex);
             throw new IllegalStateException("init error", ex);
         }
         return null;
+    }
+
+    private Optional<Email> getMailAddressByType(List<Email> emails, EmailType type) {
+        return emails.stream().filter(e -> e.getTypes().stream().anyMatch(t -> t.equals(type))).findFirst();
     }
 
     @FXML

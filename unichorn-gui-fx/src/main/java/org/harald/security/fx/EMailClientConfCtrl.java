@@ -9,6 +9,7 @@ import javafx.scene.control.CheckBox;
 import javafx.scene.control.ListView;
 import javafx.scene.control.TextField;
 import org.harald.security.fx.util.Miscellaneous;
+import org.harry.security.util.Tuple;
 import org.harry.security.util.mailer.EmailClientConfiguration;
 import security.harry.org.emailer_client._1.ClientConfig;
 import security.harry.org.emailer_client._1.CryptoConfigType;
@@ -43,13 +44,16 @@ public class EMailClientConfCtrl implements ControllerInit{
     @FXML
     ListView<String> cryptoConfList;
 
+    @FXML TextField selConfigName;
+
     ClientConfig config = null;
 
     List<CryptoConfigType> cryptoConfigs = new ArrayList<>();
 
     @Override
     public Scene init() {
-        config = EmailClientConfiguration.getClientConfig();
+        Tuple<String, String> confPassword = EMailCenterCtrl.getEMailPasswd("emailCryptoConf");
+        config = EmailClientConfiguration.loadClientConf(confPassword.getSecond());
         cryptoConfigs = config.getCryptoConfig();
         for (CryptoConfigType cryptoConf: cryptoConfigs) {
             cryptoConfList.getItems().add(cryptoConf.getName());
@@ -93,8 +97,10 @@ public class EMailClientConfCtrl implements ControllerInit{
     }
 
     @FXML
-    public void save(ActionEvent event) {
-
+    public void save(ActionEvent event)  throws IOException {
+        config.setCryptoConfigName(selConfigName.getText());
+        Tuple<String, String> credentials = EMailCenterCtrl.getEMailPasswd("emailCryptoConf");
+        EmailClientConfiguration.storeClientConf(config, credentials.getSecond());
     }
 
     @FXML
@@ -121,12 +127,5 @@ public class EMailClientConfCtrl implements ControllerInit{
         } else {
             cryptoConfigs.add(cryptoNew);
         }
-        config.getCryptoConfig().clear();
-        config.getCryptoConfig().addAll(cryptoConfigs);
-        File outFile = new File(APP_DIR_EMAILER, PROP_CLIENTCONF);
-        OutputStream out = new FileOutputStream(outFile);
-        EmailClientConfiguration.storeXMLClientConf(out);
-        out.flush();
-        out.close();
     }
 }
