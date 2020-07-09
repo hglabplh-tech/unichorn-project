@@ -1,5 +1,7 @@
 package org.harry.security.util;
 
+import iaik.pkcs.pkcs12.KeyBag;
+
 import java.io.Serializable;
 
 /**
@@ -25,7 +27,7 @@ public class Tuple<F,S> implements Serializable {
      * @param first first element
      * @param second second element
      */
-    public Tuple(F first, S second){
+    public Tuple(F first, S second) {
         this.first = first;
         this.second = second;
     }
