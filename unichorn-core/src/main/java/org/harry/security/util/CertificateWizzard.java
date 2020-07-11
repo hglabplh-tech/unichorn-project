@@ -757,7 +757,7 @@ public class CertificateWizzard {
             properties.setKeystorePass("geheim");
             try {
                 FileOutputStream stream = new FileOutputStream(properties.getAttrCertPath());
-                CertificateWizzard wizzard = new CertificateWizzard(properties, stream, "PKCS12");
+                CertificateWizzard wizzard = new CertificateWizzard(properties, stream, "UnicP12");
                 KeyPair caKeys = wizzard.generateCA(properties.getCommonName(), false);
                 KeyPair interKeys = wizzard.generateIntermediate(caKeys, properties.getCommonName(), false);
                 wizzard.generateUser(interKeys, properties.getCommonName(), false);
@@ -791,7 +791,7 @@ public class CertificateWizzard {
         properties.setKeystorePass("geheim");
         try {
             FileOutputStream stream = new FileOutputStream(properties.getAttrCertPath());
-            CertificateWizzard wizzard = new CertificateWizzard(properties, stream, "PKCS12");
+            CertificateWizzard wizzard = new CertificateWizzard(properties, stream, "UnicP12");
             KeyPair caKeys = wizzard.generateCA(properties.getCommonName(), false);
             KeyPair interKeys = wizzard.generateIntermediate(caKeys, properties.getCommonName(), false);
             wizzard.generateUser(interKeys, properties.getCommonName(), false);

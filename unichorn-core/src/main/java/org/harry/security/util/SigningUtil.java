@@ -711,7 +711,7 @@ public class SigningUtil {
                     System.out.println("cert found: " + signerCert.toString());
                     KeyStore store = KeyStoreTool.loadStore(
                             new FileInputStream(properties.getKeystorePath()),
-                            properties.getKeystorePass().toCharArray(), "PKCS12");
+                            properties.getKeystorePass().toCharArray(), "UnicP12");
                     privKey = (PrivateKey)store.
                             getKey(signingBean.getSignedWithAlias(),
                                     properties.getKeystorePass().toCharArray());

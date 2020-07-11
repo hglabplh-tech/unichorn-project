@@ -714,7 +714,7 @@ public class UnicHornResponderUtil {
             String password = decryptPassword("pwdFile");
             File keyFile = new File(APP_DIR_TRUST, "privKeystore" + ".p12");
             KeyStore storeApp = KeyStoreTool.loadStore(new FileInputStream(keyFile),
-                    password.toCharArray(), "PKCS12");
+                    password.toCharArray(), "UnicP12");
             Logger.trace("key-store loaded reading certificates ....");
             Enumeration<String> aliasEnum = storeApp.aliases();
             while (aliasEnum.hasMoreElements()) {

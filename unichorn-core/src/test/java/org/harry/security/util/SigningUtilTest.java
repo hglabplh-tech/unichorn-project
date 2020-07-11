@@ -66,7 +66,7 @@ public class SigningUtilTest extends TestBase {
         KeyStore store = KeyStoreTool.loadAppStore();
         Tuple<PrivateKey, X509Certificate[]> keys = KeyStoreTool.getAppKeyEntry(store);
         InputStream counterKeyInput = SigningUtilTest.class.getResourceAsStream("/certificates/signing.p12");
-        KeyStore counterStore = KeyStoreTool.loadStore(counterKeyInput, "changeit".toCharArray(), "PKCS12");
+        KeyStore counterStore = KeyStoreTool.loadStore(counterKeyInput, "changeit".toCharArray(), "UnicP12");
         URL urlInput = SigningUtilTest.class.getResource("/data/ergo.pdf");
         Tuple<PrivateKey, X509Certificate[]> counterKeys = null;
         Enumeration<String> aliases = counterStore.aliases();
@@ -116,7 +116,7 @@ public class SigningUtilTest extends TestBase {
     public void counterSignASignatureCAdES() throws Exception {
         KeyStore store = KeyStoreTool.loadAppStore();
         InputStream counterKeyInput = SigningUtilTest.class.getResourceAsStream("/certificates/signing.p12");
-        KeyStore counterStore = KeyStoreTool.loadStore(counterKeyInput, "changeit".toCharArray(), "PKCS12");
+        KeyStore counterStore = KeyStoreTool.loadStore(counterKeyInput, "changeit".toCharArray(), "UnicP12");
         Enumeration<String> aliases = counterStore.aliases();
         Tuple<PrivateKey, X509Certificate[]> counterKeys = null;
         if (aliases.hasMoreElements()) {

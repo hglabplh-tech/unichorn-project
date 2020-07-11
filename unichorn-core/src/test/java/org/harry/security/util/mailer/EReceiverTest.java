@@ -84,7 +84,7 @@ public class EReceiverTest extends TestBase {
             File keyStoreFile = new File(cryptoConf.getKeyStoreFile());
             KeyStore keystore = KeyStoreTool.loadStore(
                     new FileInputStream(keyStoreFile),
-                    cryptoConf.getPassword().toCharArray(), "PKCS12");
+                    cryptoConf.getPassword().toCharArray(), "UnicP12");
             return KeyStoreTool.getKeyEntry(keystore,
                     cryptoConf.getAlias(), cryptoConf.getPassword().toCharArray());
         }

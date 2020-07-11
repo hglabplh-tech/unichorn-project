@@ -270,7 +270,7 @@ public class TspServerConfiguration {
   private final static String PROP_KS_PWD = "KS_PWD";
   
   /**
-   * Property key KS_TYPE (KeyStore type, default "PKCS12").
+   * Property key KS_TYPE (KeyStore type, default "UnicP12").
    */
   private final static String PROP_KS_TYPE = "KS_TYPE";
   
@@ -553,7 +553,7 @@ public class TspServerConfiguration {
     
     if (keyStoreType == null) {
       log.debug("keyStoreType not specified. Using default (\"PKCS12\"");
-      keyStoreType = "PKCS12";
+      keyStoreType = "UnicP12";
     }
     
     KeyStore keyStore = null;

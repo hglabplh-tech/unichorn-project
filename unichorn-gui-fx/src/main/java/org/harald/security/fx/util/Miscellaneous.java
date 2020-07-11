@@ -236,7 +236,7 @@ public class Miscellaneous {
                 File keyStoreFile = new File(cryptoConf.getKeyStoreFile());
                 KeyStore keystore = KeyStoreTool.loadStore(
                         new FileInputStream(keyStoreFile),
-                        cryptoConf.getPassword().toCharArray(), "PKCS12");
+                        cryptoConf.getPassword().toCharArray(), "UnicP12");
                 Tuple<PrivateKey, X509Certificate[]> result = KeyStoreTool.getKeyEntry(keystore,
                         cryptoConf.getAlias(), cryptoConf.getPassword().toCharArray());
                 contexts.get().setEmailKeys(result);

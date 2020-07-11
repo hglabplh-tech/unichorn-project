@@ -104,7 +104,7 @@ public class VerifierCtrl implements ControllerInit {
                     verifyResults.setVisible(false);
                     data.addAll(entryList);
                     if (signerChain != null) {
-                        KeyStore store = KeyStoreTool.initStore("PKCS12", "geheim");
+                        KeyStore store = KeyStoreTool.initStore("UnicP12", "geheim");
                         KeyStoreTool.addCertificateChain(store, signerChain);
                         ConfigReader.MainProperties props = ConfigReader.loadStore();
                         KeyStoreTool.storeKeyStore(store, new FileOutputStream(props.getKeystorePath()), "geheim".toCharArray());
@@ -135,7 +135,7 @@ public class VerifierCtrl implements ControllerInit {
                     data.clear();
                     data.addAll(entryList);
                     if (signerChain != null && signerChain.length == 3) {
-                        KeyStore store = KeyStoreTool.initStore("PKCS12", "geheim");
+                        KeyStore store = KeyStoreTool.initStore("UnicP12", "geheim");
                         KeyStoreTool.addCertificateChain(store, signerChain);
                         ConfigReader.MainProperties props = ConfigReader.loadStore();
                         KeyStoreTool.storeKeyStore(store, new FileOutputStream(props.getKeystorePath()), "geheim".toCharArray());
@@ -170,7 +170,7 @@ public class VerifierCtrl implements ControllerInit {
                     data.clear();
                     data.addAll(entryList);
                     if (signerChain != null && signerChain.length == 3) {
-                        KeyStore store = KeyStoreTool.initStore("PKCS12", "geheim");
+                        KeyStore store = KeyStoreTool.initStore("UnicP12", "geheim");
                         KeyStoreTool.addCertificateChain(store, signerChain);
                         ConfigReader.MainProperties props = ConfigReader.loadStore();
                         KeyStoreTool.storeKeyStore(store, new FileOutputStream(props.getKeystorePath()), "geheim".toCharArray());

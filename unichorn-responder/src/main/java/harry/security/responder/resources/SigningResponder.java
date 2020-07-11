@@ -141,10 +141,10 @@ public class SigningResponder extends HttpServlet {
            tempKeyFile.delete();
            applyKeyStore(keyFile, resultInfo.getFirst(),
                    resultInfo.getSecond(),
-                   passwd, "PKCS12");
+                   passwd, "UnicP12");
            applyKeyStore(tempKeyFile, resultInfo.getFirst(),
                    resultInfo.getSecond(),
-                   "changeit", "PKCS12");
+                   "changeit", "UnicP12");
            FileInputStream keyStore = new FileInputStream(tempKeyFile);
 
            if (keyStore != null) {
@@ -259,7 +259,7 @@ public class SigningResponder extends HttpServlet {
            if (signStore.exists()) {
                password = "changeit";
                store = KeyStoreTool
-                       .loadStore(new FileInputStream(signStore), "changeit".toCharArray(), "PKCS12");
+                       .loadStore(new FileInputStream(signStore), "changeit".toCharArray(), "UnicP12");
                Enumeration<String> aliases = store.aliases();
                if (aliases.hasMoreElements()) {
                    foundID = aliases.nextElement();
@@ -270,7 +270,7 @@ public class SigningResponder extends HttpServlet {
                Logger.trace("CRL list file is: " + keyFile.getAbsolutePath());
 
                store = KeyStoreTool
-                       .loadStore(new FileInputStream(keyFile), password.toCharArray(), "PKCS12");
+                       .loadStore(new FileInputStream(keyFile), password.toCharArray(), "UnicP12");
                Enumeration<String> aliases = store.aliases();
                while (aliases.hasMoreElements() && !found) {
                    String alias = aliases.nextElement();

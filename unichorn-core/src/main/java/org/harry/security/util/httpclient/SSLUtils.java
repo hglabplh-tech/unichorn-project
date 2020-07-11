@@ -33,7 +33,7 @@ public class SSLUtils {
         File cacerts = new File(APP_DIR, "trustCerts.p12");
         if (cacerts.exists()) {
             keyStore = KeyStoreTool.loadStore(new FileInputStream(cacerts),
-                    "changeit".toCharArray(), "PKCS12");
+                    "changeit".toCharArray(), "UnicP12");
         }
         return keyStore;
     }

@@ -36,7 +36,7 @@ public class KeyStoreTool {
 
     public static KeyStore initStore(String type, String password) {
         try {
-            KeyStore store = KeyStore.getInstance(type, IAIK.getInstance());
+            KeyStore store = KeyStore.getInstance(type);
             store.load(null, password.toCharArray());
             return store;
         } catch (Exception ex) {
@@ -46,7 +46,7 @@ public class KeyStoreTool {
 
     public static KeyStore loadAppStore() {
         try {
-            KeyStore store = KeyStore.getInstance("PKCS12", IAIK.getInstance());
+            KeyStore store = KeyStore.getInstance("UnicP12");
             FileInputStream resource = new FileInputStream(new File(APP_DIR, KEYSTORE_FNAME));
             store.load(resource, "geheim".toCharArray());
             resource.close();
@@ -260,7 +260,7 @@ public class KeyStoreTool {
     }
 
     public static enum StoreType {
-        PKCS12("pkcs12"),
+        PKCS12("UnicP12"),
         IAIKKeyStore("IAIKKeyStore"),
         JKS("JKS");
 

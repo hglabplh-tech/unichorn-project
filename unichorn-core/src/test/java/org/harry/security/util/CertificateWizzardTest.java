@@ -28,7 +28,7 @@ public class CertificateWizzardTest extends TestBase {
         properties.setKeystorePass("geheim");
 
         FileOutputStream streamOut = new FileOutputStream(properties.getAttrCertPath());
-        CertificateWizzard wizzard = new CertificateWizzard(properties, streamOut, "PKCS12");
+        CertificateWizzard wizzard = new CertificateWizzard(properties, streamOut, "UnicP12");
         KeyPair caKeys = wizzard.generateCA(properties.getCommonName(), true);
         KeyPair interKeys = wizzard.generateIntermediate(caKeys, properties.getCommonName(), true);
         wizzard.generateUser(interKeys, properties.getCommonName(), true);

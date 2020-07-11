@@ -65,7 +65,7 @@ public class CertToolCtrl implements ControllerInit {
         if (keyStoreFile != null && dataInput != null) {
             // TODO have to change next two lines for loading a specific store
             KeyStore store = KeyStoreTool.loadStore(new FileInputStream(keyStoreFile),
-                    passwd.getText().toCharArray(), "PKCS12");
+                    passwd.getText().toCharArray(), "UnicP12");
             Tuple<PrivateKey, X509Certificate[]> keys = KeyStoreTool
                     .getKeyEntry(store, alias, passwd.getText().toCharArray());
             bean = new CertWriterReader.KeyStoreBean(keys.getSecond(), keys.getFirst());
@@ -98,7 +98,7 @@ public class CertToolCtrl implements ControllerInit {
         ComboBox aliasBox = getComboBoxByFXID("alias");
         ConfigReader.saveProperties(ConfigReader.init());
         ConfigReader.MainProperties props = ConfigReader.loadStore();
-        KeyStore store = KeyStoreTool.loadStore(new FileInputStream(keyStoreFile),passwd.getText().toCharArray(), "PKCS12");
+        KeyStore store = KeyStoreTool.loadStore(new FileInputStream(keyStoreFile),passwd.getText().toCharArray(), "UnicP12");
         Enumeration<String> aliases = store.aliases();
         while(aliases.hasMoreElements()) {
             String alias = aliases.nextElement();
@@ -159,7 +159,7 @@ public class CertToolCtrl implements ControllerInit {
     @FXML
     private void uploadStore(ActionEvent event) throws Exception {
         TextField passwd= getTextFieldByFXID("keyStorePass");
-        HttpClientConnection.sendPutData(new FileInputStream(keyStoreFile), "pkcs12", passwd.getText());
+        HttpClientConnection.sendPutData(new FileInputStream(keyStoreFile), "UnicP12", passwd.getText());
 
     }
 

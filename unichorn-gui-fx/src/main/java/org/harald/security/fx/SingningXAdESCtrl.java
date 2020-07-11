@@ -73,7 +73,7 @@ public class SingningXAdESCtrl implements ControllerInit {
     public void loadStore(ActionEvent event) throws Exception  {
         KeyStore store = KeyStoreTool.loadStore(new FileInputStream(keytoreFile),
                 password.getText().toCharArray(),
-                "PKCS12");
+                "UnicP12");
         Enumeration<String> aliases = store.aliases();
         while (aliases.hasMoreElements()) {
             String alias = aliases.nextElement();
@@ -109,7 +109,7 @@ public class SingningXAdESCtrl implements ControllerInit {
             XAdESDigestAlg dAlg = digestAlg.getSelectionModel().getSelectedItem();
             XAdESSigAlg sAlg = sigAlg.getSelectionModel().getSelectedItem();
             KeyStore store = KeyStoreTool.loadStore(new FileInputStream(keytoreFile),
-                    password.getText().toCharArray(), "PKCS12");
+                    password.getText().toCharArray(), "UnicP12");
             Tuple<PrivateKey, X509Certificate[]> keys = KeyStoreTool.getKeyEntry(store, alias,
                     password.getText().toCharArray());
             SignXAdESUtil util = new SignXAdESUtil(keys.getFirst(),

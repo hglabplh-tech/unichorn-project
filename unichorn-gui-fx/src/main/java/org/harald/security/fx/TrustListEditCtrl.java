@@ -92,7 +92,7 @@ public class TrustListEditCtrl implements ControllerInit {
             path.addElement(list[1]);
             KeyStore store = KeyStoreTool.loadStore(new FileInputStream(keyStoreFile),
                     passwd.getText().toCharArray(),
-                    "PKCS12");
+                    "UnicP12");
             Enumeration<String> aliases = store.aliases();
             while (aliases.hasMoreElements()) {
                 String alias = aliases.nextElement();

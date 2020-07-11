@@ -1,10 +1,12 @@
 package org.harry.security.util.keystores;
 
-import com.sun.xml.txw2.IllegalSignatureException;
+import iaik.asn1.ASN1Object;
+import iaik.asn1.structures.AlgorithmID;
 import iaik.pkcs.PKCSException;
 import iaik.pkcs.pkcs12.CertificateBag;
 import iaik.pkcs.pkcs12.KeyBag;
 import iaik.pkcs.pkcs12.PKCS12;
+import iaik.pkcs.pkcs8.EncryptedPrivateKeyInfo;
 import iaik.utils.Util;
 import iaik.x509.X509Certificate;
 import iaik.x509.extensions.SubjectKeyIdentifier;
@@ -20,6 +22,7 @@ import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Stream;
 
 public class UnichornPKCS12Store extends KeyStoreSpi  {
 
@@ -34,6 +37,10 @@ public class UnichornPKCS12Store extends KeyStoreSpi  {
     private Map<String, X509Certificate> realCertMap = new HashMap<>();
 
     private Set<String> aliases = new HashSet<>();
+
+    private AlgorithmID authSafesAlg = CryptoAlg.PBE_SHAA_40BITSRC2_CBC.getAlgId();
+
+    private AlgorithmID shroudedKeyBagAlg = CryptoAlg.PBE_SHAA_40BITSRC2_CBC.getAlgId();
 
 
     @Override
@@ -95,7 +102,23 @@ public class UnichornPKCS12Store extends KeyStoreSpi  {
 
     @Override
     public void engineSetKeyEntry(String alias, byte[] key, Certificate[] chain) throws KeyStoreException {
-        throw new IllegalStateException("not yet implemented");
+        try {
+            Tuple[] newTupleArray = new Tuple[chain.length];
+            newTupleArray[0] = new Tuple(alias, chain[0]);
+            for (int index = 1; index < newTupleArray.length; index++) {
+                newTupleArray[index] = new Tuple(null, chain[index]);
+            }
+            EncryptedPrivateKeyInfo keyInfo = new EncryptedPrivateKeyInfo(key);
+            ASN1Object asn1Key = keyInfo.toASN1Object();
+            KeyBag keyBag = new KeyBag(null);
+            keyBag.decode(asn1Key);
+            keyBag.setFriendlyName(alias);
+            byte [] array = alias.getBytes();
+            keyBag.setLocalKeyID(array);
+            privKeyEntries.put(alias, new Tuple(keyBag, newTupleArray));
+        } catch (Exception ex) {
+
+        }
     }
 
     @Override
@@ -167,7 +190,26 @@ public class UnichornPKCS12Store extends KeyStoreSpi  {
 
     @Override
     public String engineGetCertificateAlias(Certificate cert) {
-        throw new IllegalStateException("not yet implemented");
+        try {
+            X509Certificate certificate = Util.convertCertificate(cert);
+            Optional<Tuple<KeyBag, Tuple<String, X509Certificate>[]>> value =
+                    privKeyEntries.values().stream().filter(e ->
+                    {
+                        return e.getSecond()[0].getSecond().getSerialNumber().equals(certificate.getSerialNumber());
+                    })
+                            .findFirst();
+            if (value.isPresent()) {
+                return value.get().getSecond()[0].getFirst();
+            } else {
+                Optional<Map.Entry<String, X509Certificate>> entryOpt = realCertMap.entrySet()
+                        .stream()
+                        .filter(e -> e.getValue().getSerialNumber().equals(certificate.getSerialNumber()))
+                        .findFirst();
+                return entryOpt.map(Map.Entry::getKey).orElse(null);
+            }
+        } catch (Exception ex) {
+            throw new IllegalStateException(" cannot proceed find alias by cert", ex);
+        }
     }
 
     @Override
@@ -175,13 +217,41 @@ public class UnichornPKCS12Store extends KeyStoreSpi  {
         try {
             collectTheBagsToStore();
             PKCS12 pkcs12Store = new PKCS12(keyBags, certBags, true);
-            pkcs12Store.encrypt(password, CryptoAlg.PBE_SHAA_40BITSRC2_CBC.getAlgId(),
-                    CryptoAlg.PBE_SHAA_40BITSRC2_CBC.getAlgId());
+            pkcs12Store.encrypt(password, authSafesAlg,
+                    shroudedKeyBagAlg);
+            pkcs12Store.toASN1Object();
             pkcs12Store.writeTo(stream);
             stream.flush();
             stream.close();
         } catch (PKCSException ex) {
             throw new CertificateException(ex.toString());
+        }
+    }
+
+    public void engineStore(KeyStore.LoadStoreParameter storeParam) throws IOException, NoSuchAlgorithmException, CertificateException {
+        if (storeParam == null) {
+            throw new IOException("store param not given");
+        }
+        if (!(storeParam instanceof UP12StoreParams)) {
+            throw new IOException("store param not accepted");
+        }
+        try {
+            KeyStore.ProtectionParameter parameter = storeParam.getProtectionParameter();
+            if (parameter instanceof KeyStore.PasswordProtection) {
+                KeyStore.PasswordProtection passwdProt = (KeyStore.PasswordProtection) parameter;
+                char[] passwd = passwdProt.getPassword();
+                authSafesAlg = ((UP12StoreParams) storeParam).getAuthSafesAlg();
+                shroudedKeyBagAlg = ((UP12StoreParams) storeParam).getShroudedKeyBagAlg();
+                engineStore(((UP12StoreParams) storeParam).getOutputStream(), passwd);
+                passwdProt.destroy();
+            } else {
+                throw new NoSuchAlgorithmException("protection cannot be handled: "
+                        + parameter.getClass().getCanonicalName());
+            }
+        } catch (Exception ex) {
+            Logger.trace("error storing: " + ex.getMessage());
+            Logger.trace(ex);
+            throw new IOException("store cannot be stored");
         }
     }
 

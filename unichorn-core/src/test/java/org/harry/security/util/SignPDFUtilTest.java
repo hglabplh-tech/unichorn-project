@@ -52,7 +52,7 @@ public class SignPDFUtilTest extends TestBase {
     @Test
     public void signPDFSSimple() throws Exception {
         InputStream keystoreIN = SigningUtilTest.class.getResourceAsStream("/certificates/signing.p12");
-        KeyStore store = KeyStoreTool.loadStore(keystoreIN, "changeit".toCharArray(), "PKCS12");
+        KeyStore store = KeyStoreTool.loadStore(keystoreIN, "changeit".toCharArray(), "UnicP12");
         Enumeration<String> aliases = store.aliases();
         Tuple<PrivateKey, X509Certificate[]> keys = null;
         if (aliases.hasMoreElements()) {

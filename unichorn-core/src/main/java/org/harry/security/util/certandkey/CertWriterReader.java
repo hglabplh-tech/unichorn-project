@@ -78,7 +78,7 @@ public class CertWriterReader {
         try {
             if (storeIN == null) {
                 File keyStoreFile = new File(APP_DIR, KEYSTORE_FNAME);
-                type = "PKCS12";
+                type = "UnicP12";
                 storeIN = new FileInputStream(keyStoreFile);
             }
             KeyStore store = KeyStore.getInstance(type);

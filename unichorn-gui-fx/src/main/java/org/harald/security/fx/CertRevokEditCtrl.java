@@ -124,7 +124,7 @@ public class CertRevokEditCtrl implements ControllerInit {
         ListView added = Miscellaneous.getListViewByFXID("added");
         ListView revoked = Miscellaneous.getListViewByFXID("revoked");
         TextField passwd = Miscellaneous.getTextFieldByFXID("password");
-        KeyStore store = KeyStoreTool.loadStore(new FileInputStream(keystore),passwd.getText().toCharArray(), "PKCS12");
+        KeyStore store = KeyStoreTool.loadStore(new FileInputStream(keystore),passwd.getText().toCharArray(), "UnicP12");
 
         int index = 0;
         for (Object alias: added.getItems()) {
@@ -152,7 +152,7 @@ public class CertRevokEditCtrl implements ControllerInit {
     public void open(ActionEvent event) throws IOException, KeyStoreException {
         TextField passwd = Miscellaneous.getTextFieldByFXID("password");
         ListView source = Miscellaneous.getListViewByFXID("source");
-        KeyStore store = KeyStoreTool.loadStore(new FileInputStream(keystore),passwd.getText().toCharArray(), "PKCS12");
+        KeyStore store = KeyStoreTool.loadStore(new FileInputStream(keystore),passwd.getText().toCharArray(), "UnicP12");
         Enumeration<String> aliases = store.aliases();
         while(aliases.hasMoreElements()) {
             source.getItems().add(aliases.nextElement());

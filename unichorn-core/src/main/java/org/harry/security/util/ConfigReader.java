@@ -116,7 +116,7 @@ public class ConfigReader {
 
             props.setProperty(PROP_KEYSTORE_PATH, "./.keystore");
             props.setProperty(PROP_ATTR_CERT_PATH, "./attributeCert.cer");
-            props.setProperty(PROP_KEYSTORE_TYPE, "PKCS12");
+            props.setProperty(PROP_KEYSTORE_TYPE, "UnicP12");
 
             props.setProperty(PROP_KEYSTORE_ALIAS, "invalid");
             props.setProperty(PROP_CERT_COUNTRY, "");
@@ -176,7 +176,7 @@ public class ConfigReader {
                 }
                 String path = props.getProperty(PROP_KEYSTORE_PATH, "./.keystore");
                 String attrCertPath = props.getProperty(PROP_ATTR_CERT_PATH, "./attributeCert.cer");
-                String type = props.getProperty(PROP_KEYSTORE_TYPE, "PKCS12");
+                String type = props.getProperty(PROP_KEYSTORE_TYPE, "UnicP12");
                 String password = props.getProperty(PROP_KEYSTORE_PASS);
                 String alias = props.getProperty(PROP_KEYSTORE_ALIAS, "invalid");
                 String country = props.getProperty(PROP_CERT_COUNTRY, "");

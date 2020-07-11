@@ -117,7 +117,7 @@ public class SignXAdESUtil {
             throws GeneralSecurityException, IOException {
         System.out
                 .println("reading signature key and certificates ");
-        KeyStore store = KeyStoreTool.loadStore(fis,pw.toCharArray(), "PKCS12");
+        KeyStore store = KeyStoreTool.loadStore(fis,pw.toCharArray(), "UnicP12");
         secondKeys = KeyStoreTool.getKeyEntry(store, alias, pw.toCharArray());
 
     }

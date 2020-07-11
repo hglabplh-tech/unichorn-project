@@ -74,7 +74,7 @@ public class ResponderTest  {
 
         InputStream
                 keyStore = ResponderTest.class.getResourceAsStream("/application.jks");
-        KeyStore store = KeyStoreTool.loadStore(keyStore, "geheim".toCharArray(), "PKCS12");
+        KeyStore store = KeyStoreTool.loadStore(keyStore, "geheim".toCharArray(), "UnicP12");
         keys = KeyStoreTool.getKeyEntry(store, ALIAS, "geheim".toCharArray());
         X509Certificate[] certs = new X509Certificate[2];
         certs = keys.getSecond();
@@ -103,7 +103,7 @@ public class ResponderTest  {
     @Test
     public void nativeCallerSigningStore() throws Exception {
         InputStream keystoreIN = ResponderTest.class.getResourceAsStream("/signing.p12");
-        KeyStore store = KeyStoreTool.loadStore(keystoreIN, "changeit".toCharArray(), "PKCS12");
+        KeyStore store = KeyStoreTool.loadStore(keystoreIN, "changeit".toCharArray(), "UnicP12");
         Enumeration<String> aliases = store.aliases();
         Tuple<PrivateKey, X509Certificate[]> keys = null;
         if (aliases.hasMoreElements()) {
@@ -162,7 +162,7 @@ public class ResponderTest  {
 
         InputStream
                 keyStore = ResponderTest.class.getResourceAsStream("/qualified.p12");
-        KeyStore userStore = KeyStoreTool.loadStore(keyStore, "geheim".toCharArray(), "PKCS12");
+        KeyStore userStore = KeyStoreTool.loadStore(keyStore, "geheim".toCharArray(), "UnicP12");
         Enumeration<String> aliases = userStore.aliases();
         while (aliases.hasMoreElements()) {
             String alias = aliases.nextElement();
@@ -197,7 +197,7 @@ public class ResponderTest  {
         checkHttpsCertValidity("https://www.digicert.com", true, true);
         List<X509Certificate[]> certList= new ArrayList<>();
         InputStream keystoreUser = ResponderTest.class.getResourceAsStream("/test.p12");
-        KeyStore tsystems = KeyStoreTool.loadStore(keystoreUser, "geheim".toCharArray(), "PKCS12");
+        KeyStore tsystems = KeyStoreTool.loadStore(keystoreUser, "geheim".toCharArray(), "UnicP12");
         Enumeration<String> aliases = tsystems.aliases();
         while (aliases.hasMoreElements())  {
             String alias = aliases.nextElement();
@@ -235,7 +235,7 @@ public class ResponderTest  {
         checkHttpsCertValidity("https://www.digicert.com", true, true);
         List<X509Certificate[]> certList= new ArrayList<>();
         InputStream keystoreUser = ResponderTest.class.getResourceAsStream("/appKeyStore.p12");
-        KeyStore tsystems = KeyStoreTool.loadStore(keystoreUser, "geheim".toCharArray(), "PKCS12");
+        KeyStore tsystems = KeyStoreTool.loadStore(keystoreUser, "geheim".toCharArray(), "UnicP12");
         Enumeration<String> aliases = tsystems.aliases();
         while (aliases.hasMoreElements())  {
             String alias = aliases.nextElement();
@@ -246,7 +246,7 @@ public class ResponderTest  {
 
         InputStream
                 keyStore = ResponderTest.class.getResourceAsStream("/application.p12");
-        KeyStore store = KeyStoreTool.loadStore(keyStore, "geheim".toCharArray(), "PKCS12");
+        KeyStore store = KeyStoreTool.loadStore(keyStore, "geheim".toCharArray(), "UnicP12");
         keys = KeyStoreTool.getKeyEntry(store, ALIAS, "geheim".toCharArray());
         X509Certificate[] certs = new X509Certificate[2];
         certs = keys.getSecond();
@@ -333,7 +333,7 @@ public class ResponderTest  {
     public void testOCSPOKSigned2() throws Exception {
         List<X509Certificate[]> certList= new ArrayList<>();
         InputStream keystoreUser = ResponderTest.class.getResourceAsStream("/appKeyStore.p12");
-        KeyStore tsystems = KeyStoreTool.loadStore(keystoreUser, "geheim".toCharArray(), "PKCS12");
+        KeyStore tsystems = KeyStoreTool.loadStore(keystoreUser, "geheim".toCharArray(), "UnicP12");
         Enumeration<String> aliases = tsystems.aliases();
         while (aliases.hasMoreElements())  {
             String alias = aliases.nextElement();
@@ -344,7 +344,7 @@ public class ResponderTest  {
 
         InputStream
                 keyStore = ResponderTest.class.getResourceAsStream("/application.jks");
-        KeyStore store = KeyStoreTool.loadStore(keyStore, "geheim".toCharArray(), "PKCS12");
+        KeyStore store = KeyStoreTool.loadStore(keyStore, "geheim".toCharArray(), "UnicP12");
         keys = KeyStoreTool.getKeyEntry(store, ALIAS, "geheim".toCharArray());
         X509Certificate[] certs = new X509Certificate[2];
         certs = keys.getSecond();
@@ -374,7 +374,7 @@ public class ResponderTest  {
         properties = properties.setKeystorePath("./" + idPart + ".p12");
         CertificateWizzard.generateThis(properties);
         File store  = new File("./" + idPart + ".p12").getAbsoluteFile();
-        KeyStore keys = KeyStoreTool.loadStore(new FileInputStream(store), "geheim".toCharArray(), "PKCS12");
+        KeyStore keys = KeyStoreTool.loadStore(new FileInputStream(store), "geheim".toCharArray(), "UnicP12");
         X509Certificate[] chain = KeyStoreTool.getCertChainEntry(keys, keys.aliases().nextElement());
         String ocspUrl =  OCSPCRLClient.getOCSPUrl(chain[0]);
         ocspUrl = OCSP_URL;
@@ -395,7 +395,7 @@ public class ResponderTest  {
     public void checkCertRevoked() throws Exception {
 
         InputStream store  = ResponderTest.class.getResourceAsStream("/t-systems.p12");
-        KeyStore keys = KeyStoreTool.loadStore(store, "geheim".toCharArray(), "PKCS12");
+        KeyStore keys = KeyStoreTool.loadStore(store, "geheim".toCharArray(), "UnicP12");
         X509Certificate[] chain = KeyStoreTool.getCertChainEntry(keys, keys.aliases().nextElement());
         String ocspUrl =  OCSPCRLClient.getOCSPUrl(chain[0]);
         ocspUrl = OCSP_URL;
@@ -416,7 +416,7 @@ public class ResponderTest  {
     public void checkCertAvail() throws Exception {
 
         InputStream store  = ResponderTest.class.getResourceAsStream("/test.p12");
-        KeyStore keys = KeyStoreTool.loadStore(store, "geheim".toCharArray(), "PKCS12");
+        KeyStore keys = KeyStoreTool.loadStore(store, "geheim".toCharArray(), "UnicP12");
         X509Certificate[] chain = KeyStoreTool.getCertChainEntry(keys, keys.aliases().nextElement());
         String ocspUrl =  OCSPCRLClient.getOCSPUrl(chain[0]);
         ocspUrl = OCSP_URL;
@@ -447,8 +447,8 @@ public class ResponderTest  {
         byte [] encoded = Base64.getEncoder().encode("geheim".getBytes());
         String encodeString = new String(encoded);
         put.setHeader("passwd",encodeString);
-        put.setHeader("storeType", "PKCS12");
-        put.setHeader("fileType", "pkcs12");
+        put.setHeader("storeType", "UnicP12");
+        put.setHeader("fileType", "UnicP12");
         HttpEntity entity = new InputStreamEntity(keyStore);
         put.setEntity(entity);
         CloseableHttpResponse response = httpClient.execute(put);
@@ -467,7 +467,7 @@ public class ResponderTest  {
         byte [] encoded = Base64.getEncoder().encode("geheim".getBytes());
         String encodeString = new String(encoded);
         put.setHeader("passwd",encodeString);
-        put.setHeader("storeType", "PKCS12");
+        put.setHeader("storeType", "UnicP12");
         put.setHeader("fileType", "trust");
         HttpEntity entity = new InputStreamEntity(keyStore);
         put.setEntity(entity);
@@ -483,7 +483,7 @@ public class ResponderTest  {
         try {
             InputStream
                     keyStore = ResponderTest.class.getResourceAsStream("/application.jks");
-            KeyStore store = KeyStoreTool.loadStore(keyStore, "geheim".toCharArray(), "PKCS12");
+            KeyStore store = KeyStoreTool.loadStore(keyStore, "geheim".toCharArray(), "UnicP12");
             Tuple<PrivateKey, X509Certificate[]> keys = KeyStoreTool.getKeyEntry(store, ALIAS, "geheim".toCharArray());
             X509Certificate[] certs = new X509Certificate[2];
             certs = keys.getSecond();
@@ -551,11 +551,11 @@ public class ResponderTest  {
         Logger.trace("Before loading keystore");
         String passwd = "geheim";
         KeyStore storeToApply = KeyStoreTool.loadStore(p12Stream,
-                passwd.toCharArray(), "PKCS12");
+                passwd.toCharArray(), "UnicP12");
         Logger.trace("Before calling merge");
         File keyFile = new File(APP_DIR_TRUST, "privKeystore" + ".p12");
 
-        applyKeyStore(keyFile, storeToApply, passwd, passwd, "PKCS12");
+        applyKeyStore(keyFile, storeToApply, passwd, passwd, "UnicP12");
         assertThat("file does not exist", keyFile.exists(), is(true));
     }
 

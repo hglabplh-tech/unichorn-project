@@ -125,7 +125,7 @@ public class UnichornResponderSave extends HttpServlet {
                IOUtils.copy(in, out);
                in.close();
                out.close();
-           } else if (type.equals("pkcs12")) {
+           } else if (type.equals("UnicP12")) {
 
                String passwdHeader = request.getHeader("passwd");
                String decodedString = null;
@@ -137,7 +137,7 @@ public class UnichornResponderSave extends HttpServlet {
                if (storeTypeHeader != null && decodedString != null) {
                    InputStream p12Stream = request.getInputStream();
                    InputStream keyStore = UnicHornResponderUtil.class.getResourceAsStream("/application.jks");
-                   KeyStore storeApp = KeyStoreTool.loadStore(keyStore, "geheim".toCharArray(), "PKCS12");
+                   KeyStore storeApp = KeyStoreTool.loadStore(keyStore, "geheim".toCharArray(), "UnicP12");
                    Tuple<PrivateKey, X509Certificate[]> keys = null;
                    keys = KeyStoreTool.getKeyEntry(storeApp, UnichornResponderSave.ALIAS, "geheim".toCharArray());
                    OutputStream  out = new FileOutputStream(keyFile);

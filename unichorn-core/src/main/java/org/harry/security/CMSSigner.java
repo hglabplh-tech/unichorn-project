@@ -15,6 +15,7 @@ import org.harry.security.util.*;
 import org.harry.security.util.bean.SigningBean;
 import org.harry.security.util.certandkey.CertWriterReader;
 import org.harry.security.util.certandkey.KeyStoreTool;
+import org.harry.security.util.keystores.UnicProvider;
 import org.harry.security.util.trustlist.TrustListManager;
 import org.pmw.tinylog.Configurator;
 import org.pmw.tinylog.Level;
@@ -249,7 +250,8 @@ public class CMSSigner {
     public static void setProviders() {
         IAIKMD.addAsProvider();
         ECCelerate ecProvider = ECCelerate.getInstance();
-        Security.insertProviderAt(ecProvider, 4);
+        Security.insertProviderAt(ecProvider, 3);
+        Security.insertProviderAt(UnicProvider.getInstance(), 4);
         SecurityProvider.setSecurityProvider(new ECCelerateProvider());
 
     }

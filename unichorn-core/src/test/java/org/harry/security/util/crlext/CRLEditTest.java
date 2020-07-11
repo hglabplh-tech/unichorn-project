@@ -28,7 +28,7 @@ public class CRLEditTest extends TestBase {
     public void loadAndChange() throws Exception {
         InputStream keyStore = CRLEditTest.class.getResourceAsStream("/certificates/application.jks");
         assertNotNull(keyStore);
-        KeyStore store = KeyStoreTool.loadStore(keyStore, "geheim".toCharArray(), "PKCS12");
+        KeyStore store = KeyStoreTool.loadStore(keyStore, "geheim".toCharArray(), "UnicP12");
         Tuple<PrivateKey, X509Certificate[]> keys = KeyStoreTool.getKeyEntry(store, ALIAS, "geheim".toCharArray());
         InputStream stream = CRLEditTest.class.getResourceAsStream("/crl/unichorn.crl");
         InputStream certIN = CRLEditTest.class.getResourceAsStream("/certificates/hgp.cer");
@@ -44,7 +44,7 @@ public class CRLEditTest extends TestBase {
     public void loadAllNewCerts() throws Exception {
         InputStream keyStore = CRLEditTest.class.getResourceAsStream("/certificates/application.jks");
         assertNotNull(keyStore);
-        KeyStore store = KeyStoreTool.loadStore(keyStore, "geheim".toCharArray(), "PKCS12");
+        KeyStore store = KeyStoreTool.loadStore(keyStore, "geheim".toCharArray(), "UnicP12");
         Tuple<PrivateKey, X509Certificate[]> keys = KeyStoreTool.getKeyEntry(store, ALIAS, "geheim".toCharArray());
         InputStream stream = CRLEditTest.class.getResourceAsStream("/crl/unichorn.crl");
         InputStream streamTrust = CRLEditTest.class.getResourceAsStream("/crl/privateTrust.xml");

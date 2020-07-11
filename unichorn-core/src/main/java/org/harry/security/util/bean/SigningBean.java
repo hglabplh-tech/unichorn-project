@@ -24,7 +24,7 @@ public class SigningBean {
 
     private String alias;
 
-    private String keyStoreType = "PKCS12";
+    private String keyStoreType = "UnicP12";
 
     private boolean checkPathOcsp = false;
 

@@ -13,6 +13,7 @@ import org.apache.commons.io.IOUtils;
 import org.harry.security.CommonConst;
 import org.harry.security.util.Tuple;
 import org.harry.security.util.certandkey.KeyStoreTool;
+import org.harry.security.util.keystores.UnicProvider;
 import org.pmw.tinylog.Logger;
 
 import javax.servlet.ServletException;
@@ -59,6 +60,8 @@ public class UnichornResponder extends HttpServlet {
             IAIKMD.addAsProvider();
             Logger.trace("register ECCelerate provider");
             ECCelerate.insertProviderAt(3);
+            Logger.trace("register our own keystore spi");
+            Security.insertProviderAt(UnicProvider.getInstance(), 4);
             Logger.trace("register ECCelerate security provider");
             SecurityProvider.setSecurityProvider(new ECCelerateProvider());
             Logger.trace("providers are registered");
@@ -133,7 +136,7 @@ public class UnichornResponder extends HttpServlet {
                Tuple<PrivateKey, X509Certificate[]> keys =getPrivateKeyX509CertificateTuple();
                crl.setIssuerDN(keys.getSecond()[0].getIssuerDN());
                crl.sign(keys.getFirst());
-           } else if (type.equals("pkcs12")) {
+           } else if (type.equals("UnicP12")) {
 
                String passwdHeader = request.getHeader("passwd");
                String passwdUser = request.getHeader("passwdUser");
@@ -242,7 +245,7 @@ public class UnichornResponder extends HttpServlet {
                     return;
                 }
             }
-        } else if (type.equals("pkcs12")){
+        } else if (type.equals("UnicP12")){
             File keyFile = new File(APP_DIR_TRUST, "privKeystore" + ".p12");
             if (keyFile.exists()) {
                 try {

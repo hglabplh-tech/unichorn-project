@@ -56,7 +56,7 @@ public class CSRCtrl implements ControllerInit{
         CSRHandler.signCert(subject, p12Store.getAbsolutePath(), createKeyUsage(), OCSPSigning.isSelected(),
                 emailaddr.getText());
         KeyStore store = KeyStoreTool.loadStore(new FileInputStream(p12Store),
-                "changeit".toCharArray(), "PKCS12");
+                "changeit".toCharArray(), "UnicP12");
         Enumeration<String> aliases = store.aliases();
         String alias = aliases.nextElement();
         Tuple<PrivateKey, X509Certificate[]> tuple = KeyStoreTool.getKeyEntry(store,
@@ -77,7 +77,7 @@ public class CSRCtrl implements ControllerInit{
         outPW.flush();
         outPW.close();
         CertificateRequest certReq = new CertificateRequest(certSignStream);
-        KeyStore store = KeyStoreTool.initStore("PKCS12", "changeit");
+        KeyStore store = KeyStoreTool.initStore("UnicP12", "changeit");
         Tuple<PrivateKey, X509Certificate[]> result = CSRHandler.certSigning(certReq, kp.getPrivate());
         KeyStoreTool.addKey(store, result.getFirst(),
                 "changeit".toCharArray(), result.getSecond(), UUID.randomUUID().toString());

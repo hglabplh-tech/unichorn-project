@@ -171,7 +171,7 @@ public class CSRHandler {
         uriBuilder.addParameter("token", token)
                 .addParameter("passwdUser", passwdUser)
                 .addParameter("passwd", passwdHeader)
-                .addParameter("storeType", "PKCS12");
+                .addParameter("storeType", "UnicP12");
         System.out.println("Responder URL: " + uriBuilder.build());
         HttpPost post = new HttpPost(uriBuilder.build());
         GSON.Params param = new GSON.Params();

@@ -216,7 +216,7 @@ public class SigningCtrl implements ControllerInit {
         store = KeyStoreTool
                 .loadStore(new FileInputStream(keystoreFile),
                         pin.getText().toCharArray(),
-                        "PKCS12");
+                        "UnicP12");
         Enumeration<String> aliases = store.aliases();
         while(aliases.hasMoreElements()) {
             aliasBox.getItems().add(aliases.nextElement());

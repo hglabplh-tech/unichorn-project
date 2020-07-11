@@ -68,7 +68,7 @@ public class HttpClientConnection {
         encoded = Base64.getEncoder().encode(userPWD.getBytes());
         encodeString = new String(encoded);
         put.setHeader("passwdUser",encodeString);
-        put.setHeader("storeType", "PKCS12");
+        put.setHeader("storeType", "UnicP12");
         HttpEntity entity = new InputStreamEntity(data);
         put.setEntity(entity);
         CloseableHttpResponse response = httpClient.execute(put);
@@ -87,7 +87,7 @@ public class HttpClientConnection {
         byte [] encoded = Base64.getEncoder().encode("geheim".getBytes());
         String encodeString = new String(encoded);
         put.setHeader("passwd",encodeString);
-        put.setHeader("storeType", "PKCS12");
+        put.setHeader("storeType", "UnicP12");
         HttpEntity entity = new InputStreamEntity(data);
         put.setEntity(entity);
         CloseableHttpResponse response = httpClient.execute(put);
