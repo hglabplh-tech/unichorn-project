@@ -21,7 +21,6 @@
         </rowConstraints>
          <children>
             <TreeView fx:id="controlTree" prefHeight="200.0" prefWidth="200.0" GridPane.rowIndex="2" GridPane.rowSpan="2" />
-            <ListView fx:id="mailList" prefHeight="200.0" prefWidth="200.0" GridPane.columnIndex="1" GridPane.columnSpan="2" GridPane.rowIndex="2" />
             <Button fx:id="writeMail" mnemonicParsing="false" onAction="#writeMail" prefHeight="31.0" prefWidth="177.0" text="Write Mail" GridPane.rowIndex="1" />
             <Button fx:id="newAccount" mnemonicParsing="false" onAction="#newAccount" prefHeight="31.0" prefWidth="194.0" text="New Account" />
             <GridPane prefHeight="323.0" prefWidth="1000.0" GridPane.columnIndex="1" GridPane.columnSpan="2" GridPane.rowIndex="3">
@@ -33,11 +32,15 @@
                   <ColumnConstraints hgrow="SOMETIMES" maxWidth="759.0" minWidth="10.0" prefWidth="32.0" />
                   <ColumnConstraints hgrow="SOMETIMES" maxWidth="759.0" minWidth="10.0" prefWidth="175.0" />
                   <ColumnConstraints hgrow="SOMETIMES" maxWidth="759.0" minWidth="10.0" prefWidth="28.0" />
+                  <ColumnConstraints hgrow="SOMETIMES" maxWidth="759.0" minWidth="10.0" prefWidth="28.0" />
+                  <ColumnConstraints hgrow="SOMETIMES" maxWidth="759.0" minWidth="10.0" prefWidth="28.0" />
               </columnConstraints>
               <rowConstraints>
                 <RowConstraints maxHeight="115.0" minHeight="10.0" prefHeight="47.0" vgrow="SOMETIMES" />
                 <RowConstraints maxHeight="157.0" minHeight="10.0" prefHeight="36.0" vgrow="SOMETIMES" />
                 <RowConstraints maxHeight="157.0" minHeight="10.0" prefHeight="36.0" vgrow="SOMETIMES" />
+                  <RowConstraints maxHeight="157.0" minHeight="10.0" prefHeight="36.0" vgrow="SOMETIMES" />
+                  <RowConstraints maxHeight="157.0" minHeight="10.0" prefHeight="36.0" vgrow="SOMETIMES" />
                   <RowConstraints maxHeight="157.0" minHeight="10.0" prefHeight="36.0" vgrow="SOMETIMES" />
                   <RowConstraints maxHeight="157.0" minHeight="10.0" prefHeight="36.0" vgrow="SOMETIMES" />
                   <RowConstraints maxHeight="157.0" minHeight="10.0" prefHeight="153.0" vgrow="SOMETIMES" />
@@ -47,22 +50,24 @@
               </rowConstraints>
                <children>
                   <Label text="From:" GridPane.columnIndex="2" />
-                  <Label fx:id="signedBy" prefHeight="21.0" prefWidth="644.0" text="Signed by:" GridPane.columnIndex="2" GridPane.columnSpan="3" GridPane.rowIndex="4" />
+                  <Label fx:id="signedBy" prefHeight="21.0" prefWidth="644.0" text="Signed by:" GridPane.columnIndex="2" GridPane.columnSpan="3" GridPane.rowIndex="5" />
                   <TextField fx:id="subject" GridPane.columnIndex="3" GridPane.rowIndex="2" />
                   <Button fx:id="reply" mnemonicParsing="false" onAction="#reply" text="Reply" />
                   <Button fx:id="forward" mnemonicParsing="false" onAction="#forward" text="Forward" GridPane.rowIndex="1" />
                   <ComboBox fx:id="fromBox" prefHeight="31.0" prefWidth="606.0" GridPane.columnIndex="3" />
                   <Button fx:id="replyAll" mnemonicParsing="false" onAction="#replyAll" prefHeight="31.0" prefWidth="125.0" text="Reply to all" GridPane.columnIndex="1" />
-                  <WebView fx:id="webContentView" prefHeight="75.0" prefWidth="990.0" GridPane.columnSpan="6" GridPane.rowIndex="5" />
+                  <WebView fx:id="webContentView" prefHeight="75.0" prefWidth="990.0" GridPane.columnSpan="6" GridPane.rowIndex="7" />
                   <Label prefHeight="21.0" prefWidth="20.0" text="To:" GridPane.columnIndex="2" GridPane.rowIndex="3" />
                   <ComboBox fx:id="to" prefHeight="31.0" prefWidth="520.0" GridPane.columnIndex="3" GridPane.rowIndex="3" />
                   <ComboBox fx:id="attachments" prefWidth="150.0" GridPane.columnIndex="5" />
                   <Button fx:id="showSig" disable="true" mnemonicParsing="false" onAction="#showSig" text="Show Signature" GridPane.columnIndex="5" GridPane.rowIndex="2" />
                   <Label layoutX="224.0" layoutY="326.0" text="Subject:" GridPane.columnIndex="2" GridPane.rowIndex="2" />
+                  <Button fx:id="showCert" layoutX="10.0" layoutY="15.0" mnemonicParsing="false" onAction="#showCert" text="Show Certificates" GridPane.columnIndex="5" GridPane.rowIndex="4" />
                </children>
             </GridPane>
             <Button fx:id="back" mnemonicParsing="false" onAction="#back" text="Go Back" GridPane.columnIndex="2" />
             <Button fx:id="addresses" mnemonicParsing="false" onAction="#addresses" text="Addresses" GridPane.columnIndex="2" GridPane.rowIndex="1" />
+            <ListView fx:id="mailList" prefHeight="200.0" prefWidth="200.0" GridPane.columnIndex="1" GridPane.columnSpan="2" GridPane.rowIndex="2" />
          </children>
       </GridPane>
    </children>

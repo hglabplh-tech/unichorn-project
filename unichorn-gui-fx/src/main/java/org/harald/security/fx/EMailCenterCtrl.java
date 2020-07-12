@@ -1,7 +1,7 @@
 package org.harald.security.fx;
 
 import com.sun.mail.imap.IMAPFolder;
-import com.sun.mail.imap.IMAPMessage;
+import iaik.x509.X509Certificate;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.ObservableList;
@@ -12,7 +12,11 @@ import javafx.scene.control.*;
 import javafx.scene.web.WebEngine;
 import javafx.scene.web.WebView;
 import org.apache.commons.io.IOUtils;
+import org.harry.security.util.AlgorithmPathChecker;
+import org.harry.security.util.ConfigReader;
 import org.harry.security.util.Tuple;
+import org.harry.security.util.VerifyUtil;
+import org.harry.security.util.bean.SigningBean;
 import org.harry.security.util.mailer.*;
 import org.harry.security.util.pwdmanager.PasswordManager;
 import org.pmw.tinylog.Logger;
@@ -240,11 +244,34 @@ public class EMailCenterCtrl implements ControllerInit {
     }
 
     @FXML
+    public void showCert(ActionEvent event) throws Exception {
+        EReceiver.ReadableMail mail = new EReceiver.ReadableMail(displayedMessage, getPrivateKeyTuple());
+        mail.analyzeContent(null);
+        if (mail != null) {
+            SigningBean bean = new SigningBean().setCheckPathOcsp(true);
+            AlgorithmPathChecker checker = new AlgorithmPathChecker(ConfigReader.loadAllTrusts(), bean);
+            X509Certificate[] chain = checker.detectChain(mail.getSigner(),
+                    null, new VerifyUtil.SignerInfoCheckResults());
+            if (chain.length > 2) {
+                ShowCertsDialog.showCertChainDialog(chain);
+            }
+        }
+    }
+
+    @FXML
     public void showSig(ActionEvent event) throws Exception {
         EReceiver.ReadableMail mail = new EReceiver.ReadableMail(displayedMessage, getPrivateKeyTuple());
         mail.analyzeContent(null);
         if (mail != null) {
-            signedBy.setText(mail.getSigner().getSubjectDN().getName());
+            SigningBean bean = new SigningBean().setCheckPathOcsp(true);
+            AlgorithmPathChecker checker = new AlgorithmPathChecker(ConfigReader.loadAllTrusts(), bean);
+            X509Certificate[] chain = checker.detectChain(mail.getSigner(),
+                    null, new VerifyUtil.SignerInfoCheckResults());
+            if (chain.length < 2) {
+                signedBy.setText("cannot detect chain");
+            } else {
+                signedBy.setText(mail.getSigner().getSubjectDN().getName());
+            }
         }
     }
 
