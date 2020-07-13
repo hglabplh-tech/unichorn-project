@@ -5,6 +5,7 @@ import iaik.x509.X509Certificate;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.ObservableList;
+import javafx.collections.transformation.SortedList;
 import javafx.event.*;
 import javafx.fxml.FXML;
 import javafx.scene.Scene;
@@ -169,6 +170,7 @@ public class EMailCenterCtrl implements ControllerInit {
                                 actualMessages.clear();
                                 actualMessagesList.clear();
                                 actualMessages.putAll(messageMap);
+
                                 actualMessagesList.addAll(messageMap.values());
                                 try {
                                     for (Map.Entry<String, Message> msgEntry: actualMessages.entrySet()) {
@@ -369,16 +371,18 @@ public class EMailCenterCtrl implements ControllerInit {
             folder.open(Folder.READ_WRITE);
             largestUid = ((IMAPFolder)folder).getUIDNext() - 1;
         }
+        long nameIndex = largestUid + 1000;
         for (Message msg: messages) {
             String dirName = path;
             baseDirFile = new File(base, dirName);
-            String fName = UUID.randomUUID().toString() + ".msg";
+            String fName = "" + nameIndex + "_" + UUID.randomUUID().toString() + ".msg";
             baseDirFile.mkdirs();
             File msgFile = new File(baseDirFile, fName);
             FileOutputStream out = new FileOutputStream(msgFile);
             msg.writeTo(out);
             out.close();
             messageMap.put(msgFile.getAbsolutePath(), msg);
+            nameIndex++;
         }
         if (folder != null) {
             folder.close(false);
@@ -399,8 +403,25 @@ public class EMailCenterCtrl implements ControllerInit {
         File intFile = new File(baseDirFile, PROP_FOLDERINDEXFILE);
         if (intFile.exists()) {
             File [] files = baseDirFile.listFiles();
+            List<File> sorted = Arrays.asList(files);
+            Collections.sort(sorted, new Comparator<File>() {
+
+                @Override
+                public int compare(File o1, File o2) {
+                    if (o1.getAbsolutePath().endsWith(".msg") &&
+                            o2.getAbsolutePath().endsWith(".msg")) {
+                        String name1 = o1.getName();
+                        String name2 = o2.getName();
+                        long index1 = Long.parseLong(name1.substring(0, name1.indexOf('_')));
+                        long index2 = Long.parseLong(name2.substring(0, name2.indexOf('_')));
+                        return Long.compare(index1, index2);
+                    } else {
+                        return 0;
+                    }
+                }
+            });
             int index = 0;
-            for (File file: files) {
+            for (File file: sorted) {
                 if (file.getAbsolutePath().endsWith(".msg")) {
                     MimeMessage msg = new MimeMessage(connection.getFirst(), new FileInputStream(file));
                     messages.put(file.getAbsolutePath(), msg);
