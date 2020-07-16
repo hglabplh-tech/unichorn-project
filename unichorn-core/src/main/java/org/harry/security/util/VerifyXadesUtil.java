@@ -15,8 +15,11 @@ import org.w3c.dom.Document;
 import org.w3c.dom.NodeList;
 
 import javax.xml.crypto.Data;
+import javax.xml.crypto.XMLStructure;
 import javax.xml.crypto.dsig.*;
 import javax.xml.crypto.dsig.dom.DOMValidateContext;
+import javax.xml.crypto.dsig.keyinfo.KeyInfo;
+import javax.xml.crypto.dsig.keyinfo.X509Data;
 import javax.xml.parsers.DocumentBuilderFactory;
 import java.io.*;
 import java.math.BigInteger;
@@ -25,6 +28,7 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.security.*;
 import java.security.cert.*;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Set;
@@ -41,6 +45,8 @@ public class VerifyXadesUtil {
     private final AlgorithmPathChecker algPathChecker;
 
     private final Provider xSecProvider;
+
+    private List<X509Certificate> certList = new ArrayList<>();
 
     /**
      * The default constructor for verification
@@ -111,6 +117,8 @@ public class VerifyXadesUtil {
                     SignedProperties sp = qp.getSignedProperties();
 
                     getCertificateV1(result, signerResult, sp);
+                    collectCertChain(signature, signerResult);
+                    //X509Certificate
                     canonMethodCheck(signature, signerResult);
                     checkRevocationInfo(valContext, up, signerResult);
                     checkTimestamps(valContext, up, signerResult);
@@ -130,6 +138,24 @@ public class VerifyXadesUtil {
         }
 
 
+    }
+
+    private void collectCertChain(XMLSignature signature, VerificationResults.SignerInfoCheckResults signerResult) {
+        KeyInfo keyInfo = signature.getKeyInfo();
+        for (Object certData : keyInfo.getContent()) {
+            X509Data x509Data = (X509Data)certData;
+            for (Object obj: x509Data.getContent()) {
+                X509Certificate iaikCert = (X509Certificate)obj;
+                this.certList.add(iaikCert);
+            }
+        }
+        X509Certificate [] chain = new X509Certificate[certList.size()];
+        for (int index = 0;index < chain.length;index++) {
+            chain[index] = certList.get(index);
+        }
+        signerResult.addCertChain(
+                new Tuple<>("cert chain", VerificationResults.Outcome.SUCCESS),
+                this.certList, chain);
     }
 
     private void canonMethodCheck(XMLSignature signature, VerificationResults.SignerInfoCheckResults signerResult) {
@@ -258,6 +284,8 @@ public class VerifyXadesUtil {
                     List certs = sigCerts.getCertIDs();
                     if (!certs.isEmpty()) {
                         sigCert = (CertIDV2) certs.get(0);
+                        // TODO: look if we are able to get the X509Certificate
+                        sigCert.getURI();
                         result.addSignersInfo(sigCert.getURI(), signerResult);
                         signerResult.addSignatureResult("sigMathOk", new Tuple<>("signature math ok",
                                 VerificationResults.Outcome.SUCCESS));
