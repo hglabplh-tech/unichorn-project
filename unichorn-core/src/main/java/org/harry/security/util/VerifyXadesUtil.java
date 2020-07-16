@@ -144,8 +144,8 @@ public class VerifyXadesUtil {
         // TODO: here we have to code the real check later
         signerResult.addSignatureResult("check_signature_algorithm",
                 new Tuple<>("signature alg ok", VerificationResults.Outcome.SUCCESS));
-        if (method.equals(CanonicalizationMethod.INCLUSIVE)
-                || method.equals(CanonicalizationMethod.EXCLUSIVE)) {
+        if (method.getAlgorithm().equals(CanonicalizationMethod.INCLUSIVE)
+                || method.getAlgorithm().equals(CanonicalizationMethod.EXCLUSIVE)) {
             signerResult.addSignatureResult("canon method check",
                     new Tuple<>("canon method checked ok", VerificationResults.Outcome.SUCCESS));
         } else {
