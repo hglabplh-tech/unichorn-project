@@ -50,11 +50,11 @@ public class VerifyPDFUtil {
      *          the signed or certified PDF document.
      *
      */
-    public VerifyUtil.VerifierResult verifySignedPdf(InputStream fileToBeVerified) throws Exception {
+    public VerificationResults.VerifierResult verifySignedPdf(InputStream fileToBeVerified) throws Exception {
         cleanupPreparedResp();
-        VerifyUtil.VerifierResult result = null;
-        result = new VerifyUtil.VerifierResult();
-        VerifyUtil.SignerInfoCheckResults results = new VerifyUtil.SignerInfoCheckResults();
+        VerificationResults.VerifierResult result = null;
+        result = new VerificationResults.VerifierResult();
+        VerificationResults.SignerInfoCheckResults results = new VerificationResults.SignerInfoCheckResults();
         result.addSignersInfo("undeterminded", results);
         try {
             PdfSignatureInstance signatureInstance = new PdfSignatureInstanceItext();
@@ -86,28 +86,28 @@ public class VerifyPDFUtil {
                         candidate = sigApp.verifySignatureValue();
                         System.out.println("signature valid.");
                         results.addSignatureResult("signature base check",
-                                new Tuple<>("signature base check success", VerifyUtil.Outcome.SUCCESS));
+                                new Tuple<>("signature base check success", VerificationResults.Outcome.SUCCESS));
                     } catch (Exception ex) {
                         results.addSignatureResult("signature base check",
-                                new Tuple<>("signature base check fail", VerifyUtil.Outcome.FAILED));
+                                new Tuple<>("signature base check fail", VerificationResults.Outcome.FAILED));
                     }
                     // check validity of certificate at signing time
                     X509Certificate certificate = sigApp.getSignerCertificate();
                     if (candidate != null && certificate != null && certificate.equals(candidate)) {
                         results.addSignatureResult("certificate identity clear",
-                                new Tuple<>("found certificates are identical", VerifyUtil.Outcome.SUCCESS));
+                                new Tuple<>("found certificates are identical", VerificationResults.Outcome.SUCCESS));
                     } else {
                         results.addSignatureResult("certificate identity uclear",
-                                new Tuple<>("found certificates are not sure identical", VerifyUtil.Outcome.INDETERMINED));
+                                new Tuple<>("found certificates are not sure identical", VerificationResults.Outcome.INDETERMINED));
                     }
                     Calendar signatureDate = sigApp.getSigningTime();
                     try {
                         certificate.checkValidity(signatureDate.getTime());
                         results.addSignatureResult("certificate date range",
-                                new Tuple<>("date range ok", VerifyUtil.Outcome.SUCCESS));
+                                new Tuple<>("date range ok", VerificationResults.Outcome.SUCCESS));
                     } catch (Exception ex) {
                         results.addSignatureResult("certificate date range",
-                                new Tuple<>("date range ok", VerifyUtil.Outcome.FAILED));
+                                new Tuple<>("date range ok", VerificationResults.Outcome.FAILED));
                     }
                     checkSignerInfo(sigApp, results);
                     algPathChecker.detectChain(certificate, null, results);
@@ -123,7 +123,7 @@ public class VerifyPDFUtil {
             }
         } catch (Exception ex) {
             results.addSignatureResult("unrecoverable error",
-                    new Tuple<>(ex.getMessage(), VerifyUtil.Outcome.FAILED));
+                    new Tuple<>(ex.getMessage(), VerificationResults.Outcome.FAILED));
         }
         return result;
     }
@@ -135,15 +135,15 @@ public class VerifyPDFUtil {
      * @param results the results container
      * @throws Exception error case
      */
-    public void checkSignerInfo(ApprovalSignature sigApp, VerifyUtil.SignerInfoCheckResults results) throws Exception {
+    public void checkSignerInfo(ApprovalSignature sigApp, VerificationResults.SignerInfoCheckResults results) throws Exception {
         CadesSignature signature = sigApp.getCMSSignature();
         SignerInfo[] infos = signature.getSignerInfos();
         int[] range = sigApp.getByteRange();
         boolean success = checkByteRange(range);
         if (success) {
-            results.addSignatureResult("byte range check", new Tuple<>("basic check ok", VerifyUtil.Outcome.SUCCESS));
+            results.addSignatureResult("byte range check", new Tuple<>("basic check ok", VerificationResults.Outcome.SUCCESS));
         } else {
-            results.addSignatureResult("byte range check", new Tuple<>("basic check ok", VerifyUtil.Outcome.FAILED));
+            results.addSignatureResult("byte range check", new Tuple<>("basic check ok", VerificationResults.Outcome.FAILED));
         }
         sigApp.isWholeDocumentCoveredByByteRange();
         X509Certificate signer = sigApp.getSignerCertificate();
@@ -155,17 +155,17 @@ public class VerifyPDFUtil {
                     PolicyQualifierInfo[] qualifiers = policyInfo.getPolicyQualifiers();
                     for (PolicyQualifierInfo qualifierInfo : qualifiers) {
                         results.addSignatureResult("qualifierInfo",
-                                new Tuple<>(qualifierInfo.toString(), VerifyUtil.Outcome.SUCCESS));
+                                new Tuple<>(qualifierInfo.toString(), VerificationResults.Outcome.SUCCESS));
                     }
                 }
             }
             AlgorithmID signatureAlg = info.getSignatureAlgorithm();
             results.addSignatureResult("signatureAlgorithmInfo",
-                    new Tuple<>(signatureAlg.getImplementationName(), VerifyUtil.Outcome.SUCCESS));
+                    new Tuple<>(signatureAlg.getImplementationName(), VerificationResults.Outcome.SUCCESS));
             algPathChecker.checkSignatureAlgorithm(signatureAlg, signer.getPublicKey(), results);
             AlgorithmID digestAlg = info.getDigestAlgorithm();
             results.addSignatureResult("digestAlgorithmInfo",
-                    new Tuple<>(digestAlg.getImplementationName(), VerifyUtil.Outcome.SUCCESS));
+                    new Tuple<>(digestAlg.getImplementationName(), VerificationResults.Outcome.SUCCESS));
 
         }
 
@@ -213,7 +213,7 @@ public class VerifyPDFUtil {
      * @throws CertificateException error case
      * @throws NoSuchAlgorithmException error case
      */
-    public void checkAnyTimestamp(TimeStampToken token, String tokenType, VerifyUtil.SignerInfoCheckResults results) throws CertificateException, NoSuchAlgorithmException {
+    public void checkAnyTimestamp(TimeStampToken token, String tokenType, VerificationResults.SignerInfoCheckResults results) throws CertificateException, NoSuchAlgorithmException {
         if (token != null) {
             try {
                 token.verifyTimeStampToken();
@@ -224,10 +224,10 @@ public class VerifyPDFUtil {
             SignerInfo info = token.getSignerInfo();
             AlgorithmID signatureAlg = info.getSignatureAlgorithm();
             results.addSignatureResult("timestamp signatureAlgorithmInfo " + tokenType,
-                    new Tuple<>(signatureAlg.getImplementationName(), VerifyUtil.Outcome.SUCCESS));
+                    new Tuple<>(signatureAlg.getImplementationName(), VerificationResults.Outcome.SUCCESS));
             AlgorithmID digestAlg = info.getDigestAlgorithm();
             results.addSignatureResult("timestamp digestAlgorithmInfo " + tokenType,
-                    new Tuple<>(digestAlg.getImplementationName(), VerifyUtil.Outcome.SUCCESS));
+                    new Tuple<>(digestAlg.getImplementationName(), VerificationResults.Outcome.SUCCESS));
             X509Certificate signingCert = Util.convertCertificate(token.getSigningCertificate());
             System.out.println(signingCert.toString(true));
             X509Certificate[] certs = Util.convertCertificateChain(token.getCertificates());

@@ -140,7 +140,7 @@ public class VerifyUtilTest extends TestBase {
         List<TrustListManager> walkers = ConfigReader.loadAllTrusts();
         in = this.getClass().getResourceAsStream("/data/pom.xml");
         VerifyUtil vutil = new VerifyUtil(walkers, bean);
-        VerifyUtil.VerifierResult vResult = vutil.verifyCadesSignature(input, in);
+        VerificationResults.VerifierResult vResult = vutil.verifyCadesSignature(input, in);
         File reportFile = File.createTempFile("sigReport", ".rpt");
         ReportUtil.generateAndWriteReport(reportFile, vResult);
     }
@@ -196,7 +196,7 @@ public class VerifyUtilTest extends TestBase {
         List<TrustListManager> walkers = ConfigReader.loadAllTrusts();
         VerifyUtil vutil = new VerifyUtil(walkers, bean);
         AlgorithmPathChecker pathChecker = new AlgorithmPathChecker(walkers, bean);
-        VerifyUtil.SignerInfoCheckResults results = new VerifyUtil.SignerInfoCheckResults();
+        VerificationResults.SignerInfoCheckResults results = new VerificationResults.SignerInfoCheckResults();
         X509Certificate[] chain = pathChecker.detectChain(keys.getSecond()[0], null, results);
         int index = 0;
         for (X509Certificate cert: chain) {
@@ -218,7 +218,7 @@ public class VerifyUtilTest extends TestBase {
         SigningBean bean = new SigningBean();
         List<TrustListManager> walkers = ConfigReader.loadAllTrusts();
         VerifyUtil vutil = new VerifyUtil(walkers, bean);
-        VerifyUtil.SignerInfoCheckResults results = new VerifyUtil.SignerInfoCheckResults();
+        VerificationResults.SignerInfoCheckResults results = new VerificationResults.SignerInfoCheckResults();
         vutil.cadesExtractTimestampAndData(results, sigData);
     }
 

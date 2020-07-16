@@ -6,9 +6,7 @@ import iaik.asn1.structures.AlgorithmID;
 import iaik.asn1.structures.Attribute;
 import iaik.asn1.structures.GeneralName;
 import iaik.asn1.structures.Name;
-import iaik.security.provider.IAIK;
 import iaik.security.provider.IAIKMD;
-import iaik.smime.ess.ESSIssuerSerial;
 import iaik.utils.RFC2253NameParser;
 import iaik.utils.Util;
 import iaik.x509.X509Certificate;
@@ -25,13 +23,11 @@ import iaik.xml.crypto.utils.KeySelectorImpl;
 import iaik.xml.crypto.utils.URIDereferencerImpl;
 import iaik.xml.crypto.xades.*;
 import iaik.xml.crypto.xades.dom.DOMExtensionContext;
-import iaik.xml.crypto.xades.impl.HTTPTSPTimeStampProcessor;
 import iaik.xml.crypto.xades.impl.dom.XAdESSignatureFactory;
 import iaik.xml.crypto.xades.timestamp.TimeStampProcessor;
 import org.harry.security.util.bean.SigningBean;
 import org.harry.security.util.certandkey.KeyStoreTool;
 import org.harry.security.util.ocsp.HttpOCSPClient;
-import org.harry.security.util.trustlist.TrustListLoader;
 import org.harry.security.util.trustlist.TrustListManager;
 import org.w3c.dom.Document;
 import org.w3c.dom.NodeList;
@@ -58,6 +54,7 @@ import javax.xml.transform.stream.StreamResult;
 import java.io.*;
 import java.math.BigInteger;
 import java.net.MalformedURLException;
+import java.net.URI;
 import java.security.*;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateEncodingException;
@@ -65,8 +62,7 @@ import java.util.*;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.nCopies;
-import static org.harry.security.CommonConst.OCSP_URL;
-import static org.harry.security.CommonConst.TSP_URL;
+import static org.harry.security.CommonConst.*;
 
 
 public class SignXAdESUtil {
@@ -352,28 +348,34 @@ public class SignXAdESUtil {
     private void appendOCSPResults() throws Exception {
         // Get SigningCertificate and RevocationInformation
         // And create the CompleteCertificateRefs and CompleteRevocationRefs properties
-        CertID sigCert = null;
+        CertIDV2 sigCert = null;
         QualifyingProperties qp = ((XAdESSignature) signature).getQualifyingProperties();
         SignedProperties sp = qp.getSignedProperties();
         if (sp != null) {
             SignedSignatureProperties ssp = sp.getSignedSignatureProperties();
             if (ssp != null) {
-                SigningCertificate sigCerts = ssp.getSigningCertificate();
+                SigningCertificateV2 sigCerts = ssp.getSigningCertificateV2();
                 if (sigCerts != null) {
                     List certs = sigCerts.getCertIDs();
                     if (!certs.isEmpty()) {
-                        sigCert = (CertID) certs.get(0);
+                        sigCert = (CertIDV2) certs.get(0);
                     }
                 }
             }
         }
+
+        IssuerSerialV2 sigCertIssSer = sigCert.getIssuerSerialV2();
+        String issuerName = sigCertIssSer.getIssuerName();
+        RFC2253NameParser parser = new RFC2253NameParser(issuerName);
+        Name name = parser.parse();
+        String cn = name.getRDN(ObjectID.commonName);
 
         List certRefs = new ArrayList();
         List ocspRefs = new ArrayList();
 
         SigningBean bean = new SigningBean().setCheckPathOcsp(true);
         AlgorithmPathChecker checker = new AlgorithmPathChecker(walker, bean);
-        VerifyUtil.SignerInfoCheckResults results = new VerifyUtil.SignerInfoCheckResults();
+        VerificationResults.SignerInfoCheckResults results = new VerificationResults.SignerInfoCheckResults();
         X509Certificate[] realChain =
                 checker.detectChain(Util.convertCertificate(this.certChain[0]),
                         null, results);
@@ -385,22 +387,28 @@ public class SignXAdESUtil {
                 checkChain[1] = realChain[index + 1];
                 BigInteger serial = cert.getSerialNumber();
 
-                CertID certId = qfac.newCertID("https://localhost/" + serial, cert,
-                        sfac.newDigestMethod(params.getDigestAlg(), null));
+                CertIDV2 certId = qfac.newCertIDV2("https://localhost/" + serial, cert,
+                        sfac.newDigestMethod(params.getDigestAlg(), null), false);
 
                 certRefs.add(certId);
 
                 OCSPResponse response = HttpOCSPClient.sendOCSPRequest(OCSP_URL,
                         null, null, checkChain,
                         ReqCert.certID, false, true);
-
+                String ocspFile = APP_DIR_WORKING + File.separator + cn + ".ocs";
+                File ocspOutFile = new File(ocspFile);
+                URI uri = ocspOutFile.toURI();
+                OutputStream ocspOut = new FileOutputStream(ocspOutFile);
+                response.writeTo(ocspOut);
+                ocspOut.flush();
+                ocspOut.close();
                 ocspRefs.add(qfac.newOCSPRef(response.getEncoded(),
-                        sfac.newDigestMethod(DigestMethod.SHA1, null), OCSP_URL));
+                        sfac.newDigestMethod(DigestMethod.SHA1, null), uri.toString()));
 
             }
         }
 
-        CompleteCertificateRefs compCertRefs = qfac.newCompleteCertificateRefs(certRefs,
+        CompleteCertificateRefsV2 compCertRefs = qfac.newCompleteCertificateRefsV2(certRefs,
                 "CompleteCertificateRefs");
 
         CompleteRevocationRefs compRevRefs;
@@ -417,7 +425,7 @@ public class SignXAdESUtil {
         //    }
 
         // Append validation references
-        ((XAdESSignature) signature).appendValidationRefs(compCertRefs, compRevRefs, null,
+        ((XAdESSignature) signature).appendValidationRefsV2(compCertRefs, compRevRefs, null,
                 null, exContext);
     }
 

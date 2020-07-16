@@ -11,8 +11,6 @@ import iaik.pdf.asn1objects.*;
 import iaik.pdf.cmscades.CadesSignatureStream;
 import iaik.pdf.cmscades.CmsCadesException;
 import iaik.smime.attributes.SignatureTimeStampToken;
-import iaik.smime.ess.ESSCertID;
-import iaik.smime.ess.SigningCertificate;
 import iaik.tsp.TimeStampToken;
 import iaik.tsp.TspVerificationException;
 import iaik.utils.Util;
@@ -105,8 +103,8 @@ public class VerifyUtil {
      * @param data the optional input if we have a EXPLICIT signature of signed data
      * @return the verification result
      */
-    public VerifierResult verifyCMSSignature(InputStream signature, InputStream data) {
-        VerifierResult result = null;
+    public VerificationResults.VerifierResult verifyCMSSignature(InputStream signature, InputStream data) {
+        VerificationResults.VerifierResult result = null;
         try {
             ContentInfoStream cis = new ContentInfoStream(signature);
 
@@ -156,9 +154,9 @@ public class VerifyUtil {
      *          data, that has been signed with the given signature
 
      */
-    public VerifierResult verifyCadesSignature(InputStream signature, InputStream data) {
-        VerifierResult vResult = new VerifierResult();
-        SignerInfoCheckResults results = new SignerInfoCheckResults();
+    public VerificationResults.VerifierResult verifyCadesSignature(InputStream signature, InputStream data) {
+        VerificationResults.VerifierResult vResult = new VerificationResults.VerifierResult();
+        VerificationResults.SignerInfoCheckResults results = new VerificationResults.SignerInfoCheckResults();
                 try {
                     CadesSignatureStream cadesSig = new CadesSignatureStream(signature, data);
                     int signerInfoLength = cadesSig.getSignerInfos().length;
@@ -168,7 +166,7 @@ public class VerifyUtil {
 
                     SignedDataStream signedData = cadesSig.getSignedDataObject();
                     CertificateSet certificateSet = signedData.getCertificateSet();
-                    results.addFormatResult("sigFormatOk", new Tuple<>("the signature is well formed", Outcome.SUCCESS));
+                    results.addFormatResult("sigFormatOk", new Tuple<>("the signature is well formed", VerificationResults.Outcome.SUCCESS));
 
                     int j = 0;
                     for (SignerInfo info: cadesSig.getSignerInfos()) {
@@ -176,16 +174,16 @@ public class VerifyUtil {
                         AlgorithmID digestAlg = info.getDigestAlgorithm();
 
                         results.addSignatureResult("sigAlg",
-                                new Tuple<>(sigAlg.getImplementationName(), Outcome.SUCCESS));
+                                new Tuple<>(sigAlg.getImplementationName(), VerificationResults.Outcome.SUCCESS));
                         results.addSignatureResult("digestAlg",
-                                new Tuple<>(digestAlg.getImplementationName(), Outcome.SUCCESS));
+                                new Tuple<>(digestAlg.getImplementationName(), VerificationResults.Outcome.SUCCESS));
                         X509Certificate signCert = cadesSig.verifySignatureValue(j);
                         if(signCert != null) {
                             results.addSignatureResult("sigMathOk",
-                                    new Tuple<>("signature is math correct", Outcome.SUCCESS));
+                                    new Tuple<>("signature is math correct", VerificationResults.Outcome.SUCCESS));
                         } else {
                             results.addSignatureResult("sigMathOk",
-                                    new Tuple<>("signature is math incorrect", Outcome.FAILED));
+                                    new Tuple<>("signature is math incorrect", VerificationResults.Outcome.FAILED));
                         }
                         if (bean.isCheckForQualified()) {
                             CertChecker.checkQualified(signCert, results);
@@ -193,7 +191,7 @@ public class VerifyUtil {
                         checkAttributeCertIfThere(certificateSet, results);
                         vResult.addSignersInfo(signCert.getSubjectDN().getName(), results);
                         results.addSignatureResult("signature value",
-                                new Tuple<>(signCert.getSubjectDN().getName(), Outcome.SUCCESS));
+                                new Tuple<>(signCert.getSubjectDN().getName(), VerificationResults.Outcome.SUCCESS));
                         System.out.println("Signer " + (j + 1) + " signature value is valid.");
                         vResult.addSignersInfo(signCert.getSubjectDN().getName(), results);
                         checkCounterSignatures(info, signCert, results);
@@ -205,7 +203,7 @@ public class VerifyUtil {
                             System.out.println("Signer info " + (j + 1) + " contains a signature timestamp.");
                             tst.verifyTimeStampToken(null);
                             results.addSignatureResult("timestamp check",
-                                    new Tuple<>(signCert.getSubjectDN().getName(), Outcome.SUCCESS));
+                                    new Tuple<>(signCert.getSubjectDN().getName(), VerificationResults.Outcome.SUCCESS));
                         }
 
                         ArchiveTimeStampv3[] archiveTimeStamps = cadesSig.getArchiveTimeStamps(signCert);
@@ -214,14 +212,14 @@ public class VerifyUtil {
                             tst.verifyTimeStampToken(null);
 
                             results.addSignatureResult("timestamp check",
-                                    new Tuple<>(signCert.getSubjectDN().getName(), Outcome.SUCCESS));
+                                    new Tuple<>(signCert.getSubjectDN().getName(), VerificationResults.Outcome.SUCCESS));
                         }
                         j++;
                         cadesExtractTimestampAndData(results, cadesSig);
                     }
                 } catch (Exception ex) {
                     results.addFormatResult("sigFormatOk",
-                            new Tuple<>("the signature is NOT well formed", Outcome.FAILED));
+                            new Tuple<>("the signature is NOT well formed", VerificationResults.Outcome.FAILED));
                     throw new IllegalStateException("failure", ex);
                 }
 
@@ -238,7 +236,7 @@ public class VerifyUtil {
      * @throws NoSuchProviderException error case
      * @throws SignatureException error case
      */
-    private void checkAttributeCertIfThere(CertificateSet certificateSet,SignerInfoCheckResults results) throws
+    private void checkAttributeCertIfThere(CertificateSet certificateSet, VerificationResults.SignerInfoCheckResults results) throws
             CertificateException, NoSuchAlgorithmException, InvalidKeyException,
             NoSuchProviderException, SignatureException {
         X509Certificate [] certificates = certificateSet.getX509Certificates();
@@ -247,9 +245,9 @@ public class VerifyUtil {
             AttributeCertificate attrCert = new AttributeCertificate(candidate.getEncoded());
             try {
                 attrCert.verify(arranged[0].getPublicKey());
-                results.addSignatureResult("attribute certificate check", new Tuple<>("attrCertCheck", Outcome.SUCCESS));
+                results.addSignatureResult("attribute certificate check", new Tuple<>("attrCertCheck", VerificationResults.Outcome.SUCCESS));
             } catch(Exception ex) {
-                results.addSignatureResult("attribute certificate check", new Tuple<>("attrCertCheck", Outcome.FAILED));
+                results.addSignatureResult("attribute certificate check", new Tuple<>("attrCertCheck", VerificationResults.Outcome.FAILED));
             }
 
         }
@@ -296,24 +294,24 @@ public class VerifyUtil {
      * @return the verification result
      * @throws CMSSignatureException error case
      */
-    public VerifierResult isSuccessOfSigner(
+    public VerificationResults.VerifierResult isSuccessOfSigner(
                                      SignedDataStream signedData,
                                      SignerInfo[] signerInfos,
                                      List<X509Certificate> signCertList) throws CMSSignatureException {
         try {
-            VerifierResult vResult = new VerifierResult();
+            VerificationResults.VerifierResult vResult = new VerificationResults.VerifierResult();
             if (signCertList.size() > 0) {
                 for (SignerInfo info : signerInfos) {
                     AlgorithmID sigAlg = info.getSignatureAlgorithm();
                     AlgorithmID digestAlg = info.getDigestAlgorithm();
-                    SignerInfoCheckResults results = new SignerInfoCheckResults();
+                    VerificationResults.SignerInfoCheckResults results = new VerificationResults.SignerInfoCheckResults();
                     results.setInfo(info);
                     results.addFormatResult("sigFormatOk",
-                            new Tuple<>("the signature is well formed", Outcome.SUCCESS));
+                            new Tuple<>("the signature is well formed", VerificationResults.Outcome.SUCCESS));
                     results.addSignatureResult("signature algorithm",
-                            new Tuple<>(sigAlg.getImplementationName(), Outcome.SUCCESS));
+                            new Tuple<>(sigAlg.getImplementationName(), VerificationResults.Outcome.SUCCESS));
                     results.addSignatureResult("digest algorithm",
-                            new Tuple<>(digestAlg.getImplementationName(), Outcome.SUCCESS));
+                            new Tuple<>(digestAlg.getImplementationName(), VerificationResults.Outcome.SUCCESS));
                     for (X509Certificate signCert : signCertList) {
                         algPathChecker.checkSignatureAlgorithm(sigAlg, signCert.getPublicKey(), results);
                         if (info.isSignerCertificate(signCert)) {
@@ -325,21 +323,21 @@ public class VerifyUtil {
                                 checkCounterSignatures(info, signCert, results);
                                 if (info.verifySignature(signCert.getPublicKey())) {
                                     results.addSignatureResult("sigMathOk",
-                                            new Tuple<>("signature is math correct", Outcome.SUCCESS));
+                                            new Tuple<>("signature is math correct", VerificationResults.Outcome.SUCCESS));
                                     results.addSignatureResult(signCert.getSubjectDN().getName(),
-                                            new Tuple<>("signature base check succeded", Outcome.SUCCESS));
+                                            new Tuple<>("signature base check succeded", VerificationResults.Outcome.SUCCESS));
 
                                     algPathChecker.detectChain(signCert, null, results);
 
                                 } else {
                                     results.addSignatureResult("sigMathOk",
-                                            new Tuple<>("signature is math incorrect", Outcome.FAILED));
+                                            new Tuple<>("signature is math incorrect", VerificationResults.Outcome.FAILED));
                                     results.addSignatureResult(signCert.getSubjectDN().getName(),
-                                            new Tuple<>("signature check failed", Outcome.FAILED));
+                                            new Tuple<>("signature check failed", VerificationResults.Outcome.FAILED));
                                 }
                             } catch (Exception ex) {
                                 results.addSignatureResult(signCert.getSubjectDN().getName(),
-                                        new Tuple<>(ex.getMessage(), Outcome.FAILED));
+                                        new Tuple<>(ex.getMessage(), VerificationResults.Outcome.FAILED));
                             }
 
                         }
@@ -452,20 +450,20 @@ public class VerifyUtil {
      * @throws Exception
      *           if the signature can't be read or verified
      */
-    public void cadesExtractTimestampAndData(SignerInfoCheckResults results,
-                                              CadesSignatureStream cadesSig)
+    public void cadesExtractTimestampAndData(VerificationResults.SignerInfoCheckResults results,
+                                             CadesSignatureStream cadesSig)
             throws Exception {
         SignedDataStream signedData = cadesSig.getSignedDataObject();
         SignerInfo[] signerInfos = signedData.getSignerInfos();
         for (int i = 0; i < signerInfos.length; i++) {
             X509Certificate signerCert = cadesSig.verifySignatureValue(i);
-            results.addSignatureResult("certificate found", new Tuple<String, Outcome>(signerCert.getSubjectDN().getName(),
-                    Outcome.SUCCESS));
+            results.addSignatureResult("certificate found", new Tuple<String, VerificationResults.Outcome>(signerCert.getSubjectDN().getName(),
+                    VerificationResults.Outcome.SUCCESS));
             ArchiveTimeStampv3[] archiveTsps = cadesSig.getArchiveTimeStamps(signerCert);
             for (ArchiveTimeStampv3 tsp : archiveTsps) {
                 tsp.verifyTimeStampToken(null);
-                results.addSignatureResult("archive timestamp verified", new Tuple<String, Outcome>(tsp.getName(),
-                        Outcome.SUCCESS));
+                results.addSignatureResult("archive timestamp verified", new Tuple<String, VerificationResults.Outcome>(tsp.getName(),
+                        VerificationResults.Outcome.SUCCESS));
                 System.out.println("Archive time-stamp signature verified successfully.");
                 AbstractAtsHashIndex dataReferences = tsp.getAtsHashIndex();
                 // ETSI EN 319 122-1 defines the ats-hash-index attribute to be invalid if it includes
@@ -473,13 +471,13 @@ public class VerifyUtil {
                 if (dataReferences instanceof AtsHashIndexv3)
                     if (dataReferences.containsReferencesWithoutOriginalValues(cadesSig,
                             signerInfos[i])) {
-                        results.addSignatureResult("check archive references", new Tuple<String, Outcome>(tsp.getName(),
-                                Outcome.FAILED));
+                        results.addSignatureResult("check archive references", new Tuple<String, VerificationResults.Outcome>(tsp.getName(),
+                                VerificationResults.Outcome.FAILED));
                         System.out.println(
                                 "!! Archive time-stamp invalid: ATSHashIndexv3 contains references without matching data !!");
                     } else {
-                        results.addSignatureResult("check archive references", new Tuple<String, Outcome>(tsp.getName(),
-                                Outcome.SUCCESS));
+                        results.addSignatureResult("check archive references", new Tuple<String, VerificationResults.Outcome>(tsp.getName(),
+                                VerificationResults.Outcome.SUCCESS));
                     }
 
                 // retrieved the archived data that can be used for verification
@@ -510,11 +508,11 @@ public class VerifyUtil {
                         resp.verify(signerCertChain[1].getPublicKey());
                         CertStatus stat = resp.getSingleResponse(reqCert).getCertStatus();
                         if (stat.getCertStatus() != CertStatus.GOOD) {
-                            results.addSignatureResult("included ocsp verified", new Tuple<String, Outcome>(tsp.getName(),
-                                    Outcome.FAILED));
+                            results.addSignatureResult("included ocsp verified", new Tuple<String, VerificationResults.Outcome>(tsp.getName(),
+                                    VerificationResults.Outcome.FAILED));
                         } else {
-                            results.addSignatureResult("included ocsp verified", new Tuple<String, Outcome>(tsp.getName(),
-                                    Outcome.SUCCESS));
+                            results.addSignatureResult("included ocsp verified", new Tuple<String, VerificationResults.Outcome>(tsp.getName(),
+                                    VerificationResults.Outcome.SUCCESS));
                         }
                         System.out
                                 .println("Signer certificate status 'good' in archived OCSP response.");
@@ -564,7 +562,7 @@ public class VerifyUtil {
         }
     }
 
-    public void checkCounterSignatures(SignerInfo signerInfo, X509Certificate signingCert, SignerInfoCheckResults results) {
+    public void checkCounterSignatures(SignerInfo signerInfo, X509Certificate signingCert, VerificationResults.SignerInfoCheckResults results) {
         Attribute counterAttr = signerInfo.getUnsignedAttribute(ObjectID.countersignature);
         if (counterAttr != null ) {
 
@@ -578,16 +576,16 @@ public class VerifyUtil {
                             .getSelectedCert()
                             .getPublicKey(),
                             signerInfo)) {
-                        results.addSignatureResult("counter_sig", new Tuple<String, Outcome>("counter signature verified ok",
-                                Outcome.SUCCESS));
+                        results.addSignatureResult("counter_sig", new Tuple<String, VerificationResults.Outcome>("counter signature verified ok",
+                                VerificationResults.Outcome.SUCCESS));
                         algPathChecker.checkSignatureAlgorithm(signature.getSignatureAlgorithm(),
                                 this.bean.getCounterKeyStoreBean()
                                         .getSelectedCert()
                                         .getPublicKey(),
                                 results);
                     } else {
-                        results.addSignatureResult("counter_sig", new Tuple<String, Outcome>("counter signature verified NOT ok",
-                                Outcome.FAILED));
+                        results.addSignatureResult("counter_sig", new Tuple<String, VerificationResults.Outcome>("counter signature verified NOT ok",
+                                VerificationResults.Outcome.FAILED));
                     }
 
                 }
@@ -597,155 +595,6 @@ public class VerifyUtil {
             }
         }
 
-    }
-
-    /**
-     * The class holding the verification result overall
-     */
-    public static class VerifierResult {
-        Map<String, SignerInfoCheckResults> signersCheck = new HashMap<>();
-        public VerifierResult(){
-
-        }
-
-        public void addSignersInfo(String signersName, SignerInfoCheckResults results) {
-            signersCheck.put(signersName, results);
-        }
-
-
-        public List<SignerInfoCheckResults> getSignersCheck() {
-            List<SignerInfoCheckResults> result = new ArrayList<>();
-            result.addAll(signersCheck.values());
-            return result;
-        }
-
-        public Set<Map.Entry<String, SignerInfoCheckResults>> getAllResultsCheck() {
-            return signersCheck.entrySet();
-        }
-    }
-
-    /**
-     * The class holding the check results for a specific signer-info
-     */
-    public static class SignerInfoCheckResults {
-        Map<String, Tuple<String, Outcome>> formatResults = new HashMap<>();
-        Map<String, Tuple<String, Outcome>> signatureResults = new HashMap<>();
-        Map<String, Tuple<OCSPResponse, Outcome>> ocspResults = new HashMap<>();
-        X509Certificate [] signerChain = null;
-        SignerInfo info = null;
-        Map<Tuple<String, Outcome>, List<X509Certificate>> signersChain = new HashMap<>();
-
-        public void setInfo(SignerInfo info) {
-            this.info = info;
-        }
-
-        public void addCertChain(Tuple<String,Outcome> result, List<X509Certificate> resultCerts, X509Certificate [] certChain) {
-            signerChain = certChain;
-            signersChain.put(result, resultCerts);
-        }
-
-        public SignerInfo getInfo() {
-            return info;
-        }
-
-        public Map<Tuple<String, Outcome>, List<X509Certificate>> getSignersChain() {
-            return signersChain;
-        }
-
-        public Map<String, Tuple<String, Outcome>> getFormatResult() {
-            return formatResults;
-        }
-
-        public Map<String, Tuple<String, Outcome>> getSignatureResult() {
-            return signatureResults;
-        }
-
-        public Map<String, Tuple<OCSPResponse, Outcome>> getOcspResult() {
-            return ocspResults;
-        }
-
-        public X509Certificate [] getSignerChain() {
-            return signerChain;
-        }
-
-        public SignerInfoCheckResults addSignatureResult(String resultName, Tuple<String, Outcome> signatureResult) {
-            this.signatureResults.put(resultName, signatureResult);
-            return this;
-        }
-
-        public SignerInfoCheckResults addFormatResult(String resultName, Tuple<String, Outcome> signatureResult) {
-            this.formatResults.put(resultName, signatureResult);
-            return this;
-        }
-
-        public SignerInfoCheckResults addOcspResult(String resultName, Tuple<OCSPResponse, Outcome> ocspResult) {
-            this.ocspResults.put(resultName, ocspResult);
-            return this;
-        }
-
-        public Outcome sigMathOk () {
-            Tuple<String, Outcome> result = signatureResults.get("sigMathOk");
-            if (result != null) {
-                return result.getSecond();
-            } else {
-                return Outcome.FAILED;
-            }
-        }
-
-        public Tuple<String, Outcome> getSignatureAlgorithm() {
-            Tuple<String, Outcome> algName = signatureResults.get("sigAlg");
-            Tuple<String, Outcome> resultCheck =  signatureResults.get("check_signature_algorithm");
-            Tuple<String, Outcome> result = new Tuple<>(algName.getFirst(), resultCheck.getSecond());
-            return result;
-        }
-
-        public Tuple<OCSPResponse, Outcome> getOCSPResult() {
-            Tuple<OCSPResponse, Outcome> result = ocspResults.get("ocspResult");
-            return result;
-        }
-
-        public Outcome checkFormatResult() {
-            Outcome format = Outcome.SUCCESS;
-            for (Map.Entry<String, Tuple<String, Outcome>> entry: formatResults.entrySet()) {
-                Tuple<String, Outcome> toCheck = formatResults.get(entry.getKey());
-                if (toCheck.getSecond() == Outcome.FAILED) {
-                    format = Outcome.FAILED;
-                }
-            }
-            return format;
-        }
-
-        public Outcome checkOverallResult () {
-            Outcome overall = Outcome.SUCCESS;
-            for (Map.Entry<String, Tuple<String, Outcome>> entry: formatResults.entrySet()) {
-                Tuple<String, Outcome> toCheck = formatResults.get(entry.getKey());
-                if (toCheck.getSecond() == Outcome.FAILED) {
-                    overall = Outcome.FAILED;
-                }
-            }
-            for (Map.Entry<String, Tuple<String, Outcome>> entry: signatureResults.entrySet()) {
-                Tuple<String, Outcome> toCheck = signatureResults.get(entry.getKey());
-                if (toCheck.getSecond() == Outcome.FAILED) {
-                    overall = Outcome.FAILED;
-                }
-            }
-            for (Map.Entry<String, Tuple<OCSPResponse, Outcome>> entry: ocspResults.entrySet()) {
-                Tuple<OCSPResponse, Outcome> toCheck = ocspResults.get(entry.getKey());
-                if (toCheck.getSecond() == Outcome.FAILED) {
-                    overall = Outcome.FAILED;
-                }
-            }
-            return overall;
-        }
-    }
-
-    /**
-     * The cheeck result codes
-     */
-    public static enum Outcome {
-        SUCCESS,
-        FAILED,
-        INDETERMINED;
     }
 
 }

@@ -10,7 +10,6 @@ import iaik.x509.ocsp.BasicOCSPResponse;
 import iaik.x509.ocsp.OCSPResponse;
 import iaik.x509.ocsp.ReqCert;
 import iaik.x509.ocsp.SingleResponse;
-import oasis.names.tc.opendocument.xmlns.manifest._1.Algorithm;
 import org.harry.security.util.algoritms.AlgorithmCatalog;
 import org.harry.security.util.bean.SigningBean;
 import org.harry.security.util.certandkey.CertificateChainUtil;
@@ -55,24 +54,24 @@ public class AlgorithmPathChecker {
      * @param chainIN
      * @param results the check results object
      */
-    public X509Certificate[] detectChain(X509Certificate signCert, X509Certificate[] chainIN, VerifyUtil.SignerInfoCheckResults results) {
+    public X509Certificate[] detectChain(X509Certificate signCert, X509Certificate[] chainIN, VerificationResults.SignerInfoCheckResults results) {
         X509Certificate[] certArray; // change to method call
         certArray = new X509Certificate[3];
         int index = 0;
         certArray = CertificateChainUtil.resolveTrustedChain(signCert, chainIN, walkers, null);
         if (certArray.length > 0) {
             results.addSignatureResult(
-                    "certChain", new Tuple<>("signature chain building success", VerifyUtil.Outcome.SUCCESS));
+                    "certChain", new Tuple<>("signature chain building success", VerificationResults.Outcome.SUCCESS));
         } else {
             results.addSignatureResult(
-                    "certChain", new Tuple<>("signature chain building failed", VerifyUtil.Outcome.FAILED));
+                    "certChain", new Tuple<>("signature chain building failed", VerificationResults.Outcome.FAILED));
         }
         for (X509Certificate actualCert: certArray) {
             if (!CertificateWizzard.isCertificateSelfSigned(actualCert) && bean.isCheckPathOcsp()) {
                 checkOCSP(actualCert, certArray, bean.isCheckOcspUseAltResponder(), results);
             }
         }
-        results.addCertChain(new Tuple<>("set signer chain", VerifyUtil.Outcome.SUCCESS), Arrays.asList(certArray), certArray);
+        results.addCertChain(new Tuple<>("set signer chain", VerificationResults.Outcome.SUCCESS), Arrays.asList(certArray), certArray);
         return certArray;
 
     }
@@ -85,7 +84,7 @@ public class AlgorithmPathChecker {
      * @param altResponder
      * @param results the check results object
      */
-    public void checkOCSP(X509Certificate actualCert, X509Certificate[] chain, boolean altResponder, VerifyUtil.SignerInfoCheckResults results) {
+    public void checkOCSP(X509Certificate actualCert, X509Certificate[] chain, boolean altResponder, VerificationResults.SignerInfoCheckResults results) {
         try {
             boolean reqIsSigned = true;
             Tuple<PrivateKey, X509Certificate[]> bean = loadKey();
@@ -115,13 +114,13 @@ public class AlgorithmPathChecker {
                             .getResponse();
                     SingleResponse singleResponse = basicOCSPResponse.getSingleResponses()[0];
                     results.addOcspResult("ocspResult",
-                            new Tuple<OCSPResponse, VerifyUtil.Outcome>(response, VerifyUtil.Outcome.SUCCESS));
+                            new Tuple<OCSPResponse, VerificationResults.Outcome>(response, VerificationResults.Outcome.SUCCESS));
                 } else if (responseStatus == OCSPResponse.tryLater) {
-                    results.addOcspResult(resultName, new Tuple<OCSPResponse, VerifyUtil.Outcome>(response,
-                            VerifyUtil.Outcome.INDETERMINED));
+                    results.addOcspResult(resultName, new Tuple<OCSPResponse, VerificationResults.Outcome>(response,
+                            VerificationResults.Outcome.INDETERMINED));
                 } else {
-                    results.addOcspResult(resultName, new Tuple<OCSPResponse, VerifyUtil.Outcome>(response,
-                            VerifyUtil.Outcome.FAILED));
+                    results.addOcspResult(resultName, new Tuple<OCSPResponse, VerificationResults.Outcome>(response,
+                            VerificationResults.Outcome.FAILED));
                 }
             }
         } catch (Exception ex){
@@ -135,7 +134,7 @@ public class AlgorithmPathChecker {
      * @param pubKey the public key
      * @param results the check result container
      */
-    public void checkSignatureAlgorithm(AlgorithmID sigAlg, PublicKey pubKey, VerifyUtil.SignerInfoCheckResults results) {
+    public void checkSignatureAlgorithm(AlgorithmID sigAlg, PublicKey pubKey, VerificationResults.SignerInfoCheckResults results) {
         if (pubKey instanceof RSAPublicKey) {
             RSAPublicKey pubKeyRSA = (RSAPublicKey)pubKey;
             checkRSAKeyAlg(pubKeyRSA, results);
@@ -153,11 +152,11 @@ public class AlgorithmPathChecker {
      * @param digestAlg the digest algorithm
      * @param results the check result container
      */
-    public void checkDigestAlgorithm(AlgorithmID digestAlg, VerifyUtil.SignerInfoCheckResults results) {
+    public void checkDigestAlgorithm(AlgorithmID digestAlg, VerificationResults.SignerInfoCheckResults results) {
 
     }
 
-    public void checkDSAKeyAlg(DSAPublicKey publicKey, VerifyUtil.SignerInfoCheckResults results) {
+    public void checkDSAKeyAlg(DSAPublicKey publicKey, VerificationResults.SignerInfoCheckResults results) {
         Date today = new Date();
         BigInteger p = publicKey.getParams().getP();
         BigInteger q = publicKey.getParams().getQ();
@@ -170,28 +169,28 @@ public class AlgorithmPathChecker {
         }
         if (definition.isPresent()) {
             if (definition.get().getEndDate().compareTo(today) > 0) {
-                results.addSignatureResult("check_signature_algorithm", new Tuple<>("algorithm check ok", VerifyUtil.Outcome.SUCCESS));
+                results.addSignatureResult("check_signature_algorithm", new Tuple<>("algorithm check ok", VerificationResults.Outcome.SUCCESS));
             } else {
-                results.addSignatureResult("check_signature_algorithm", new Tuple<>("algorithm check failed", VerifyUtil.Outcome.FAILED));
+                results.addSignatureResult("check_signature_algorithm", new Tuple<>("algorithm check failed", VerificationResults.Outcome.FAILED));
             }
         } else {
-            results.addSignatureResult("check_signature_algorithm", new Tuple<>("algorithm check N/A", VerifyUtil.Outcome.INDETERMINED));
+            results.addSignatureResult("check_signature_algorithm", new Tuple<>("algorithm check N/A", VerificationResults.Outcome.INDETERMINED));
         }
 
     }
-    public void checkRSAKeyAlg(RSAPublicKey pubKey, VerifyUtil.SignerInfoCheckResults results) {
+    public void checkRSAKeyAlg(RSAPublicKey pubKey, VerificationResults.SignerInfoCheckResults results) {
         Date today = new Date();
         int length = pubKey.getModulus().bitLength();
         Optional <AlgorithmCatalog.RSADefinition> definition =
         AlgorithmCatalog.rsaDefinitions.stream().filter(e -> (e.getMinLength() < length && e.getMaxLength() > length)).findFirst();
         if (definition.isPresent()) {
             if (definition.get().getEndDate().compareTo(today) > 0) {
-                results.addSignatureResult("check_signature_algorithm", new Tuple<>("algorithm check ok", VerifyUtil.Outcome.SUCCESS));
+                results.addSignatureResult("check_signature_algorithm", new Tuple<>("algorithm check ok", VerificationResults.Outcome.SUCCESS));
             } else {
-                results.addSignatureResult("check_signature_algorithm", new Tuple<>("algorithm check failed", VerifyUtil.Outcome.FAILED));
+                results.addSignatureResult("check_signature_algorithm", new Tuple<>("algorithm check failed", VerificationResults.Outcome.FAILED));
             }
         } else {
-            results.addSignatureResult("check_signature_algorithm", new Tuple<>("algorithm check N/A", VerifyUtil.Outcome.INDETERMINED));
+            results.addSignatureResult("check_signature_algorithm", new Tuple<>("algorithm check N/A", VerificationResults.Outcome.INDETERMINED));
         }
     }
 
@@ -200,11 +199,11 @@ public class AlgorithmPathChecker {
      * @param sigAlg the signature algorithm
      * @param results the check result container
      */
-    public void checkRSAPadding(AlgorithmID sigAlg, VerifyUtil.SignerInfoCheckResults results) {
+    public void checkRSAPadding(AlgorithmID sigAlg, VerificationResults.SignerInfoCheckResults results) {
         if (sigAlg.equals(CMSAlgorithmID.rsassaPss)) {
-            results.addSignatureResult("check rsa padding", new Tuple<>("padding PSS 2.1", VerifyUtil.Outcome.SUCCESS));
+            results.addSignatureResult("check rsa padding", new Tuple<>("padding PSS 2.1", VerificationResults.Outcome.SUCCESS));
         } else {
-            results.addSignatureResult("check rsa padding", new Tuple<>("padding PSS 1.5", VerifyUtil.Outcome.INDETERMINED));
+            results.addSignatureResult("check rsa padding", new Tuple<>("padding PSS 1.5", VerificationResults.Outcome.INDETERMINED));
         }
     }
 

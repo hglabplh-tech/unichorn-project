@@ -8,7 +8,6 @@ import iaik.x509.extensions.ExtendedKeyUsage;
 
 import iaik.x509.ocsp.BasicOCSPResponse;
 import iaik.x509.ocsp.OCSPResponse;
-import iaik.x509.ocsp.SingleResponse;
 import oasis.names.tc.dss._1_0.core.schema.*;
 import oasis.names.tc.dss_x._1_0.profiles.verificationreport.schema_.*;
 import oasis.names.tc.dss_x._1_0.profiles.verificationreport.schema_.ObjectFactory;
@@ -39,13 +38,13 @@ public class VerifyReporter {
 
     private final VerificationReportType report;
     private final IndividualReportType individualReport;
-    private final VerifyUtil.VerifierResult checkResult;
-    private final List<VerifyUtil.SignerInfoCheckResults> infoResult;
+    private final VerificationResults.VerifierResult checkResult;
+    private final List<VerificationResults.SignerInfoCheckResults> infoResult;
     private List<JAXBElement<DetailedSignatureReportType>> detailList;
 
 
 
-    public VerifyReporter(VerifyUtil.VerifierResult checkResult) {
+    public VerifyReporter(VerificationResults.VerifierResult checkResult) {
         this.checkResult = checkResult;
         this.infoResult = checkResult.getSignersCheck();
         ReturnVerificationReport reportSettings = new ReturnVerificationReport();
@@ -54,15 +53,15 @@ public class VerifyReporter {
         individualReport = factory.createIndividualReportType();
         report.getIndividualReport().add(individualReport);
         Result reportResult = new Result();
-        VerifyUtil.Outcome outcome = VerifyUtil.Outcome.SUCCESS;
-        for (VerifyUtil.SignerInfoCheckResults sigCheckResult : infoResult) {
-            VerifyUtil.Outcome subResult = sigCheckResult.checkOverallResult();
-            if (subResult == VerifyUtil.Outcome.FAILED) {
-                outcome = VerifyUtil.Outcome.FAILED;
+        VerificationResults.Outcome outcome = VerificationResults.Outcome.SUCCESS;
+        for (VerificationResults.SignerInfoCheckResults sigCheckResult : infoResult) {
+            VerificationResults.Outcome subResult = sigCheckResult.checkOverallResult();
+            if (subResult == VerificationResults.Outcome.FAILED) {
+                outcome = VerificationResults.Outcome.FAILED;
             }
         }
         String resultMajor;
-        if (outcome == VerifyUtil.Outcome.SUCCESS) {
+        if (outcome == VerificationResults.Outcome.SUCCESS) {
             resultMajor = MAJORCODE_PASS;
         } else {
             resultMajor = MAJORCODE_FAIL;
@@ -89,16 +88,16 @@ public class VerifyReporter {
     public List<JAXBElement<OCSPValidityType>> generateOcspReport() throws DatatypeConfigurationException {
         List<JAXBElement<OCSPValidityType>> ocspResultList = new ArrayList<>();
         ObjectFactory factory = new ObjectFactory();
-        for (VerifyUtil.SignerInfoCheckResults results : infoResult) {
+        for (VerificationResults.SignerInfoCheckResults results : infoResult) {
             OCSPValidityType ocspResult = factory.createOCSPValidityType();
             JAXBElement<OCSPValidityType> element = factory.createIndividualOCSPReport(ocspResult);
             OCSPContentType.Responses responses = factory.createOCSPContentTypeResponses();
             SingleResponseType singleResp = factory.createSingleResponseType();
-            Tuple<OCSPResponse, VerifyUtil.Outcome> ocsp = results.getOCSPResult();
+            Tuple<OCSPResponse, VerificationResults.Outcome> ocsp = results.getOCSPResult();
             String resultMajor;
             String message;
             if (ocsp != null) {
-                if (ocsp.getSecond() == VerifyUtil.Outcome.SUCCESS)  {
+                if (ocsp.getSecond() == VerificationResults.Outcome.SUCCESS)  {
                     resultMajor = MAJORCODE_PASS;
                     message = OCSPCRLClient.extractResponseStatusName(ocsp.getFirst());
                 } else {
@@ -141,13 +140,13 @@ public class VerifyReporter {
     public List<JAXBElement<DetailedSignatureReportType>> generateSignatureReport() throws Exception {
         ObjectFactory factory = new ObjectFactory();
         List<JAXBElement<DetailedSignatureReportType>> detailReportList = new ArrayList<>();
-        for (VerifyUtil.SignerInfoCheckResults results : infoResult) {
+        for (VerificationResults.SignerInfoCheckResults results : infoResult) {
             DetailedSignatureReportType signatureReport = new DetailedSignatureReportType();
             JAXBElement<DetailedSignatureReportType> element = factory.createDetailedSignatureReport(signatureReport);
-            VerifyUtil.Outcome outcome = results.checkFormatResult();
+            VerificationResults.Outcome outcome = results.checkFormatResult();
             String resultMajor;
             String message;
-            if (outcome == VerifyUtil.Outcome.SUCCESS) {
+            if (outcome == VerificationResults.Outcome.SUCCESS) {
                 resultMajor = MAJORCODE_PASS;
                 message = "format results are all ok";
             } else {
@@ -158,7 +157,7 @@ public class VerifyReporter {
             signatureReport.setFormatOK(result);
             SignatureValidityType signatureValid = factory.createSignatureValidityType();
             outcome = results.sigMathOk();
-            if (outcome == VerifyUtil.Outcome.SUCCESS) {
+            if (outcome == VerificationResults.Outcome.SUCCESS) {
                 resultMajor = MAJORCODE_PASS;
                 message = "signature is mathematically correct";
             } else {
@@ -167,14 +166,14 @@ public class VerifyReporter {
             }
             result = generateVerificationResult(resultMajor, message);
             signatureValid.setSigMathOK(result);
-            Tuple<String, VerifyUtil.Outcome> sigAlg = results.getSignatureAlgorithm();
+            Tuple<String, VerificationResults.Outcome> sigAlg = results.getSignatureAlgorithm();
             if (sigAlg != null) {
                 AlgorithmValidityType algValid = factory.createAlgorithmValidityType();
                 algValid.setAlgorithm(sigAlg.getFirst());
-                if (sigAlg.getSecond() == VerifyUtil.Outcome.SUCCESS) {
+                if (sigAlg.getSecond() == VerificationResults.Outcome.SUCCESS) {
                     resultMajor = MAJORCODE_PASS;
                     message = "signature algorithm is ok";
-                } else if (sigAlg.getSecond() == VerifyUtil.Outcome.INDETERMINED) {
+                } else if (sigAlg.getSecond() == VerificationResults.Outcome.INDETERMINED) {
                     resultMajor = MAJORCODE_NA;
                     message = "signature algorithm is not clear state";
                 } else {
@@ -191,6 +190,9 @@ public class VerifyReporter {
             if (chain != null && chain.length > 1) {
                 resultMajor = MAJORCODE_PASS;
                 message = "certificate chain correct";
+            } else if (chain == null){
+                resultMajor = MAJORCODE_NA;
+                message = "certificate chain N/A";
             } else {
                 resultMajor = MAJORCODE_FAIL;
                 message = "certificate chain incorrect";
@@ -199,13 +201,15 @@ public class VerifyReporter {
             pathValidity.setPathValiditySummary(result);
             CertificatePathValidityVerificationDetailType detail = new CertificatePathValidityVerificationDetailType();
             List<CertificateValidityType> detailList = detail.getCertificateValidity();
-            for (X509Certificate cert : chain) {
-                CertificateValidityType detailResult = new CertificateValidityType();
-                CertificateContentType certContent = generateCertificateContent(cert);
+            if (chain != null) {
+                for (X509Certificate cert : chain) {
+                    CertificateValidityType detailResult = new CertificateValidityType();
+                    CertificateContentType certContent = generateCertificateContent(cert);
 
-                detailResult.setCertificateContent(certContent);
+                    detailResult.setCertificateContent(certContent);
 
-                detailList.add(detailResult);
+                    detailList.add(detailResult);
+                }
             }
             pathValidity.setPathValidityDetail(detail);
             signatureReport.setCertificatePathValidity(pathValidity);
@@ -275,11 +279,11 @@ public class VerifyReporter {
         return individualReport;
     }
 
-    public VerifyUtil.VerifierResult getCheckResult() {
+    public VerificationResults.VerifierResult getCheckResult() {
         return checkResult;
     }
 
-    public List<VerifyUtil.SignerInfoCheckResults> getInfoResult() {
+    public List<VerificationResults.SignerInfoCheckResults> getInfoResult() {
         return infoResult;
     }
 

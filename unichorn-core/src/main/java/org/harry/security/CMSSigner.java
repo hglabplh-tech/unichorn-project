@@ -201,22 +201,22 @@ public class CMSSigner {
 
                     VerifyUtil util = new VerifyUtil(walkers, signingBean);
 
-                    VerifyUtil.VerifierResult sigOk = util.verifyCMSSignature(stream, data);
-                    List<VerifyUtil.SignerInfoCheckResults> results = sigOk.getSignersCheck();
+                    VerificationResults.VerifierResult sigOk = util.verifyCMSSignature(stream, data);
+                    List<VerificationResults.SignerInfoCheckResults> results = sigOk.getSignersCheck();
                     boolean success = true;
-                    for (VerifyUtil.SignerInfoCheckResults result : results) {
-                        Collection<Tuple<String, VerifyUtil.Outcome>> sigRes = result.getSignatureResult().values();
-                        for (Tuple<String, VerifyUtil.Outcome> tuple : sigRes) {
-                            if (!tuple.getSecond().equals(VerifyUtil.Outcome.SUCCESS)
-                                    && !tuple.getSecond().equals(VerifyUtil.Outcome.INDETERMINED)) {
+                    for (VerificationResults.SignerInfoCheckResults result : results) {
+                        Collection<Tuple<String, VerificationResults.Outcome>> sigRes = result.getSignatureResult().values();
+                        for (Tuple<String, VerificationResults.Outcome> tuple : sigRes) {
+                            if (!tuple.getSecond().equals(VerificationResults.Outcome.SUCCESS)
+                                    && !tuple.getSecond().equals(VerificationResults.Outcome.INDETERMINED)) {
                                 success = false;
                             }
                         }
 
-                        Collection<Tuple<OCSPResponse, VerifyUtil.Outcome>> ocspRes = result.getOcspResult().values();
-                        for (Tuple<OCSPResponse, VerifyUtil.Outcome> tuple : ocspRes) {
-                            if (!tuple.getSecond().equals(VerifyUtil.Outcome.SUCCESS)
-                            && !tuple.getSecond().equals(VerifyUtil.Outcome.INDETERMINED)) {
+                        Collection<Tuple<OCSPResponse, VerificationResults.Outcome>> ocspRes = result.getOcspResult().values();
+                        for (Tuple<OCSPResponse, VerificationResults.Outcome> tuple : ocspRes) {
+                            if (!tuple.getSecond().equals(VerificationResults.Outcome.SUCCESS)
+                            && !tuple.getSecond().equals(VerificationResults.Outcome.INDETERMINED)) {
                                 success = false;
                             }
                         }

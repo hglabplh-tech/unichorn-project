@@ -1,9 +1,6 @@
 package org.harry.security.util;
 
-import oasis.names.tc.dss_x._1_0.profiles.verificationreport.schema_.DetailedSignatureReportType;
-import oasis.names.tc.dss_x._1_0.profiles.verificationreport.schema_.ObjectFactory;
 import oasis.names.tc.dss_x._1_0.profiles.verificationreport.schema_.VerificationReportType;
-import org.etsi.uri._02231.v2_.TrustStatusListType;
 import org.pmw.tinylog.Logger;
 
 import javax.xml.bind.JAXBContext;
@@ -12,11 +9,10 @@ import javax.xml.bind.Marshaller;
 import javax.xml.namespace.QName;
 import java.io.File;
 import java.io.FileOutputStream;
-import java.util.List;
 
 public class ReportUtil {
 
-    public static void generateAndWriteReport(File reportFile, VerifyUtil.VerifierResult result) {
+    public static void generateAndWriteReport(File reportFile, VerificationResults.VerifierResult result) {
         try {
             VerifyReporter reporter = new VerifyReporter(result);
             VerificationReportType report = reporter.generateReport();

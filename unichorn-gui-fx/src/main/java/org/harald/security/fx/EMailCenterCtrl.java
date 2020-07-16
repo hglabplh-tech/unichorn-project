@@ -5,7 +5,6 @@ import iaik.x509.X509Certificate;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.ObservableList;
-import javafx.collections.transformation.SortedList;
 import javafx.event.*;
 import javafx.fxml.FXML;
 import javafx.scene.Scene;
@@ -13,10 +12,7 @@ import javafx.scene.control.*;
 import javafx.scene.web.WebEngine;
 import javafx.scene.web.WebView;
 import org.apache.commons.io.IOUtils;
-import org.harry.security.util.AlgorithmPathChecker;
-import org.harry.security.util.ConfigReader;
-import org.harry.security.util.Tuple;
-import org.harry.security.util.VerifyUtil;
+import org.harry.security.util.*;
 import org.harry.security.util.bean.SigningBean;
 import org.harry.security.util.mailer.*;
 import org.harry.security.util.pwdmanager.PasswordManager;
@@ -253,7 +249,7 @@ public class EMailCenterCtrl implements ControllerInit {
             SigningBean bean = new SigningBean().setCheckPathOcsp(true);
             AlgorithmPathChecker checker = new AlgorithmPathChecker(ConfigReader.loadAllTrusts(), bean);
             X509Certificate[] chain = checker.detectChain(mail.getSigner(),
-                    null, new VerifyUtil.SignerInfoCheckResults());
+                    null, new VerificationResults.SignerInfoCheckResults());
             if (chain.length > 2) {
                 ShowCertsDialog.showCertChainDialog(chain);
             }
@@ -268,7 +264,7 @@ public class EMailCenterCtrl implements ControllerInit {
             SigningBean bean = new SigningBean().setCheckPathOcsp(true);
             AlgorithmPathChecker checker = new AlgorithmPathChecker(ConfigReader.loadAllTrusts(), bean);
             X509Certificate[] chain = checker.detectChain(mail.getSigner(),
-                    null, new VerifyUtil.SignerInfoCheckResults());
+                    null, new VerificationResults.SignerInfoCheckResults());
             if (chain.length < 2) {
                 signedBy.setText("cannot detect chain");
             } else {
@@ -371,7 +367,7 @@ public class EMailCenterCtrl implements ControllerInit {
             folder.open(Folder.READ_WRITE);
             largestUid = ((IMAPFolder)folder).getUIDNext() - 1;
         }
-        long nameIndex = largestUid + 1000;
+        long nameIndex = largestUid + 100;
         for (Message msg: messages) {
             String dirName = path;
             baseDirFile = new File(base, dirName);

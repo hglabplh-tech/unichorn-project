@@ -6,12 +6,10 @@ import iaik.x509.X509Certificate;
 import iaik.x509.extensions.qualified.QCStatements;
 import iaik.x509.extensions.qualified.structures.QCStatement;
 import iaik.x509.extensions.qualified.structures.etsi.QcEuCompliance;
-import iaik.x509.qualified.QualifiedCertificate;
-import iaik.x509.qualified.QualifiedCertificateFactory;
 
 public class CertChecker {
 
-    public static void checkQualified(X509Certificate certificate, VerifyUtil.SignerInfoCheckResults results) {
+    public static void checkQualified(X509Certificate certificate, VerificationResults.SignerInfoCheckResults results) {
         try {
             boolean success = false;
             QCStatements qcStatements = (QCStatements) certificate.getExtension(QCStatements.oid);
@@ -31,14 +29,14 @@ public class CertChecker {
                         if (country != null && !country.isEmpty()) {
                             success = true;
                             results.addSignatureResult("isCertQualified", new Tuple<>(
-                                    "certificate " + certificate.getSubjectDN().getName() + " is qualified", VerifyUtil.Outcome.SUCCESS));
+                                    "certificate " + certificate.getSubjectDN().getName() + " is qualified", VerificationResults.Outcome.SUCCESS));
                             return;
                         }
                     }
                 }
             }
             results.addSignatureResult("isCertQualified", new Tuple<>(
-                    "certificate " + certificate.getSubjectDN().getName() + " is NOT qualified", VerifyUtil.Outcome.FAILED));
+                    "certificate " + certificate.getSubjectDN().getName() + " is NOT qualified", VerificationResults.Outcome.FAILED));
         } catch (Exception ex) {
             throw new IllegalStateException("cannot check if certificate is qualified", ex);
         }
