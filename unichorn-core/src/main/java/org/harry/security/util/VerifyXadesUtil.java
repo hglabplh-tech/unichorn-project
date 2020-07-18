@@ -1,5 +1,6 @@
 package org.harry.security.util;
 
+import iaik.asn1.structures.AlgorithmID;
 import iaik.security.provider.IAIKMD;
 import iaik.x509.X509Certificate;
 import iaik.x509.ocsp.OCSPResponse;
@@ -8,6 +9,8 @@ import iaik.xml.crypto.XSecProvider;
 import iaik.xml.crypto.utils.KeySelectorImpl;
 import iaik.xml.crypto.xades.*;
 import iaik.xml.crypto.xades.timestamp.TimeStampToken;
+import org.harry.security.util.algoritms.XAdESDigestAlg;
+import org.harry.security.util.algoritms.XAdESSigAlg;
 import org.harry.security.util.bean.SigningBean;
 import org.harry.security.util.trustlist.TrustListManager;
 import org.pmw.tinylog.Logger;
@@ -28,10 +31,7 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.security.*;
 import java.security.cert.*;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 public class VerifyXadesUtil {
 
@@ -45,6 +45,13 @@ public class VerifyXadesUtil {
     private final AlgorithmPathChecker algPathChecker;
 
     private final Provider xSecProvider;
+
+    private CertID sigCert;
+
+    private CertIDV2 sigCertV2;
+
+    private boolean ocspCheckDone = false;
+
 
     private List<X509Certificate> certList = new ArrayList<>();
 
@@ -117,15 +124,11 @@ public class VerifyXadesUtil {
                     SignedProperties sp = qp.getSignedProperties();
 
                     getCertificateV1(result, signerResult, sp);
-                    collectCertChain(signature, signerResult);
-                    //X509Certificate
                     canonMethodCheck(signature, signerResult);
+                    collectCertChain(signature, signerResult);
                     checkRevocationInfo(valContext, up, signerResult);
+                    checkCertificate(signerResult);
                     checkTimestamps(valContext, up, signerResult);
-                    //dummy(qp);
-
-
-
                 }
             } else {
                 result.addSignersInfo("N/A", signerResult);
@@ -141,6 +144,11 @@ public class VerifyXadesUtil {
     }
 
     private void collectCertChain(XMLSignature signature, VerificationResults.SignerInfoCheckResults signerResult) {
+        SignatureMethod sigMeth = signature.getSignedInfo().getSignatureMethod();
+        List<Reference> refs = signature.getSignedInfo().getReferences();
+        DigestMethod digestMeth = refs.get(0).getDigestMethod();
+        XAdESSigAlg sigAlg = XAdESSigAlg.getByName(sigMeth.getAlgorithm());
+        XAdESDigestAlg digestAlg = XAdESDigestAlg.getByName(digestMeth.getAlgorithm());
         KeyInfo keyInfo = signature.getKeyInfo();
         for (Object certData : keyInfo.getContent()) {
             X509Data x509Data = (X509Data)certData;
@@ -153,23 +161,22 @@ public class VerifyXadesUtil {
         for (int index = 0;index < chain.length;index++) {
             chain[index] = certList.get(index);
         }
-        signerResult.addCertChain(
-                new Tuple<>("cert chain", VerificationResults.Outcome.SUCCESS),
-                this.certList, chain);
+
+        try {
+            signerResult.addSignatureResult("sigAlg",
+                    new Tuple<>(sigAlg.getAlgorithm().getImplementationName(), VerificationResults.Outcome.SUCCESS));
+            signerResult.addSignatureResult("digestAlg",
+                    new Tuple<>(digestAlg.getAlgorithm().getImplementationName(), VerificationResults.Outcome.SUCCESS));
+            algPathChecker.checkSignatureAlgorithm(sigAlg.getAlgorithm(), chain[0].getPublicKey(), signerResult);
+        } catch (Exception ex) {
+            Logger.trace("algorithm detection failes" + ex.getMessage());
+            Logger.trace(ex);
+            throw new IllegalStateException("algorithm detection failes" + ex.getMessage(), ex);
+        }
     }
 
     private void canonMethodCheck(XMLSignature signature, VerificationResults.SignerInfoCheckResults signerResult) {
         CanonicalizationMethod method = signature.getSignedInfo().getCanonicalizationMethod();
-        SignatureMethod sigMeth = signature.getSignedInfo().getSignatureMethod();
-        List<Reference> refs = signature.getSignedInfo().getReferences();
-        DigestMethod digestMeth = refs.get(0).getDigestMethod();
-        signerResult.addSignatureResult("sigAlg",
-                new Tuple<>(sigMeth.getAlgorithm(), VerificationResults.Outcome.SUCCESS));
-        signerResult.addSignatureResult("digestAlg",
-                new Tuple<>(digestMeth.getAlgorithm(), VerificationResults.Outcome.SUCCESS));
-        // TODO: here we have to code the real check later
-        signerResult.addSignatureResult("check_signature_algorithm",
-                new Tuple<>("signature alg ok", VerificationResults.Outcome.SUCCESS));
         if (method.getAlgorithm().equals(CanonicalizationMethod.INCLUSIVE)
                 || method.getAlgorithm().equals(CanonicalizationMethod.EXCLUSIVE)) {
             signerResult.addSignatureResult("canon method check",
@@ -180,13 +187,31 @@ public class VerifyXadesUtil {
         }
     }
 
-    private void dummy(QualifyingProperties qp) {
-        SigningCertificateV2 signingCert = qp.getSignedProperties().getSignedSignatureProperties().getSigningCertificateV2();
-        List<CertIDV2> certIds = signingCert.getCertIDs();
-        for (CertIDV2 certID: certIds) {
-            String issuer = certID.getIssuerSerialV2().getIssuerName();
-            certID.getIssuerSerialV2().getSerialNumber();
-        }
+    private void checkCertificate( VerificationResults.SignerInfoCheckResults signerResult) {
+        BigInteger serialNumber = null;
+       if (sigCert != null ) {
+           IssuerSerial serial = sigCert.getIssuerSerial();
+           serialNumber = serial.getSerialNumber();
+       } else if (sigCertV2 != null) {
+           IssuerSerialV2 serial = sigCertV2.getIssuerSerialV2();
+           serialNumber = serial.getSerialNumber();
+       }
+
+       if (serialNumber != null) {
+           BigInteger finalSerialNumber = serialNumber;
+           Optional<X509Certificate> certificate =
+                   certList.stream()
+                           .filter(e -> e.getSerialNumber().equals(finalSerialNumber))
+                           .findFirst();
+           if (certificate.isPresent()) {
+               Logger.trace("Signing cert found subject is: " + certificate.get().getSubjectDN().getName());
+               SigningBean bean = new SigningBean().setCheckPathOcsp(!this.ocspCheckDone);
+               AlgorithmPathChecker checker =
+                       new AlgorithmPathChecker(ConfigReader.loadAllTrusts(), bean);
+               X509Certificate [] chain = checker.detectChain(certificate.get(), null, signerResult);
+
+           }
+       }
     }
 
     private void checkRevocationInfo(DOMValidateContext valContext, UnsignedProperties up,
@@ -205,6 +230,7 @@ public class VerifyXadesUtil {
                         DigestAlgAndValue digestData = obj.getDigestAlgAndValue();
                         boolean check = obj.validate(valContext, null);
                         System.out.println("Check result is: " + check);
+                        this.ocspCheckDone = true;
                         if (check) {
                             String uriString = obj.getOCSPIdentifier().getURI();
                             URI uri = new URI(uriString);
@@ -254,7 +280,6 @@ public class VerifyXadesUtil {
     }
 
     private void getCertificateV1(VerificationResults.VerifierResult result, VerificationResults.SignerInfoCheckResults signerResult, SignedProperties sp) {
-        CertID sigCert;
         if (sp != null) {
             SignedSignatureProperties ssp = sp.getSignedSignatureProperties();
             if (ssp != null) {
@@ -275,7 +300,6 @@ public class VerifyXadesUtil {
     }
 
     private void getCertificateV2(VerificationResults.VerifierResult result, VerificationResults.SignerInfoCheckResults signerResult, SignedProperties sp) {
-        CertIDV2 sigCert;
         if (sp != null) {
             SignedSignatureProperties ssp = sp.getSignedSignatureProperties();
             if (ssp != null) {
@@ -283,10 +307,8 @@ public class VerifyXadesUtil {
                 if (sigCerts != null) {
                     List certs = sigCerts.getCertIDs();
                     if (!certs.isEmpty()) {
-                        sigCert = (CertIDV2) certs.get(0);
-                        // TODO: look if we are able to get the X509Certificate
-                        sigCert.getURI();
-                        result.addSignersInfo(sigCert.getURI(), signerResult);
+                        sigCertV2 = (CertIDV2) certs.get(0);
+                        result.addSignersInfo(sigCertV2.getURI(), signerResult);
                         signerResult.addSignatureResult("sigMathOk", new Tuple<>("signature math ok",
                                 VerificationResults.Outcome.SUCCESS));
                     }
