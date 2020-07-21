@@ -172,8 +172,15 @@ public class UnicHornResponderUtil {
         Tuple<BigInteger, Optional<OCSPResponse>> responseOpt =
                 PredefinedResponses.searchResponseINMap(ocspRequest.getRequestList()[0].getReqCert(), keys);
         if (responseOpt.getSecond().isPresent()) {
-            Logger.trace( "Message is: prepared response found");
-            return responseOpt.getSecond().get();
+            try {
+                Logger.trace("Message is: prepared response found");
+                 OCSPResponse response = responseOpt.getSecond().get();
+                return response;
+            } catch (Exception ex) {
+                Logger.trace("error getting response" + ex.getMessage());
+                Logger.trace(ex);
+                throw new IllegalStateException("error getting response" + ex.getMessage(), ex);
+            }
         }
         Logger.trace( "Message is: prepared response NOT found looking up revocation...");
         OCSPResponse response = checkCertificateRevocation(ocspRequest, responseGenerator, crl);
@@ -236,7 +243,8 @@ public class UnicHornResponderUtil {
         archiveCutOff.setCutoffTime(date);
         V3Extension[] extensions = new V3Extension[2];
         extensions[0] = archiveCutOff;
-        extensions[1] = nonce;
+        byte [] nonceValue = nonce.getValue();
+        extensions[1] = new Nonce(nonceValue);
         OCSPResponse response = responseGenerator.createOCSPResponse(ocspReqInput,
                 keys.getSecond()[0].getPublicKey(), signatureAlgorithm, extensions);
         ASN1Object asn1representation = response.toASN1Object();
