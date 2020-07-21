@@ -104,33 +104,36 @@ public class VerifyReporter {
                     resultMajor = MAJORCODE_FAIL;
                     message = "ocsp request failed";
                 }
+                VerificationResultType result = generateVerificationResult(resultMajor, message);
+                singleResp.setCertStatus(result);
+                responses.getSingleResponse().add(singleResp);
+                OCSPContentType content = factory.createOCSPContentType();
+                OCSPResponse realResponse = ocsp.getFirst();
+                BasicOCSPResponse basic = (BasicOCSPResponse) realResponse.getResponse();
+                XMLGregorianCalendar xmlCal = DatatypeFactory.newInstance().newXMLGregorianCalendar();
+                Date prodAt = basic.getProducedAt();
+                Calendar temp = Calendar.getInstance();
+                temp.setTimeInMillis(prodAt.getTime());
+                xmlCal.setTime(temp.get(Calendar.HOUR),
+                        temp.get(Calendar.MINUTE),
+                        temp.get(Calendar.SECOND),
+                        temp.get(Calendar.MILLISECOND));
+                xmlCal.setYear(temp.get(Calendar.YEAR));
+                xmlCal.setMonth(temp.get(Calendar.MONTH));
+                xmlCal.setDay(temp.get(Calendar.DAY_OF_MONTH));
+                content.setProducedAt(xmlCal);
+                content.setResponderID(basic.getResponderID().toString());
+                content.setVersion(BigInteger.valueOf(basic.getVersion()));
+                content.setResponses(responses);
+                ocspResult.setOCSPContent(content);
+                ocspResultList.add(element);
             } else {
                 resultMajor = MAJORCODE_NA;
                 message = "ocsp check result N/A";
+                VerificationResultType result = generateVerificationResult(resultMajor, message);
+                singleResp.setCertStatus(result);
             }
-            VerificationResultType result = generateVerificationResult(resultMajor, message);
-            singleResp.setCertStatus(result);
-            responses.getSingleResponse().add(singleResp);
-            OCSPContentType content = factory.createOCSPContentType();
-            OCSPResponse realResponse = ocsp.getFirst();
-            BasicOCSPResponse basic = (BasicOCSPResponse) realResponse.getResponse();
-            XMLGregorianCalendar xmlCal = DatatypeFactory.newInstance().newXMLGregorianCalendar();
-            Date prodAt = basic.getProducedAt();
-            Calendar temp = Calendar.getInstance();
-            temp.setTimeInMillis(prodAt.getTime());
-            xmlCal.setTime(temp.get(Calendar.HOUR),
-                    temp.get(Calendar.MINUTE),
-                    temp.get(Calendar.SECOND),
-                    temp.get(Calendar.MILLISECOND));
-            xmlCal.setYear(temp.get(Calendar.YEAR));
-            xmlCal.setMonth(temp.get(Calendar.MONTH));
-            xmlCal.setDay(temp.get(Calendar.DAY_OF_MONTH));
-            content.setProducedAt(xmlCal);
-            content.setResponderID(basic.getResponderID().toString());
-            content.setVersion(BigInteger.valueOf(basic.getVersion()));
-            content.setResponses(responses);
-            ocspResult.setOCSPContent(content);
-            ocspResultList.add(element);
+
         }
         return ocspResultList;
 

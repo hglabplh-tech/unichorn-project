@@ -1,6 +1,8 @@
 package org.harry.security.util;
 
 import iaik.x509.X509Certificate;
+import iaik.x509.attr.AttributeCertificate;
+import iaik.xml.crypto.xades.CounterSignature;
 import org.harry.security.testutils.TestBase;
 import org.harry.security.util.bean.SigningBean;
 import org.harry.security.util.certandkey.CertWriterReader;
@@ -13,6 +15,8 @@ import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.security.KeyStore;
 import java.security.PrivateKey;
+import java.util.Enumeration;
+import java.util.Optional;
 
 public class VerifyXadesUtilTest extends TestBase {
 
@@ -41,12 +45,26 @@ public class VerifyXadesUtilTest extends TestBase {
                 .setKeyStoreBean(bean)
                 .setOutputPath(out.getAbsolutePath());
 
+        InputStream p12StoreStream = VerifyXadesUtilTest.class
+                .getResourceAsStream("/certificates/signing.p12");
+        InputStream attrCertStream = VerifyXadesUtilTest.class
+                .getResourceAsStream("/certificates/attrCert2.cer");
+        AttributeCertificate attrCert = new AttributeCertificate(attrCertStream);
+        KeyStore counterStore = KeyStoreTool.loadStore(p12StoreStream, "changeit".toCharArray(), "UnicP12");
+        Enumeration<String> aliases = counterStore.aliases();
+        Tuple<PrivateKey, X509Certificate[]> counterKeys = null;
+        if (aliases.hasMoreElements()) {
+            counterKeys =
+                    KeyStoreTool.getKeyEntry(counterStore, aliases.nextElement(), "changeit".toCharArray());
+        }
         SignXAdESUtil util = new SignXAdESUtil(bean.getSelectedKey(), bean.getChain(), false);
         SignXAdESUtil.XAdESParams params = util.newParams()
                 .setTSA_URL("http://zeitstempel.dfn.de/")
                 .setSetSigTimeStamp(true)
                 .setAppendOCSPValues(true)
-                .setSetContentTimeStamp(true);
+                .setSetContentTimeStamp(true)
+                .setCounterSigKeys(counterKeys)
+                .setSignerRole(Optional.of(attrCert));
         util.prepareSigning(signingBean.getDataIN(), params);
         util.sign(new FileOutputStream(out.getAbsolutePath()));
     }

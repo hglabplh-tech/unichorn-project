@@ -71,8 +71,6 @@ public class SignXAdESUtil {
 
     private Certificate[] certChain;
 
-    Tuple<PrivateKey, X509Certificate[]> secondKeys = null;
-
     private XAdESSignatureFactory sfac;
 
     private QualifyingPropertiesFactory qfac;
@@ -108,16 +106,6 @@ public class SignXAdESUtil {
         qfac = QualifyingPropertiesFactory.getInstance("DOM", xSecProvider);
         kif = KeyInfoFactory.getInstance("DOM", xSecProvider);
     }
-
-    public void getSecondCert(InputStream fis, String pw, String alias)
-            throws GeneralSecurityException, IOException {
-        System.out
-                .println("reading signature key and certificates ");
-        KeyStore store = KeyStoreTool.loadStore(fis,pw.toCharArray(), "UnicP12");
-        secondKeys = KeyStoreTool.getKeyEntry(store, alias, pw.toCharArray());
-
-    }
-
 
     /**
      * method for prepare signing with all requested parameteers TODO pack the parameters into a sign parameter class
@@ -181,18 +169,19 @@ public class SignXAdESUtil {
         if (params.getSignerRole().isPresent()) {
             theRole = getSignerRoleV2(params);
         }
-        List<CounterSignature> counterSigs = null;
-        if (params.getCounterSignature() != null) {
-            CounterSignature cs = params.getCounterSignature();
+        List<CounterSignature> counterSigs = new ArrayList<>();
+        if (params.getCounterSigKeys().isPresent()) {
+            Tuple<PrivateKey, X509Certificate[]> keys = params.getCounterSigKeys().get();
+            CounterSignature cs = createCounterSignature(keys);
             counterSigs = Collections.nCopies(1, cs);
         }
         SignaturePolicyIdentifier spiden = null;
         if (params.isGenPolicy()) {
             spiden = generatePolicy();
         }
-        // Create SignedProperties
         SignedSignatureProperties ssp =
                 qfac.newSignedSignatureProperties(st, sc, spiden, prodPlace, theRole, null);
+        // Create SignedProperties
         SignedDataObjectProperties sdp = null;
         if (params.isSetContentTimeStamp()) {
             sdp = setAllDataObjTSP(params.getCanonMethod());
@@ -286,9 +275,7 @@ public class SignXAdESUtil {
         signature.appendSignatureTimeStamp(tsp, exContext);
     }
 
-    private CounterSignature createCounterSignature(InputStream fis, String passwd, String alias) throws Exception  {
-        // Create a CounterSignature
-        getSecondCert(fis,passwd, alias);
+    public CounterSignature createCounterSignature(Tuple<PrivateKey, X509Certificate[]> keys) throws Exception  {
         // Create a Reference to the orignal signature
         Reference csRef = sfac.newReference("#" + signedPropsId,
                 sfac.newDigestMethod(params.getDigestAlg(), null), null,
@@ -303,17 +290,23 @@ public class SignXAdESUtil {
 
         // Create a KeyValue containing the RSA PublicKey that was generated
         KeyInfoFactory kif = sfac.getKeyInfoFactory();
-        KeyValue kv = kif.newKeyValue(secondKeys.getSecond()[0].getPublicKey());
-
-        // Create a KeyInfo and add the KeyValue to it
-        KeyInfo cski = kif.newKeyInfo(Collections.nCopies(1, kv));
-
+        X509Data x509data = kif.newX509Data(
+                Arrays.asList(keys.getSecond()));
+        KeyInfo cski = kif.newKeyInfo(Collections.nCopies(1, x509data));
         // Create counter signature
-        XMLSignature cs = sfac.newXMLSignature(csSI, cski);
+        CertIDV2 certID = qfac.newCertIDV2(null, keys.getSecond()[0], sfac.newDigestMethod(params.getDigestAlg(), null),true);
+        SigningCertificateV2 sc = qfac.newSigningCertificateV2(Collections.singletonList(certID));
+        SignedSignatureProperties ssp =
+                qfac.newSignedSignatureProperties(null, sc, null, null, null, null);
+        SignedProperties sp = qfac.newSignedProperties(ssp, null, UUID.randomUUID().toString());
+        QualifyingProperties qp = qfac.newQualifyingProperties(sp, null, "#" + UUID.randomUUID().toString(), null);
+        XMLObject qpObj = sfac.newXMLObject(nCopies(1, qp), null, null, null);
+        XMLSignature cs = sfac.newXMLSignature(csSI, cski, Arrays.asList(qpObj),
+                UUID.randomUUID().toString(), "SignatureValue-" + UUID.randomUUID().toString());
 
         // Create the XAdES CounterSignature property
         CounterSignature counterSignature = qfac.newCounterSignature(cs,
-                KeySelector.singletonKeySelector(secondKeys.getFirst()));
+                KeySelector.singletonKeySelector(keys.getFirst()));
         return counterSignature;
     }
 
@@ -481,7 +474,7 @@ public class SignXAdESUtil {
         private String signatureAlg = XmldsigMore.SIGNATURE_RSA_SHA256;
         private String digestAlg = DigestMethod.SHA256;
         private String TSA_URL = TSP_URL;
-        private CounterSignature counterSignature = null;
+        private Optional<Tuple<PrivateKey, X509Certificate[]>> counterSigKeys = Optional.empty();
         private ProdPlace productionPlace = null;
         private boolean genPolicy = false;
         private boolean appendOCSPValues = false;
@@ -558,12 +551,12 @@ public class SignXAdESUtil {
             return this;
         }
 
-        public CounterSignature getCounterSignature() {
-            return counterSignature;
+        public Optional<Tuple<PrivateKey, X509Certificate[]>> getCounterSigKeys() {
+            return counterSigKeys;
         }
 
-        public XAdESParams setCounterSignature(CounterSignature counterSignature) {
-            this.counterSignature = counterSignature;
+        public XAdESParams setCounterSigKeys(Tuple<PrivateKey, X509Certificate[]> input) {
+            this.counterSigKeys = Optional.of(input);
             return this;
         }
 

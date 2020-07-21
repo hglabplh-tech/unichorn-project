@@ -3,6 +3,7 @@ package org.harry.security.util;
 import iaik.asn1.structures.AlgorithmID;
 import iaik.security.provider.IAIKMD;
 import iaik.x509.X509Certificate;
+import iaik.x509.attr.AttributeCertificate;
 import iaik.x509.ocsp.OCSPResponse;
 import iaik.x509.ocsp.UnknownResponseException;
 import iaik.xml.crypto.XSecProvider;
@@ -128,7 +129,10 @@ public class VerifyXadesUtil {
                     collectCertChain(signature, signerResult);
                     checkRevocationInfo(valContext, up, signerResult);
                     checkCertificate(signerResult);
+                    checkSignerRole(valContext,sp,
+                            signerResult);
                     checkTimestamps(valContext, up, signerResult);
+                    checkCounterSignature(valContext, up, result, signerResult);
                 }
             } else {
                 result.addSignersInfo("N/A", signerResult);
@@ -144,6 +148,7 @@ public class VerifyXadesUtil {
     }
 
     private void collectCertChain(XMLSignature signature, VerificationResults.SignerInfoCheckResults signerResult) {
+        certList.clear();
         SignatureMethod sigMeth = signature.getSignedInfo().getSignatureMethod();
         List<Reference> refs = signature.getSignedInfo().getReferences();
         DigestMethod digestMeth = refs.get(0).getDigestMethod();
@@ -217,30 +222,79 @@ public class VerifyXadesUtil {
     private void checkRevocationInfo(DOMValidateContext valContext, UnsignedProperties up,
                                      VerificationResults.SignerInfoCheckResults signerResult) {
         try {
+            if (up != null) {
+                UnsignedSignatureProperties usp = up.getUnsignedSignatureProperties();
+                if (usp != null) {
+                    CompleteRevocationRefs revocatioRefs = usp.getCompleteRevocationRefs();
+                    if (revocatioRefs != null) {
+                        List<OCSPRef> refs = revocatioRefs.getOCSPRefs();
+                        for (OCSPRef obj : refs) {
+                            Logger.trace("Object class of ref is: " + obj.getClass().getCanonicalName());
+                            Logger.trace(obj.getOCSPIdentifier().getURI());
+                            Logger.trace(obj.getOCSPIdentifier().getResponderId().byName());
+                            Logger.trace(obj.getOCSPIdentifier().getProducedAt().toString());
+                            DigestAlgAndValue digestData = obj.getDigestAlgAndValue();
+                            boolean check = obj.validate(valContext, null);
+                            System.out.println("Check result is: " + check);
+                            this.ocspCheckDone = true;
+                            if (check) {
+                                String uriString = obj.getOCSPIdentifier().getURI();
+                                URI uri = new URI(uriString);
+                                File respFile = new File(uri);
+                                OCSPResponse response = new OCSPResponse(new FileInputStream(respFile));
+                                signerResult.addOcspResult("ocspResult",
+                                        new Tuple<OCSPResponse, VerificationResults.Outcome>(response, VerificationResults.Outcome.SUCCESS));
+                            } else {
+                                signerResult.addOcspResult("ocspResult",
+                                        new Tuple<OCSPResponse, VerificationResults.Outcome>(null, VerificationResults.Outcome.FAILED));
+                            }
+                        }
+                    } else {
+
+                    }
+                }
+            }
+        } catch (Exception ex) {
+            Logger.trace("ocsp check hard failure: " + ex.getMessage());
+            Logger.trace(ex);
+            throw new IllegalStateException("ocsp check hard failure", ex);
+        }
+    }
+
+    private void checkCounterSignature(DOMValidateContext valContext, UnsignedProperties up,
+                                     VerificationResults.VerifierResult result,
+                                     VerificationResults.SignerInfoCheckResults signerResult) {
+        try {
+            this.ocspCheckDone = false;
             UnsignedSignatureProperties usp = up.getUnsignedSignatureProperties();
             if (usp != null) {
-                CompleteRevocationRefs revocatioRefs = usp.getCompleteRevocationRefs();
-                if (revocatioRefs != null) {
-                    List<OCSPRef> refs = revocatioRefs.getOCSPRefs();
-                    for (OCSPRef obj : refs) {
-                        Logger.trace("Object class of ref is: " + obj.getClass().getCanonicalName());
-                        Logger.trace(obj.getOCSPIdentifier().getURI());
-                        Logger.trace(obj.getOCSPIdentifier().getResponderId().byName());
-                        Logger.trace(obj.getOCSPIdentifier().getProducedAt().toString());
-                        DigestAlgAndValue digestData = obj.getDigestAlgAndValue();
-                        boolean check = obj.validate(valContext, null);
-                        System.out.println("Check result is: " + check);
-                        this.ocspCheckDone = true;
-                        if (check) {
-                            String uriString = obj.getOCSPIdentifier().getURI();
-                            URI uri = new URI(uriString);
-                            File respFile = new File(uri);
-                            OCSPResponse response = new OCSPResponse(new FileInputStream(respFile));
-                            signerResult.addOcspResult("ocspResult",
-                                    new Tuple<OCSPResponse, VerificationResults.Outcome>(response, VerificationResults.Outcome.SUCCESS));
+                List<CounterSignature> counterSigs = usp.getCounterSignatures();
+                if (counterSigs != null) {
+                    for (CounterSignature counterSignature : counterSigs) {
+                        XMLSignature signature = counterSignature.getSignature();
+                        if (signature != null) {
+                            boolean success = signature.validate(valContext);
+                            if (success) {
+                                signerResult.addSignatureResult("counter signature",
+                                        new Tuple<>("valid signature found", VerificationResults.Outcome.SUCCESS));
+                                QualifyingProperties qp = ((XAdESSignature) signature).getQualifyingProperties();
+                                signerResult = new VerificationResults.SignerInfoCheckResults();
+                                if (qp != null) {
+                                    up = qp.getUnsignedProperties();
+                                    SignedProperties sp = qp.getSignedProperties();
+                                    getCertificateV1(result, signerResult, sp);
+                                    collectCertChain(signature, signerResult);
+                                    checkRevocationInfo(valContext, up, signerResult);
+                                    checkCertificate(signerResult);
+
+                                }
+                            } else {
+                                signerResult.addSignatureResult("counter signature",
+                                        new Tuple<>("NOT valid signature found", VerificationResults.Outcome.FAILED));
+                            }
                         } else {
-                            signerResult.addOcspResult("ocspResult",
-                                    new Tuple<OCSPResponse, VerificationResults.Outcome>(null, VerificationResults.Outcome.FAILED));
+                            signerResult.addSignatureResult("counter signature",
+                                    new Tuple<>("none signature found", VerificationResults.Outcome.INDETERMINED));
                         }
                     }
                 } else {
@@ -253,6 +307,43 @@ public class VerifyXadesUtil {
             throw new IllegalStateException("ocsp check hard failure", ex);
         }
     }
+
+    private void checkSignerRole(DOMValidateContext valContext,SignedProperties sp,
+                                       VerificationResults.SignerInfoCheckResults signerResult) {
+        try {
+            this.ocspCheckDone = false;
+            SignedSignatureProperties ssp = sp.getSignedSignatureProperties();
+            if (ssp != null) {
+                SignerRoleV2 roles = ssp.getSignerRoleV2();
+                if (roles != null) {
+                        for (Object object : roles.getCertifiedRoles()) {
+                            CertifiedRoleV2 role = (CertifiedRoleV2)object;
+                            X509AttributeCertificate attr = role.getX509AttributeCertificate();
+                            AttributeCertificate cert = new AttributeCertificate(attr.getAttributeCertificate());
+                            try {
+                                cert.verify(cert.getPublicKey());
+                                signerResult.addSignatureResult("attrCert"
+                                        , new Tuple<>("attribute cert ok", VerificationResults.Outcome.SUCCESS));
+                            } catch (Exception ex) {
+                                Logger.trace("Attr cert verify exception: " + ex.getMessage());
+                                Logger.trace(ex);
+                                signerResult.addSignatureResult("attrCert"
+                                        , new Tuple<>("attribute cert ok", VerificationResults.Outcome.FAILED));
+                            }
+                        }
+                } else {
+                    signerResult.addSignatureResult("attrCert"
+                            , new Tuple<>("attribute cert ok", VerificationResults.Outcome.INDETERMINED));
+                }
+            }
+        } catch (Exception ex) {
+            Logger.trace("attribute cert check hard failure: " + ex.getMessage());
+            Logger.trace(ex);
+            throw new IllegalStateException("attribute cert check hard failure: ", ex);
+        }
+    }
+
+
 
     private void checkTimestamps(DOMValidateContext valContext, UnsignedProperties up, VerificationResults.SignerInfoCheckResults signerResult) throws XMLSignatureException {
         if (up != null) {
