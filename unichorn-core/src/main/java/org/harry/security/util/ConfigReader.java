@@ -248,7 +248,7 @@ public class ConfigReader {
                 if (trustFile.getName().contains(".xml")) {
                     in = new FileInputStream(trustFile);
                 TrustStatusListType trustList = TrustListLoader.loadTrust(in);
-                TrustListManager walker = new TrustListManager(trustList, false);
+                TrustListManager walker = new TrustListManager(trustList, true);
                 theTrusts.add(walker);
                 }
             }

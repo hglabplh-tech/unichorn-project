@@ -58,13 +58,21 @@ public class VerifyXadesUtilTest extends TestBase {
                     KeyStoreTool.getKeyEntry(counterStore, aliases.nextElement(), "changeit".toCharArray());
         }
         SignXAdESUtil util = new SignXAdESUtil(bean.getSelectedKey(), bean.getChain(), false);
+        VerificationResults.ProdPlace prodPlace =
+                new VerificationResults.ProdPlace()
+                .setCity("Gäufelden")
+                .setZipCode("71126")
+                .setStreet("Sommerbergstrasse 8")
+                .setCountry("Germany")
+                .setRegion("Baden-Württemberg");
         SignXAdESUtil.XAdESParams params = util.newParams()
                 .setTSA_URL("http://zeitstempel.dfn.de/")
                 .setSetSigTimeStamp(true)
                 .setAppendOCSPValues(true)
                 .setSetContentTimeStamp(true)
                 .setCounterSigKeys(counterKeys)
-                .setSignerRole(Optional.of(attrCert));
+                .setSignerRole(Optional.of(attrCert))
+                .setProductionPlace(prodPlace);
         util.prepareSigning(signingBean.getDataIN(), params);
         util.sign(new FileOutputStream(out.getAbsolutePath()));
     }

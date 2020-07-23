@@ -245,9 +245,14 @@ public class VerifyUtil {
             AttributeCertificate attrCert = new AttributeCertificate(candidate.getEncoded());
             try {
                 attrCert.verify(arranged[0].getPublicKey());
-                results.addSignatureResult("attribute certificate check", new Tuple<>("attrCertCheck", VerificationResults.Outcome.SUCCESS));
+                results.addSignatureResult("attribute certificate check was successful",
+                        new Tuple<>("attrCertCheck",
+                                VerificationResults.Outcome.SUCCESS));
+                results.setAttrCert(attrCert);
             } catch(Exception ex) {
-                results.addSignatureResult("attribute certificate check", new Tuple<>("attrCertCheck", VerificationResults.Outcome.FAILED));
+                results.addSignatureResult("attrCertCheck",
+                        new Tuple<>("attribute certificate check was NOT successful",
+                                VerificationResults.Outcome.FAILED));
             }
 
         }

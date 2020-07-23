@@ -1,15 +1,10 @@
 package org.harald.security.fx;
 
-import iaik.security.ec.math.field.FrobeniusSexticExtensionOverQuadraticConstants;
 import javafx.application.Platform;
 import javafx.geometry.Insets;
-import javafx.scene.Node;
 import javafx.scene.control.*;
 import javafx.scene.layout.GridPane;
-import javafx.util.Pair;
-import org.harry.security.util.SignXAdESUtil;
-import org.harry.security.util.Tuple;
-import org.harry.security.util.pwdmanager.PasswordManager;
+import org.harry.security.util.VerificationResults;
 
 import java.util.Optional;
 
@@ -23,9 +18,9 @@ public class SetProdPlaceDialog {
      * This method creates and calls the dialog to define a production place of a signature
      * @return the production place definition
      */
-    public static SignXAdESUtil.ProdPlace passwordStoreDialog() {
+    public static VerificationResults.ProdPlace passwordStoreDialog() {
         // Create the custom dialog.
-        Dialog<SignXAdESUtil.ProdPlace> dialog = new Dialog<>();
+        Dialog<VerificationResults.ProdPlace> dialog = new Dialog<>();
         dialog.setTitle("Define Production Place for Signature");
 
 // Set the icon (must be included in the project).
@@ -76,7 +71,7 @@ public class SetProdPlaceDialog {
 // Convert the result to a passwordKey-password-pair when the login button is clicked.
         dialog.setResultConverter(dialogButton -> {
             if (dialogButton == loginButtonType) {
-                return new SignXAdESUtil.ProdPlace().setCity(city.getText())
+                return new VerificationResults.ProdPlace().setCity(city.getText())
                         .setStreet(street.getText())
                         .setZipCode(zipCode.getText())
                         .setRegion(region.getText())
@@ -85,7 +80,7 @@ public class SetProdPlaceDialog {
             return null;
         });
 
-        Optional<SignXAdESUtil.ProdPlace> result = dialog.showAndWait();
+        Optional<VerificationResults.ProdPlace> result = dialog.showAndWait();
 
         if (result.isPresent()) {
             return result.get();

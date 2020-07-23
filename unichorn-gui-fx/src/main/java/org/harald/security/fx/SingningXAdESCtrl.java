@@ -11,6 +11,7 @@ import javafx.scene.control.TextField;
 import org.harald.security.fx.util.Miscellaneous;
 import org.harry.security.util.SignXAdESUtil;
 import org.harry.security.util.Tuple;
+import org.harry.security.util.VerificationResults;
 import org.harry.security.util.algoritms.XAdESDigestAlg;
 import org.harry.security.util.algoritms.XAdESSigAlg;
 import org.harry.security.util.bean.SigningBean;
@@ -51,7 +52,7 @@ public class SingningXAdESCtrl implements ControllerInit {
 
     File attrCertFile = null;
 
-    SignXAdESUtil.ProdPlace productionPlace = null;
+    VerificationResults.ProdPlace productionPlace = null;
 
     private SigningBean signingBean;
 

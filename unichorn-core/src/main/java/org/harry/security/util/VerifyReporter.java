@@ -4,17 +4,23 @@ package org.harry.security.util;
 import iaik.asn1.ObjectID;
 import iaik.utils.Util;
 import iaik.x509.X509Certificate;
+import iaik.x509.attr.AttributeCertificate;
 import iaik.x509.extensions.ExtendedKeyUsage;
 
 import iaik.x509.ocsp.BasicOCSPResponse;
 import iaik.x509.ocsp.OCSPResponse;
+import iaik.xml.crypto.xades.SignatureProductionPlace;
 import oasis.names.tc.dss._1_0.core.schema.*;
+
 import oasis.names.tc.dss_x._1_0.profiles.verificationreport.schema_.*;
 import oasis.names.tc.dss_x._1_0.profiles.verificationreport.schema_.ObjectFactory;
+import oasis.names.tc.dss_x._1_0.profiles.verificationreport.schema_.PropertiesType;
 import org.etsi.uri._01903.v1_3.IdentifierType;
 import org.etsi.uri._01903.v1_3.ObjectIdentifierType;
 import org.etsi.uri._01903.v1_3.QualifierType;
+import org.etsi.uri._01903.v1_3.SignatureProductionPlaceType;
 import org.harry.security.util.ocsp.OCSPCRLClient;
+import org.w3._2000._09.xmldsig_.X509IssuerSerialType;
 
 
 import javax.xml.bind.JAXBElement;
@@ -22,6 +28,7 @@ import javax.xml.datatype.DatatypeConfigurationException;
 import javax.xml.datatype.DatatypeFactory;
 import javax.xml.datatype.XMLGregorianCalendar;
 import java.math.BigInteger;
+import java.security.cert.CertificateEncodingException;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
@@ -43,7 +50,6 @@ public class VerifyReporter {
     private List<JAXBElement<DetailedSignatureReportType>> detailList;
 
 
-
     public VerifyReporter(VerificationResults.VerifierResult checkResult) {
         this.checkResult = checkResult;
         this.infoResult = checkResult.getSignersCheck();
@@ -51,6 +57,7 @@ public class VerifyReporter {
         report = new VerificationReportType();
         ObjectFactory factory = new ObjectFactory();
         individualReport = factory.createIndividualReportType();
+
         report.getIndividualReport().add(individualReport);
         Result reportResult = new Result();
         VerificationResults.Outcome outcome = VerificationResults.Outcome.SUCCESS;
@@ -97,7 +104,7 @@ public class VerifyReporter {
             String resultMajor;
             String message;
             if (ocsp != null) {
-                if (ocsp.getSecond() == VerificationResults.Outcome.SUCCESS)  {
+                if (ocsp.getSecond() == VerificationResults.Outcome.SUCCESS) {
                     resultMajor = MAJORCODE_PASS;
                     message = OCSPCRLClient.extractResponseStatusName(ocsp.getFirst());
                 } else {
@@ -110,18 +117,8 @@ public class VerifyReporter {
                 OCSPContentType content = factory.createOCSPContentType();
                 OCSPResponse realResponse = ocsp.getFirst();
                 BasicOCSPResponse basic = (BasicOCSPResponse) realResponse.getResponse();
-                XMLGregorianCalendar xmlCal = DatatypeFactory.newInstance().newXMLGregorianCalendar();
-                Date prodAt = basic.getProducedAt();
-                Calendar temp = Calendar.getInstance();
-                temp.setTimeInMillis(prodAt.getTime());
-                xmlCal.setTime(temp.get(Calendar.HOUR),
-                        temp.get(Calendar.MINUTE),
-                        temp.get(Calendar.SECOND),
-                        temp.get(Calendar.MILLISECOND));
-                xmlCal.setYear(temp.get(Calendar.YEAR));
-                xmlCal.setMonth(temp.get(Calendar.MONTH));
-                xmlCal.setDay(temp.get(Calendar.DAY_OF_MONTH));
-                content.setProducedAt(xmlCal);
+                UnicDate prodAt = new UnicDate(basic.getProducedAt());
+                content.setProducedAt(prodAt.asXMLDate());
                 content.setResponderID(basic.getResponderID().toString());
                 content.setVersion(BigInteger.valueOf(basic.getVersion()));
                 content.setResponses(responses);
@@ -145,6 +142,7 @@ public class VerifyReporter {
         List<JAXBElement<DetailedSignatureReportType>> detailReportList = new ArrayList<>();
         for (VerificationResults.SignerInfoCheckResults results : infoResult) {
             DetailedSignatureReportType signatureReport = new DetailedSignatureReportType();
+            addSignedSignatureProps(factory, signatureReport, results);
             JAXBElement<DetailedSignatureReportType> element = factory.createDetailedSignatureReport(signatureReport);
             VerificationResults.Outcome outcome = results.checkFormatResult();
             String resultMajor;
@@ -193,7 +191,7 @@ public class VerifyReporter {
             if (chain != null && chain.length > 1) {
                 resultMajor = MAJORCODE_PASS;
                 message = "certificate chain correct";
-            } else if (chain == null){
+            } else if (chain == null) {
                 resultMajor = MAJORCODE_NA;
                 message = "certificate chain N/A";
             } else {
@@ -220,6 +218,59 @@ public class VerifyReporter {
             detailReportList.add(element);
         }
         return detailReportList;
+    }
+
+    private void addSignedSignatureProps(ObjectFactory factory, DetailedSignatureReportType signatureReport, VerificationResults.SignerInfoCheckResults results) {
+        try {
+            PropertiesType props = new PropertiesType();
+            SignedPropertiesType signedProps = factory.createSignedPropertiesType();
+            SignedSignaturePropertiesType sigPropType = factory.createSignedSignaturePropertiesType();
+            if (results.getAttrCert() != null) {
+                AttributeCertificate attrCert = results.getAttrCert();
+                SignerRoleType role = factory.createSignerRoleType();
+                CertifiedRolesListType certified = factory.createCertifiedRolesListType();
+                role.setCertifiedRoles(certified);
+                createAttrCertEntry(factory, attrCert, certified);
+                sigPropType.setSignerRole(role);
+            }
+            if (results.getProdPlace() != null) {
+                VerificationResults.ProdPlace prodPlace = results.getProdPlace();
+                sigPropType.setLocation("Germany");
+                SignatureProductionPlaceType prodPlaceXML = new SignatureProductionPlaceType();
+                prodPlaceXML.setCity(prodPlace.getCity());
+                prodPlaceXML.setPostalCode(prodPlace.getZipCode());
+                prodPlaceXML.setCountryName(prodPlace.getCountry());
+                prodPlaceXML.setStateOrProvince(prodPlace.getRegion());
+                sigPropType.setSignatureProductionPlace(prodPlaceXML);
+            }
+            signedProps.setSignedSignatureProperties(sigPropType);
+            props.setSignedProperties(signedProps);
+            signatureReport.setProperties(props);
+        } catch (Exception ex) {
+            throw new IllegalStateException("report generation failed", ex);
+        }
+    }
+
+    private void createAttrCertEntry(ObjectFactory factory, AttributeCertificate attrCert, CertifiedRolesListType certified) throws CertificateEncodingException, DatatypeConfigurationException {
+        AttributeCertificateValidityType certValid = factory.createAttributeCertificateValidityType();
+        certValid.setAttributeCertificateValue(attrCert.getEncoded());
+        AttributeCertificateContentType content = factory.createAttributeCertificateContentType();
+        ValidityPeriodType period = factory.createValidityPeriodType();
+        UnicDate notBefore = new UnicDate(attrCert.getNotBeforeTime());
+        UnicDate notAfter = new UnicDate(attrCert.getNotAfterTime());
+        period.setNotBefore(notBefore.asXMLDate());
+        period.setNotAfter(notAfter.asXMLDate());
+        content.setAttCertValidityPeriod(period);
+        certValid.setAttributeCertificateContent(content);
+        AttrCertIDType certIDType = factory.createAttrCertIDType();
+        EntityType entity = factory.createEntityType();
+        X509IssuerSerialType x509 = new X509IssuerSerialType();
+        x509.setX509IssuerName(attrCert.getIssuer().toString());
+        x509.setX509SerialNumber(attrCert.getSerialNumber());
+        entity.setBaseCertificateID(x509);
+        certIDType.setHolder(entity);
+        certValid.setAttributeCertificateIdentifier(certIDType);
+        certified.getAttributeCertificateValidity().add(certValid);
     }
 
     private ExtensionsType generateExtensions(X509Certificate cert) throws Exception {
@@ -258,13 +309,13 @@ public class VerifyReporter {
         certContent.setSignatureAlgorithm(cert.getSigAlgName());
         certContent.setIssuer(cert.getIssuerDN().getName());
         certContent.setSubject(cert.getSubjectDN().getName());
-        certContent.setVersion(BigInteger.valueOf((long)cert.getVersion()));
+        certContent.setVersion(BigInteger.valueOf((long) cert.getVersion()));
         ExtensionsType extensions = generateExtensions(cert);
         certContent.setExtensions(extensions);
         return certContent;
     }
 
-    private VerificationResultType generateVerificationResult (String resultMajor, String message){
+    private VerificationResultType generateVerificationResult(String resultMajor, String message) {
         VerificationResultType result = new VerificationResultType();
         result.setResultMajor(resultMajor);
         InternationalStringType international = new InternationalStringType();

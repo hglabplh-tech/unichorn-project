@@ -26,7 +26,6 @@ import iaik.xml.crypto.xades.dom.DOMExtensionContext;
 import iaik.xml.crypto.xades.impl.dom.XAdESSignatureFactory;
 import iaik.xml.crypto.xades.timestamp.TimeStampProcessor;
 import org.harry.security.util.bean.SigningBean;
-import org.harry.security.util.certandkey.KeyStoreTool;
 import org.harry.security.util.ocsp.HttpOCSPClient;
 import org.harry.security.util.trustlist.TrustListManager;
 import org.w3c.dom.Document;
@@ -156,7 +155,7 @@ public class SignXAdESUtil {
         st = qfac.newSigningTime();
         SignatureProductionPlaceV2 prodPlace = null;
         if (params.getProductionPlace() != null) {
-            ProdPlace place = params.getProductionPlace();
+            VerificationResults.ProdPlace place = params.getProductionPlace();
             prodPlace = qfac.newSignatureProductionPlaceV2(place.getCity(),
                     place.getStreet(),
                     place.getRegion(),
@@ -475,7 +474,7 @@ public class SignXAdESUtil {
         private String digestAlg = DigestMethod.SHA256;
         private String TSA_URL = TSP_URL;
         private Optional<Tuple<PrivateKey, X509Certificate[]>> counterSigKeys = Optional.empty();
-        private ProdPlace productionPlace = null;
+        private VerificationResults.ProdPlace productionPlace = null;
         private boolean genPolicy = false;
         private boolean appendOCSPValues = false;
 
@@ -560,11 +559,11 @@ public class SignXAdESUtil {
             return this;
         }
 
-        public ProdPlace getProductionPlace() {
+        public VerificationResults.ProdPlace getProductionPlace() {
             return productionPlace;
         }
 
-        public XAdESParams setProductionPlace(ProdPlace productionPlace) {
+        public XAdESParams setProductionPlace(VerificationResults.ProdPlace productionPlace) {
             this.productionPlace = productionPlace;
             return this;
         }
@@ -584,59 +583,6 @@ public class SignXAdESUtil {
 
         public XAdESParams setAppendOCSPValues(boolean appendOCSPValues) {
             this.appendOCSPValues = appendOCSPValues;
-            return this;
-        }
-    }
-
-    public static class ProdPlace {
-        private String city;
-        private String street;
-        private String zipCode;
-        private String region;
-        private String country;
-
-        public String getCity() {
-            return city;
-        }
-
-        public ProdPlace setCity(String city) {
-            this.city = city;
-            return this;
-        }
-
-        public String getStreet() {
-            return street;
-        }
-
-        public ProdPlace setStreet(String street) {
-            this.street = street;
-            return this;
-        }
-
-        public String getZipCode() {
-            return zipCode;
-        }
-
-        public ProdPlace setZipCode(String zipCode) {
-            this.zipCode = zipCode;
-            return this;
-        }
-
-        public String getRegion() {
-            return region;
-        }
-
-        public ProdPlace setRegion(String region) {
-            this.region = region;
-            return this;
-        }
-
-        public String getCountry() {
-            return country;
-        }
-
-        public ProdPlace setCountry(String country) {
-            this.country = country;
             return this;
         }
     }

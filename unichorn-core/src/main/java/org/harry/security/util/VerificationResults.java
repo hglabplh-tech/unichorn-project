@@ -2,6 +2,7 @@ package org.harry.security.util;
 
 import iaik.cms.SignerInfo;
 import iaik.x509.X509Certificate;
+import iaik.x509.attr.AttributeCertificate;
 import iaik.x509.ocsp.OCSPResponse;
 
 import java.util.*;
@@ -49,12 +50,23 @@ public class VerificationResults {
         Map<String, Tuple<String, Outcome>> formatResults = new HashMap<>();
         Map<String, Tuple<String, Outcome>> signatureResults = new HashMap<>();
         Map<String, Tuple<OCSPResponse, Outcome>> ocspResults = new HashMap<>();
+        ProdPlace prodPlace = null;
         X509Certificate[] signerChain = null;
+        AttributeCertificate attrCert = null;
         SignerInfo info = null;
         Map<Tuple<String, Outcome>, List<X509Certificate>> signersChain = new HashMap<>();
 
         public void setInfo(SignerInfo info) {
             this.info = info;
+        }
+
+        public void setAttrCert(AttributeCertificate attrCert) {
+            this.attrCert = attrCert;
+        }
+
+        public SignerInfoCheckResults setProdPlace(ProdPlace prodPlace) {
+            this.prodPlace = prodPlace;
+            return this;
         }
 
         public void addCertChain(Tuple<String, Outcome> result, List<X509Certificate> resultCerts, X509Certificate [] certChain) {
@@ -99,6 +111,14 @@ public class VerificationResults {
         public SignerInfoCheckResults addOcspResult(String resultName, Tuple<OCSPResponse, Outcome> ocspResult) {
             this.ocspResults.put(resultName, ocspResult);
             return this;
+        }
+
+        public AttributeCertificate getAttrCert() {
+            return attrCert;
+        }
+
+        public ProdPlace getProdPlace() {
+            return prodPlace;
         }
 
         public Outcome sigMathOk () {
@@ -154,6 +174,59 @@ public class VerificationResults {
                 }
             }
             return overall;
+        }
+    }
+
+    public static class ProdPlace {
+        private String city;
+        private String street;
+        private String zipCode;
+        private String region;
+        private String country;
+
+        public String getCity() {
+            return city;
+        }
+
+        public ProdPlace setCity(String city) {
+            this.city = city;
+            return this;
+        }
+
+        public String getStreet() {
+            return street;
+        }
+
+        public ProdPlace setStreet(String street) {
+            this.street = street;
+            return this;
+        }
+
+        public String getZipCode() {
+            return zipCode;
+        }
+
+        public ProdPlace setZipCode(String zipCode) {
+            this.zipCode = zipCode;
+            return this;
+        }
+
+        public String getRegion() {
+            return region;
+        }
+
+        public ProdPlace setRegion(String region) {
+            this.region = region;
+            return this;
+        }
+
+        public String getCountry() {
+            return country;
+        }
+
+        public ProdPlace setCountry(String country) {
+            this.country = country;
+            return this;
         }
     }
 }

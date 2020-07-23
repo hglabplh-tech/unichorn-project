@@ -9,6 +9,7 @@ import org.junit.BeforeClass;
 import org.pmw.tinylog.Configurator;
 import org.pmw.tinylog.Level;
 import org.pmw.tinylog.writers.ConsoleWriter;
+import org.pmw.tinylog.writers.FileWriter;
 
 import java.security.Security;
 import java.util.Locale;

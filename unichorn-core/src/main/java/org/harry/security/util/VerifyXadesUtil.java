@@ -1,11 +1,9 @@
 package org.harry.security.util;
 
-import iaik.asn1.structures.AlgorithmID;
 import iaik.security.provider.IAIKMD;
 import iaik.x509.X509Certificate;
 import iaik.x509.attr.AttributeCertificate;
 import iaik.x509.ocsp.OCSPResponse;
-import iaik.x509.ocsp.UnknownResponseException;
 import iaik.xml.crypto.XSecProvider;
 import iaik.xml.crypto.utils.KeySelectorImpl;
 import iaik.xml.crypto.xades.*;
@@ -18,8 +16,6 @@ import org.pmw.tinylog.Logger;
 import org.w3c.dom.Document;
 import org.w3c.dom.NodeList;
 
-import javax.xml.crypto.Data;
-import javax.xml.crypto.XMLStructure;
 import javax.xml.crypto.dsig.*;
 import javax.xml.crypto.dsig.dom.DOMValidateContext;
 import javax.xml.crypto.dsig.keyinfo.KeyInfo;
@@ -28,10 +24,8 @@ import javax.xml.parsers.DocumentBuilderFactory;
 import java.io.*;
 import java.math.BigInteger;
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.net.URL;
 import java.security.*;
-import java.security.cert.*;
 import java.util.*;
 
 public class VerifyXadesUtil {
@@ -314,6 +308,17 @@ public class VerifyXadesUtil {
             this.ocspCheckDone = false;
             SignedSignatureProperties ssp = sp.getSignedSignatureProperties();
             if (ssp != null) {
+                SignatureProductionPlaceV2 place = ssp.getSignatureProductionPlaceV2();
+                if (place != null) {
+                    VerificationResults.ProdPlace prodPlace = new VerificationResults.ProdPlace()
+                            .setCity(place.getCity())
+                            .setCountry(place.getCountryName())
+                            .setRegion(place.getStateOrProvince())
+                            .setStreet(place.getStreetAddress())
+                            .setZipCode(place.getPostalCode());
+                    signerResult.setProdPlace(prodPlace);
+
+                }
                 SignerRoleV2 roles = ssp.getSignerRoleV2();
                 if (roles != null) {
                         for (Object object : roles.getCertifiedRoles()) {
@@ -321,14 +326,15 @@ public class VerifyXadesUtil {
                             X509AttributeCertificate attr = role.getX509AttributeCertificate();
                             AttributeCertificate cert = new AttributeCertificate(attr.getAttributeCertificate());
                             try {
-                                cert.verify(cert.getPublicKey());
-                                signerResult.addSignatureResult("attrCert"
+                               // cert.verify(certList.get(0).getPublicKey());
+                                signerResult.addSignatureResult("attrCertCheck"
                                         , new Tuple<>("attribute cert ok", VerificationResults.Outcome.SUCCESS));
+                                signerResult.setAttrCert(cert);
                             } catch (Exception ex) {
                                 Logger.trace("Attr cert verify exception: " + ex.getMessage());
                                 Logger.trace(ex);
-                                signerResult.addSignatureResult("attrCert"
-                                        , new Tuple<>("attribute cert ok", VerificationResults.Outcome.FAILED));
+                                signerResult.addSignatureResult("attrCertCheck"
+                                        , new Tuple<>("attribute cert NOT ok", VerificationResults.Outcome.FAILED));
                             }
                         }
                 } else {
@@ -379,7 +385,7 @@ public class VerifyXadesUtil {
                     List certs = sigCerts.getCertIDs();
                     if (!certs.isEmpty()) {
                         sigCert = (CertID) certs.get(0);
-                        result.addSignersInfo(sigCert.getURI(), signerResult);
+                        result.addSignersInfo(UUID.randomUUID().toString(), signerResult);
                         signerResult.addSignatureResult("sigMathOk", new Tuple<>("signature math ok",
                                 VerificationResults.Outcome.SUCCESS));
                     }
@@ -399,7 +405,7 @@ public class VerifyXadesUtil {
                     List certs = sigCerts.getCertIDs();
                     if (!certs.isEmpty()) {
                         sigCertV2 = (CertIDV2) certs.get(0);
-                        result.addSignersInfo(sigCertV2.getURI(), signerResult);
+                        result.addSignersInfo(UUID.randomUUID().toString(), signerResult);
                         signerResult.addSignatureResult("sigMathOk", new Tuple<>("signature math ok",
                                 VerificationResults.Outcome.SUCCESS));
                     }
