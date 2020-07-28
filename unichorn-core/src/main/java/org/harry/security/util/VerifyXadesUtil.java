@@ -1,5 +1,7 @@
 package org.harry.security.util;
 
+import iaik.asn1.CodingException;
+import iaik.cms.CMSParsingException;
 import iaik.security.provider.IAIKMD;
 import iaik.x509.X509Certificate;
 import iaik.x509.attr.AttributeCertificate;
@@ -7,7 +9,9 @@ import iaik.x509.ocsp.OCSPResponse;
 import iaik.xml.crypto.XSecProvider;
 import iaik.xml.crypto.utils.KeySelectorImpl;
 import iaik.xml.crypto.xades.*;
+import iaik.xml.crypto.xades.timestamp.TSPTimeStampToken;
 import iaik.xml.crypto.xades.timestamp.TimeStampToken;
+import iaik.xml.crypto.xades.timestamp.TimeStampTokenException;
 import org.harry.security.util.algoritms.XAdESDigestAlg;
 import org.harry.security.util.algoritms.XAdESSigAlg;
 import org.harry.security.util.bean.SigningBean;
@@ -26,6 +30,7 @@ import java.math.BigInteger;
 import java.net.URI;
 import java.net.URL;
 import java.security.*;
+import java.security.cert.CertificateException;
 import java.util.*;
 
 public class VerifyXadesUtil {
@@ -38,6 +43,8 @@ public class VerifyXadesUtil {
     private final SigningBean bean;
 
     private final AlgorithmPathChecker algPathChecker;
+
+    private final TimestampChecker tstChecker;
 
     private final Provider xSecProvider;
 
@@ -58,6 +65,7 @@ public class VerifyXadesUtil {
         this.walkers = walkers;
         this.bean = bean;
         this.algPathChecker = new AlgorithmPathChecker(walkers, bean);
+        this.tstChecker = new TimestampChecker(walkers, bean);
 
         IAIKMD.addAsProvider();
         xSecProvider = new XSecProvider();
@@ -351,7 +359,7 @@ public class VerifyXadesUtil {
 
 
 
-    private void checkTimestamps(DOMValidateContext valContext, UnsignedProperties up, VerificationResults.SignerInfoCheckResults signerResult) throws XMLSignatureException {
+    private void checkTimestamps(DOMValidateContext valContext, UnsignedProperties up, VerificationResults.SignerInfoCheckResults signerResult) throws XMLSignatureException, TimeStampTokenException, CMSParsingException, CodingException, CertificateException, NoSuchAlgorithmException {
         if (up != null) {
             UnsignedSignatureProperties usp = up.getUnsignedSignatureProperties();
             if (usp != null) {
@@ -364,8 +372,14 @@ public class VerifyXadesUtil {
                     if (tsValid) {
                         TimeStampToken tsToken = sigTS.getTimeStampToken();
                         validationDate = tsToken.getTime();
+
                         signerResult.addSignatureResult("timestamp check",
                                 new Tuple<>("timstamp is ok: " + validationDate.toString(), VerificationResults.Outcome.SUCCESS));
+                        if (tsToken instanceof TSPTimeStampToken) {
+                            TSPTimeStampToken token = (TSPTimeStampToken)tsToken;
+                            tstChecker.checkAnyTimestamp(new iaik.tsp.TimeStampToken(token.getDEREncoded()), "signature timestamp", signerResult);
+                        }
+                        System.out.println("timestamp signature valid.");
                     } else {
                         signerResult.addSignatureResult("timestamp check",
                                 new Tuple<>("timstamp is NOT ok", VerificationResults.Outcome.FAILED));

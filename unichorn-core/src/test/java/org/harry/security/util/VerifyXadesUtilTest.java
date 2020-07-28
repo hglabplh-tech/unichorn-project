@@ -68,8 +68,8 @@ public class VerifyXadesUtilTest extends TestBase {
         SignXAdESUtil.XAdESParams params = util.newParams()
                 .setTSA_URL("http://zeitstempel.dfn.de/")
                 .setSetSigTimeStamp(true)
-                .setAppendOCSPValues(true)
                 .setSetContentTimeStamp(true)
+                .setAppendOCSPValues(true)
                 .setCounterSigKeys(counterKeys)
                 .setSignerRole(Optional.of(attrCert))
                 .setProductionPlace(prodPlace);

@@ -43,12 +43,95 @@ public class VerificationResults {
         }
     }
 
+    public static class TimestampResult {
+        Map<String, Tuple<String, Outcome>> formatResults = new HashMap<>();
+        Map<String, Tuple<String, Outcome>> signatureResults = new HashMap<>();
+        X509Certificate[] signerChain = null;
+
+
+        public void addCertChain(X509Certificate [] certChain) {
+            signerChain = certChain;
+        }
+
+        public TimestampResult addSignatureResult(String resultName, Tuple<String, Outcome> signatureResult) {
+            this.signatureResults.put(resultName, signatureResult);
+            return this;
+        }
+
+        public TimestampResult addFormatResult(String resultName, Tuple<String, Outcome> signatureResult) {
+            this.formatResults.put(resultName, signatureResult);
+            return this;
+        }
+
+        public X509Certificate[] getSignerChain() {
+            return signerChain;
+        }
+
+        public Map<String, Tuple<String, Outcome>> getFormatResults() {
+            return formatResults;
+        }
+
+        public Map<String, Tuple<String, Outcome>> getSignatureResults() {
+            return signatureResults;
+        }
+
+
+
+        public Outcome sigMathOk () {
+            Tuple<String, Outcome> result = signatureResults.get("sigMathOk");
+            if (result != null) {
+                return result.getSecond();
+            } else {
+                return Outcome.FAILED;
+            }
+        }
+
+        public Tuple<String, Outcome> getSignatureAlg() {
+            Optional<Map.Entry<String, Tuple<String, Outcome>>> optEntry =
+            signatureResults.entrySet()
+                    .stream()
+                    .filter(e -> e.getKey().equals("signatureAlgorithmInfo"))
+                    .findFirst();
+            Map.Entry<String, Tuple<String, Outcome>> result =
+                optEntry.orElse(new Map.Entry<String, Tuple<String, Outcome>>() {
+                @Override
+                public String getKey() {
+                    return "signatureAlgorithmInfo";
+                }
+
+                @Override
+                public Tuple<String, Outcome> getValue() {
+                    return new Tuple<>("N/A", Outcome.FAILED);
+                }
+
+                @Override
+                public Tuple<String, Outcome> setValue(Tuple<String, Outcome> value) {
+                    return null;
+                }
+            });
+            return result.getValue();
+        }
+
+        public Outcome checkFormatResult() {
+            Outcome format = Outcome.SUCCESS;
+            for (Map.Entry<String, Tuple<String, Outcome>> entry: formatResults.entrySet()) {
+                Tuple<String, Outcome> toCheck = formatResults.get(entry.getKey());
+                if (toCheck.getSecond() == Outcome.FAILED) {
+                    format = Outcome.FAILED;
+                }
+            }
+            return format;
+        }
+
+    }
+
     /**
      * The class holding the check results for a specific signer-info
      */
     public static class SignerInfoCheckResults {
         Map<String, Tuple<String, Outcome>> formatResults = new HashMap<>();
         Map<String, Tuple<String, Outcome>> signatureResults = new HashMap<>();
+        Map<String, TimestampResult> timestampResults = new HashMap<>();
         Map<String, Tuple<OCSPResponse, Outcome>> ocspResults = new HashMap<>();
         ProdPlace prodPlace = null;
         X509Certificate[] signerChain = null;
@@ -72,6 +155,8 @@ public class VerificationResults {
         public void addCertChain(Tuple<String, Outcome> result, List<X509Certificate> resultCerts, X509Certificate [] certChain) {
             signerChain = certChain;
             signersChain.put(result, resultCerts);
+
+
         }
 
         public SignerInfo getInfo() {
@@ -94,6 +179,10 @@ public class VerificationResults {
             return ocspResults;
         }
 
+        public Map<String, TimestampResult> getTimestampResults() {
+            return timestampResults;
+        }
+
         public X509Certificate [] getSignerChain() {
             return signerChain;
         }
@@ -105,6 +194,11 @@ public class VerificationResults {
 
         public SignerInfoCheckResults addFormatResult(String resultName, Tuple<String, Outcome> signatureResult) {
             this.formatResults.put(resultName, signatureResult);
+            return this;
+        }
+
+        public SignerInfoCheckResults addTimestampResult(String resultName, TimestampResult tstResult) {
+            this.timestampResults.put(resultName, tstResult);
             return this;
         }
 

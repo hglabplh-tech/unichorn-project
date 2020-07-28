@@ -20,6 +20,7 @@ import org.etsi.uri._01903.v1_3.ObjectIdentifierType;
 import org.etsi.uri._01903.v1_3.QualifierType;
 import org.etsi.uri._01903.v1_3.SignatureProductionPlaceType;
 import org.harry.security.util.ocsp.OCSPCRLClient;
+import org.pmw.tinylog.Logger;
 import org.w3._2000._09.xmldsig_.X509IssuerSerialType;
 
 
@@ -29,10 +30,7 @@ import javax.xml.datatype.DatatypeFactory;
 import javax.xml.datatype.XMLGregorianCalendar;
 import java.math.BigInteger;
 import java.security.cert.CertificateEncodingException;
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.List;
+import java.util.*;
 
 public class VerifyReporter {
 
@@ -142,7 +140,7 @@ public class VerifyReporter {
         List<JAXBElement<DetailedSignatureReportType>> detailReportList = new ArrayList<>();
         for (VerificationResults.SignerInfoCheckResults results : infoResult) {
             DetailedSignatureReportType signatureReport = new DetailedSignatureReportType();
-            addSignedSignatureProps(factory, signatureReport, results);
+            addSignatureProps(factory, signatureReport, results);
             JAXBElement<DetailedSignatureReportType> element = factory.createDetailedSignatureReport(signatureReport);
             VerificationResults.Outcome outcome = results.checkFormatResult();
             String resultMajor;
@@ -220,9 +218,15 @@ public class VerifyReporter {
         return detailReportList;
     }
 
-    private void addSignedSignatureProps(ObjectFactory factory, DetailedSignatureReportType signatureReport, VerificationResults.SignerInfoCheckResults results) {
+    private void addSignatureProps(ObjectFactory factory, DetailedSignatureReportType signatureReport, VerificationResults.SignerInfoCheckResults results) {
+        PropertiesType props = new PropertiesType();
+        addSignedSignatureProps(factory, signatureReport, props, results);
+        addUnsignedSignatureProps(factory, signatureReport, props, results);
+        signatureReport.setProperties(props);
+    }
+
+    private void addSignedSignatureProps(ObjectFactory factory, DetailedSignatureReportType signatureReport, PropertiesType props,VerificationResults.SignerInfoCheckResults results) {
         try {
-            PropertiesType props = new PropertiesType();
             SignedPropertiesType signedProps = factory.createSignedPropertiesType();
             SignedSignaturePropertiesType sigPropType = factory.createSignedSignaturePropertiesType();
             if (results.getAttrCert() != null) {
@@ -234,22 +238,87 @@ public class VerifyReporter {
                 sigPropType.setSignerRole(role);
             }
             if (results.getProdPlace() != null) {
-                VerificationResults.ProdPlace prodPlace = results.getProdPlace();
-                sigPropType.setLocation("Germany");
-                SignatureProductionPlaceType prodPlaceXML = new SignatureProductionPlaceType();
-                prodPlaceXML.setCity(prodPlace.getCity());
-                prodPlaceXML.setPostalCode(prodPlace.getZipCode());
-                prodPlaceXML.setCountryName(prodPlace.getCountry());
-                prodPlaceXML.setStateOrProvince(prodPlace.getRegion());
-                sigPropType.setSignatureProductionPlace(prodPlaceXML);
+                addProductionPlace(results, sigPropType);
             }
             signedProps.setSignedSignatureProperties(sigPropType);
             props.setSignedProperties(signedProps);
-            signatureReport.setProperties(props);
         } catch (Exception ex) {
+            Logger.trace("report generation failed" + ex.getMessage());
+            Logger.trace(ex);
             throw new IllegalStateException("report generation failed", ex);
         }
     }
+    private void addUnsignedSignatureProps(ObjectFactory factory, DetailedSignatureReportType signatureReport, PropertiesType props, VerificationResults.SignerInfoCheckResults results) {
+        try {
+            UnsignedPropertiesType unsignedProps = factory.createUnsignedPropertiesType();
+            UnsignedSignaturePropertiesType usigPropType = factory.createUnsignedSignaturePropertiesType();
+            if (results.getTimestampResults() != null && results.getTimestampResults().size() > 0) {
+                for (Map.Entry<String, VerificationResults.TimestampResult> entry :
+                results.getTimestampResults().entrySet()) {
+                    TimeStampValidityType sigTSTValidity = factory.createTimeStampValidityType();
+                    VerificationResults.Outcome formatOK = entry.getValue().checkFormatResult();
+                    String resultMajor;
+                    String message;
+                    if (formatOK == VerificationResults.Outcome.SUCCESS) {
+                        resultMajor = MAJORCODE_PASS;
+                        message = "format result ok";
+                    } else {
+                        resultMajor = MAJORCODE_FAIL;
+                        message = "format result not ok";
+                    }
+                    VerificationResultType result = generateVerificationResult(resultMajor, message);
+                    sigTSTValidity.setFormatOK(result);
+                    SignatureValidityType sigValidity = factory.createSignatureValidityType();
+                    AlgorithmValidityType algValidType = factory.createAlgorithmValidityType();
+                    Tuple<String, VerificationResults.Outcome> sigAlgTuple =
+                            entry.getValue().getSignatureAlg();
+                    algValidType.setAlgorithm(sigAlgTuple.getFirst());
+                    if (sigAlgTuple.getSecond() == VerificationResults.Outcome.SUCCESS) {
+                        resultMajor = MAJORCODE_PASS;
+                        message = "algorithm ok";
+                    } else {
+                        resultMajor = MAJORCODE_FAIL;
+                        message = "algorithm not ok";
+                    }
+                    algValidType.setSuitability(generateVerificationResult(resultMajor, message));
+                    sigValidity.setSignatureAlgorithm(algValidType);
+                    VerificationResults.Outcome sigMathOk = entry.getValue().sigMathOk();
+                    if (sigMathOk == VerificationResults.Outcome.SUCCESS) {
+                        resultMajor = MAJORCODE_PASS;
+                        message = "signature ok";
+                    } else {
+                        resultMajor = MAJORCODE_FAIL;
+                        message = "signature not ok";
+                    }
+                    JAXBElement<TimeStampValidityType> tstJAXB =
+                            factory.createIndividualTimeStampReport(sigTSTValidity);
+                    sigValidity.setSigMathOK(generateVerificationResult(resultMajor, message));
+                    sigTSTValidity.setSignatureOK(sigValidity);
+                    usigPropType.getCounterSignatureOrSignatureTimeStampOrCompleteCertificateRefs()
+                            .add(tstJAXB);
+                }
+                unsignedProps.setUnsignedSignatureProperties(usigPropType);
+            }
+            props.setUnsignedProperties(unsignedProps);
+        } catch (Exception ex) {
+            Logger.trace("cannot report unsigned properties" + ex.getMessage());
+            Logger.trace(ex);
+            throw new IllegalStateException("cannot report unsigned properties", ex);
+        }
+    }
+
+    private void addProductionPlace(VerificationResults.SignerInfoCheckResults results, SignedSignaturePropertiesType sigPropType) {
+        VerificationResults.ProdPlace prodPlace = results.getProdPlace();
+        sigPropType.setLocation("Germany");
+        SignatureProductionPlaceType prodPlaceXML = new SignatureProductionPlaceType();
+        prodPlaceXML.setCity(prodPlace.getCity());
+        prodPlaceXML.setPostalCode(prodPlace.getZipCode());
+        prodPlaceXML.setCountryName(prodPlace.getCountry());
+        prodPlaceXML.setStateOrProvince(prodPlace.getRegion());
+        sigPropType.setSignatureProductionPlace(prodPlaceXML);
+    }
+
+
 
     private void createAttrCertEntry(ObjectFactory factory, AttributeCertificate attrCert, CertifiedRolesListType certified) throws CertificateEncodingException, DatatypeConfigurationException {
         AttributeCertificateValidityType certValid = factory.createAttributeCertificateValidityType();

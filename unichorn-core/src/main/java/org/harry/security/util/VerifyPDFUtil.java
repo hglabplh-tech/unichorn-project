@@ -32,12 +32,14 @@ public class VerifyPDFUtil {
     private final List<TrustListManager> walkers;
     private final SigningBean bean;
     private final AlgorithmPathChecker algPathChecker;
+    private final TimestampChecker tstChecker;
 
     /**
      * The default constructor for verification
      * @param walkers the trust lists
      */
     public VerifyPDFUtil(List<TrustListManager> walkers, SigningBean bean) {
+        this.tstChecker = new TimestampChecker(walkers, bean);
         this.walkers = walkers;
         this.bean = bean;
         this.algPathChecker = new AlgorithmPathChecker(walkers, bean);
@@ -113,7 +115,7 @@ public class VerifyPDFUtil {
                     algPathChecker.detectChain(certificate, null, results);
                     System.out.println("certificate valid at signing time.");
                     if (sigApp.getSignatureTimeStampToken() != null) {
-                        checkAnyTimestamp(sigApp.getSignatureTimeStampToken(), "signature timestamp", results);
+                        tstChecker.checkAnyTimestamp(sigApp.getSignatureTimeStampToken(), "signature timestamp", results);
                         System.out.println("timestamp signature valid.");
                     }
                 }
@@ -173,10 +175,10 @@ public class VerifyPDFUtil {
             ContentTimeStamp[] cTimeStamps = signature.getContentTimeStamps(index);
             SignatureTimeStamp[] sTimeStamps = signature.getSignatureTimeStamps(index);
             for (ContentTimeStamp tsp: cTimeStamps) {
-                checkAnyTimestamp(tsp.getTimeStampToken(), "content timestamp", results);
+                tstChecker.checkAnyTimestamp(tsp.getTimeStampToken(), "content timestamp", results);
             }
             for (SignatureTimeStamp tsp:sTimeStamps) {
-                checkAnyTimestamp(tsp.getTimeStampToken(), "signature timestamp", results);
+                tstChecker.checkAnyTimestamp(tsp.getTimeStampToken(), "signature timestamp", results);
             }
         }
 
@@ -203,41 +205,6 @@ public class VerifyPDFUtil {
         }
 
         return success;
-    }
-
-    /**
-     * Here the timestamps for content signature and archive are checked as well as their signers certificates
-     * @param token the time-stamp-token
-     * @param tokenType the token type for string output
-     * @param results the check result container
-     * @throws CertificateException error case
-     * @throws NoSuchAlgorithmException error case
-     */
-    public void checkAnyTimestamp(TimeStampToken token, String tokenType, VerificationResults.SignerInfoCheckResults results) throws CertificateException, NoSuchAlgorithmException {
-        if (token != null) {
-            try {
-                token.verifyTimeStampToken();
-            } catch(Exception ex) {
-                return;
-            }
-
-            SignerInfo info = token.getSignerInfo();
-            AlgorithmID signatureAlg = info.getSignatureAlgorithm();
-            results.addSignatureResult("timestamp signatureAlgorithmInfo " + tokenType,
-                    new Tuple<>(signatureAlg.getImplementationName(), VerificationResults.Outcome.SUCCESS));
-            AlgorithmID digestAlg = info.getDigestAlgorithm();
-            results.addSignatureResult("timestamp digestAlgorithmInfo " + tokenType,
-                    new Tuple<>(digestAlg.getImplementationName(), VerificationResults.Outcome.SUCCESS));
-            X509Certificate signingCert = Util.convertCertificate(token.getSigningCertificate());
-            System.out.println(signingCert.toString(true));
-            X509Certificate[] certs = Util.convertCertificateChain(token.getCertificates());
-            X509Certificate[] result = Util.arrangeCertificateChain(certs, false);
-            boolean ocspCheck = bean.isCheckPathOcsp();
-            bean.setCheckPathOcsp(false);
-            AlgorithmPathChecker checker  = new AlgorithmPathChecker(walkers, bean);
-            checker.detectChain(signingCert, result, results);
-            bean.setCheckPathOcsp(ocspCheck);
-        }
     }
 
 
