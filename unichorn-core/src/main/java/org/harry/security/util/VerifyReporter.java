@@ -12,13 +12,18 @@ import iaik.x509.ocsp.OCSPResponse;
 import iaik.xml.crypto.xades.SignatureProductionPlace;
 import oasis.names.tc.dss._1_0.core.schema.*;
 
+import oasis.names.tc.dss._1_0.core.schema.AnyType;
 import oasis.names.tc.dss_x._1_0.profiles.verificationreport.schema_.*;
+import oasis.names.tc.dss_x._1_0.profiles.verificationreport.schema_.CertifiedRolesListType;
 import oasis.names.tc.dss_x._1_0.profiles.verificationreport.schema_.ObjectFactory;
 import oasis.names.tc.dss_x._1_0.profiles.verificationreport.schema_.PropertiesType;
+import oasis.names.tc.dss_x._1_0.profiles.verificationreport.schema_.SignedPropertiesType;
+import oasis.names.tc.dss_x._1_0.profiles.verificationreport.schema_.SignedSignaturePropertiesType;
+import oasis.names.tc.dss_x._1_0.profiles.verificationreport.schema_.SignerRoleType;
+import oasis.names.tc.dss_x._1_0.profiles.verificationreport.schema_.UnsignedPropertiesType;
+import oasis.names.tc.dss_x._1_0.profiles.verificationreport.schema_.UnsignedSignaturePropertiesType;
+import org.etsi.uri._01903.v1_3.*;
 import org.etsi.uri._01903.v1_3.IdentifierType;
-import org.etsi.uri._01903.v1_3.ObjectIdentifierType;
-import org.etsi.uri._01903.v1_3.QualifierType;
-import org.etsi.uri._01903.v1_3.SignatureProductionPlaceType;
 import org.harry.security.util.ocsp.OCSPCRLClient;
 import org.pmw.tinylog.Logger;
 import org.w3._2000._09.xmldsig_.X509IssuerSerialType;
@@ -254,57 +259,121 @@ public class VerifyReporter {
             UnsignedSignaturePropertiesType usigPropType = factory.createUnsignedSignaturePropertiesType();
             if (results.getTimestampResults() != null && results.getTimestampResults().size() > 0) {
                 for (Map.Entry<String, VerificationResults.TimestampResult> entry :
-                results.getTimestampResults().entrySet()) {
-                    TimeStampValidityType sigTSTValidity = factory.createTimeStampValidityType();
-                    VerificationResults.Outcome formatOK = entry.getValue().checkFormatResult();
-                    String resultMajor;
-                    String message;
-                    if (formatOK == VerificationResults.Outcome.SUCCESS) {
-                        resultMajor = MAJORCODE_PASS;
-                        message = "format result ok";
-                    } else {
-                        resultMajor = MAJORCODE_FAIL;
-                        message = "format result not ok";
-                    }
-                    VerificationResultType result = generateVerificationResult(resultMajor, message);
-                    sigTSTValidity.setFormatOK(result);
-                    SignatureValidityType sigValidity = factory.createSignatureValidityType();
-                    AlgorithmValidityType algValidType = factory.createAlgorithmValidityType();
-                    Tuple<String, VerificationResults.Outcome> sigAlgTuple =
-                            entry.getValue().getSignatureAlg();
-                    algValidType.setAlgorithm(sigAlgTuple.getFirst());
-                    if (sigAlgTuple.getSecond() == VerificationResults.Outcome.SUCCESS) {
-                        resultMajor = MAJORCODE_PASS;
-                        message = "algorithm ok";
-                    } else {
-                        resultMajor = MAJORCODE_FAIL;
-                        message = "algorithm not ok";
-                    }
-                    algValidType.setSuitability(generateVerificationResult(resultMajor, message));
-                    sigValidity.setSignatureAlgorithm(algValidType);
-                    VerificationResults.Outcome sigMathOk = entry.getValue().sigMathOk();
-                    if (sigMathOk == VerificationResults.Outcome.SUCCESS) {
-                        resultMajor = MAJORCODE_PASS;
-                        message = "signature ok";
-                    } else {
-                        resultMajor = MAJORCODE_FAIL;
-                        message = "signature not ok";
-                    }
-                    JAXBElement<TimeStampValidityType> tstJAXB =
-                            factory.createIndividualTimeStampReport(sigTSTValidity);
-                    sigValidity.setSigMathOK(generateVerificationResult(resultMajor, message));
-                    sigTSTValidity.setSignatureOK(sigValidity);
-                    usigPropType.getCounterSignatureOrSignatureTimeStampOrCompleteCertificateRefs()
-                            .add(tstJAXB);
+                        results.getTimestampResults().entrySet()) {
+                    tstReport(factory, usigPropType, entry);
                 }
                 unsignedProps.setUnsignedSignatureProperties(usigPropType);
             }
+            completeCertRefs(usigPropType, results);
             props.setUnsignedProperties(unsignedProps);
         } catch (Exception ex) {
             Logger.trace("cannot report unsigned properties" + ex.getMessage());
             Logger.trace(ex);
             throw new IllegalStateException("cannot report unsigned properties", ex);
         }
+    }
+
+    private void completeCertRefs(UnsignedSignaturePropertiesType usigPropType, VerificationResults.SignerInfoCheckResults results) {
+        org.etsi.uri._01903.v1_3.ObjectFactory factory = new org.etsi.uri._01903.v1_3.ObjectFactory();
+        CompleteCertificateRefsType completeCertificateRefs = factory.createCompleteCertificateRefsType();
+        X509Certificate [] chain = results.getSignerChain();
+        if (chain != null && chain.length >= 1) {
+            CertIDListType certIDListType = factory.createCertIDListType();
+            List<CertIDType> certIDs = certIDListType.getCert();
+            for (X509Certificate certificate: chain) {
+                CertIDType certIDType = factory.createCertIDType();
+                X509IssuerSerialType issuerSerial = new X509IssuerSerialType();
+                issuerSerial.setX509SerialNumber(certificate.getSerialNumber());
+                issuerSerial.setX509IssuerName(certificate.getIssuerDN().getName());
+                certIDType.setIssuerSerial(issuerSerial);
+                certIDs.add(certIDType);
+            }
+            completeCertificateRefs.setCertRefs(certIDListType);
+            JAXBElement<CompleteCertificateRefsType> completeCertRefsJAXB =
+                    factory.createCompleteCertificateRefs(completeCertificateRefs);
+            usigPropType.getCounterSignatureOrSignatureTimeStampOrCompleteCertificateRefs()
+                    .add(completeCertRefsJAXB);
+        }
+    }
+
+    private void tstReport(ObjectFactory factory, UnsignedSignaturePropertiesType usigPropType, Map.Entry<String, VerificationResults.TimestampResult> entry) {
+        TimeStampValidityType sigTSTValidity = factory.createTimeStampValidityType();
+        tstFormatOK(entry, sigTSTValidity);
+        String resultMajor;
+        String message;
+        SignatureValidityType sigValidity = factory.createSignatureValidityType();
+        AlgorithmValidityType algValidType = factory.createAlgorithmValidityType();
+        Tuple<String, VerificationResults.Outcome> sigAlgTuple =
+                entry.getValue().getSignatureAlg();
+        tstSigAlgOK(entry, sigTSTValidity, sigValidity, algValidType, sigAlgTuple);
+        X509Certificate[] chain = entry.getValue().getSignerChain();
+        tstPathValid(factory, sigTSTValidity, chain);
+        JAXBElement<TimeStampValidityType> tstJAXB =
+                factory.createIndividualTimeStampReport(sigTSTValidity);
+        usigPropType.getCounterSignatureOrSignatureTimeStampOrCompleteCertificateRefs()
+                .add(tstJAXB);
+    }
+
+    private void tstSigAlgOK(Map.Entry<String, VerificationResults.TimestampResult> entry, TimeStampValidityType sigTSTValidity, SignatureValidityType sigValidity, AlgorithmValidityType algValidType, Tuple<String, VerificationResults.Outcome> sigAlgTuple) {
+        String resultMajor;
+        String message;
+        algValidType.setAlgorithm(sigAlgTuple.getFirst());
+        if (sigAlgTuple.getSecond() == VerificationResults.Outcome.SUCCESS) {
+            resultMajor = MAJORCODE_PASS;
+            message = "algorithm ok";
+        } else {
+            resultMajor = MAJORCODE_FAIL;
+            message = "algorithm not ok";
+        }
+        algValidType.setSuitability(generateVerificationResult(resultMajor, message));
+        sigValidity.setSignatureAlgorithm(algValidType);
+        VerificationResults.Outcome sigMathOk = entry.getValue().sigMathOk();
+        if (sigMathOk == VerificationResults.Outcome.SUCCESS) {
+            resultMajor = MAJORCODE_PASS;
+            message = "signature ok";
+        } else {
+            resultMajor = MAJORCODE_FAIL;
+            message = "signature not ok";
+        }
+
+        sigValidity.setSigMathOK(generateVerificationResult(resultMajor, message));
+        sigTSTValidity.setSignatureOK(sigValidity);
+    }
+
+    private void tstPathValid(ObjectFactory factory, TimeStampValidityType sigTSTValidity, X509Certificate[] chain) {
+        String resultMajor;
+        String message;
+        if (chain != null) {
+            CertificatePathValidityType certPathValid =
+                    factory.createCertificatePathValidityType();
+            X509IssuerSerialType serialType = new X509IssuerSerialType();
+            serialType.setX509SerialNumber(chain[0].getSerialNumber());
+            serialType.setX509IssuerName(chain[0].getIssuerDN().getName());
+
+            certPathValid.setCertificateIdentifier(serialType);
+            CertificatePathValidityVerificationDetailType detail =
+                    factory.createCertificatePathValidityVerificationDetailType();
+            resultMajor = MAJORCODE_PASS;
+            message = "cert path passed";
+            detail.setTrustAnchor(generateVerificationResult(resultMajor, message));
+            certPathValid.setPathValidityDetail(detail);
+            sigTSTValidity.setCertificatePathValidity(certPathValid);
+        }
+    }
+
+    private void tstFormatOK(Map.Entry<String, VerificationResults.TimestampResult> entry, TimeStampValidityType sigTSTValidity) {
+        VerificationResults.Outcome formatOK = entry.getValue().checkFormatResult();
+        String resultMajor;
+        String message;
+        if (formatOK == VerificationResults.Outcome.SUCCESS) {
+            resultMajor = MAJORCODE_PASS;
+            message = "format result ok";
+        } else {
+            resultMajor = MAJORCODE_FAIL;
+            message = "format result not ok";
+        }
+        VerificationResultType result = generateVerificationResult(resultMajor, message);
+        sigTSTValidity.setFormatOK(result);
     }
 
     private void addProductionPlace(VerificationResults.SignerInfoCheckResults results, SignedSignaturePropertiesType sigPropType) {
