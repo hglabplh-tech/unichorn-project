@@ -425,19 +425,17 @@ public class CardManager {
 
 
 
-            if (name.startsWith("EMAIL")) {
-                count++;
-            }
+
             if (extendedKeyUsage != null) {
                 ObjectID[] ids = extendedKeyUsage.getKeyPurposeIDs();
                 for (ObjectID id : Arrays.asList(ids)) {
-                    if (id.equals(ExtendedKeyUsage.clientAuth)) {
+                    if (id.equals(ExtendedKeyUsage.emailProtection)) {
                         count++;
                     }
 
                 }
             }
-            selected = (count == 3);
+            selected = (count == 2);
         } catch (Exception e) {
             // do nothing
             selected = false;
