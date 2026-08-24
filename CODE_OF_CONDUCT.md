@@ -1,4 +1,4 @@
-# Unichorn Project Code of Conduct
+# Unicorn Project Code of Conduct
 
 ## Our Commitment
 
