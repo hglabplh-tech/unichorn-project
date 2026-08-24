@@ -103,7 +103,7 @@ Depending on the circumstances and severity of a violation, maintainers may:
 - temporarily restrict participation; or
 - permanently ban an individual from project-controlled communication channels.
 
-Security incidents, credible threats, or potentially unlawful conduct may be reported to the appropriate platform operators or authorities where necessary.
+Report security incidents, credible threats, or potentially unlawful conduct to the appropriate platform operators or authorities where necessary.
 
 Enforcement decisions should be proportionate to the behavior involved and should not be used merely to suppress legitimate technical criticism or disagreement.
 
@@ -139,7 +139,7 @@ Technical decisions should be based primarily on:
 
 ## License and Attribution
 
-This Code of Conduct is provided as part of the Unichorn Project documentation.
+This Code of Conduct is provided as part of the Unicorn Project documentation.
 
 Copyright © 2026 Harald Glab-Plhak.
 
