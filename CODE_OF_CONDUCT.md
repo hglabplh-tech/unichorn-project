@@ -143,4 +143,4 @@ This Code of Conduct is provided as part of the Unichorn Project documentation.
 
 Copyright © 2026 Harald Glab-Plhak.
 
-Permission is granted to copy, modify, and redistribute this document under the terms of the MIT License included with the Unichorn Project.
+Permission is granted to copy, modify, and redistribute this document under the terms of the MIT License included with the Unicorn Project.
